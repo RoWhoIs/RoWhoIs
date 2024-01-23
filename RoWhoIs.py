@@ -509,10 +509,8 @@ async def getitemdetails(interaction: discord.Interaction, item: int):
         embed.add_field(name="Updated:", value=f"`{(await fancy_time(data["Updated"]))}`", inline=True)
         if isCollectible:
             embed.add_field(name="Quantity:", value=f"`{data["CollectiblesItemDetails"]["TotalQuantity"]}`", inline=True)
-            if data["CollectiblesItemDetails"]["CollectibleLowestResalePrice"] != None and data["IsForSale"]:
-                embed.add_field(name="Lowest Price:", value=f"<:Robux:1199463545151168533> `{data["CollectiblesItemDetails"]["CollectibleLowestResalePrice"]}`", inline=True)
-            elif data["IsForSale"]:
-                embed.add_field(name="Lowest Price:", value=f"`No resellers`", inline=True)
+            if data["CollectiblesItemDetails"]["CollectibleLowestResalePrice"] != None and data["IsForSale"]: embed.add_field(name="Lowest Price:", value=f"<:Robux:1199463545151168533> `{data["CollectiblesItemDetails"]["CollectibleLowestResalePrice"]}`", inline=True)
+            elif data["IsForSale"]: embed.add_field(name="Lowest Price:", value=f"`No resellers`", inline=True)
         if data["IsForSale"]:
             if (data["Remaining"] is not None and data["Remaining"] != 0): embed.add_field(name="Remaining:", value=f"`{data['Remaining']}`", inline=True)
             if not (data["IsLimited"] or data["Remaining"] == 0 or isCollectible): embed.add_field(name="Price:", value=f"<:Robux:1199463545151168533> `{data['PriceInRobux']}`", inline=True)
