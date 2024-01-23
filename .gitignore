@@ -1,0 +1,7 @@
+__pycache__/
+logs.txt
+logs/
+.DS_Store
+cache/
+secret.py
+config.json
