@@ -10,7 +10,7 @@ log_config_updates, testing_mode = None, None
 
 with open('config.json', 'r') as file: config = json.load(file) # Must be ran sync on init
 testing_mode = config.get("RoWhoIs", {}).get("testing", False)
-# https://economy.roblox.com/v2/assets/{itemId}/details :troll_face:
+# /getgamedetails when?
 
 class RoWhoIs(discord.Client):
     def __init__(self, *, intents: discord.Intents):
@@ -135,9 +135,10 @@ async def help(interaction: discord.Interaction):
     embedVar.add_field(name="userid {Username}", value="Get a User ID based off a username.", inline=True)
     embedVar.add_field(name="ownsitem {UserId}/{username}, {itemId}", value="Retrieve whether a user owns an item or not. Works with players who have a private inventory.", inline=True)
     embedVar.add_field(name="ownsbadge {UserId}/{username}, {badgeId}", value="Retrieve whether a user owns a badge or not. Works with players who have a private inventory.", inline=True)
-    embedVar.add_field(name="limited {limited name}/{limited acronym}", value="Returns a limited ID, the rap, and value of the specified limited.", inline=True)
     embedVar.add_field(name="isfriendswith {user1}, {user2}", value="Check if two players are friended.", inline=True)
     embedVar.add_field(name="isingroup {user}, {group}", value="Check if a player is in the specified group.", inline=True)
+    embedVar.add_field(name="limited {limited name}/{limited acronym}", value="Returns a limited ID, the rap, and value of the specified limited.", inline=True)
+    embedVar.add_field(name="getitemdetails {item}", value="Returns details about a catalog item.", inline=True)
     embedVar.set_footer(text=f"Version {(await get_version())}")
     await interaction.followup.send(embed=embedVar)
 
@@ -480,6 +481,47 @@ async def getclothingtexture(interaction: discord.Interaction, clothing_id: int)
         embed.description = "Invalid item type."
         await interaction.followup.send(embed=embed)
     except Exception as e: await handle_unknown_error(e, interaction, "getclothingtexture")
+
+@client.tree.command() # Still somehow less lines than whois LOL
+@discord.app_commands.checks.cooldown(2, 60, key=lambda i: (i.user.id))
+async def getitemdetails(interaction: discord.Interaction, item: int):
+    """Get advanced details about a catalog item."""
+    await interaction.response.defer(ephemeral=False)
+    embed = discord.Embed(color=0xFF0000)
+    if not (await check_user(interaction, embed)): return
+    try:
+        data = await Roquest.Roquest("GET", f"https://economy.roblox.com/v2/assets/{item}/details")
+        if data in [404, 400]:
+            embed.description = "Item does not exist."
+            await interaction.followup.send(embed=embed)
+            return
+        elif data in [403, -1]:
+            embed.description = "Whoops! We couldn't get this item. Try again later."
+            await interaction.followup.send(embed=embed)
+            return
+        embed.url = f"https://www.roblox.com/catalog/{item}"
+        if data["CollectibleItemId"] != None: isCollectible = True
+        else: isCollectible = False
+        embed.title = f"{'<:Limited:1199463458316492850>' if data["IsLimited"] else '<:LimitedU:1199463513505157240>' if data["IsLimitedUnique"] else '<:Collectible:1199466929816084611>' if isCollectible else ''} {data["Name"]}"
+        embed.add_field(name="Creator:", value=(f"`{data["Creator"]["Name"]}` (`{data["Creator"]["Id"]}`) {'<:RoWhoIsStaff:1186713381038719077>' if userid in staff_ids else '<:verified:1186711315679563886>' if data["Creator"]["HasVerifiedBadge"] else ''}"))
+        embed.add_field(name="Description:", value=f"`{data["Description"]}`" if data["Description"] != "" else None, inline=False)
+        embed.add_field(name="Created:", value=f"`{(await fancy_time(data["Created"]))}`", inline=True)
+        embed.add_field(name="Updated:", value=f"`{(await fancy_time(data["Updated"]))}`", inline=True)
+        if isCollectible:
+            embed.add_field(name="Quantity:", value=f"`{data["CollectiblesItemDetails"]["TotalQuantity"]}`", inline=True)
+            if data["CollectiblesItemDetails"]["CollectibleLowestResalePrice"] != None and data["IsForSale"]:
+                embed.add_field(name="Lowest Price:", value=f"<:Robux:1199463545151168533> `{data["CollectiblesItemDetails"]["CollectibleLowestResalePrice"]}`", inline=True)
+            elif data["IsForSale"]:
+                embed.add_field(name="Lowest Price:", value=f"`No resellers`", inline=True)
+        if data["IsForSale"]:
+            if (data["Remaining"] is not None and data["Remaining"] != 0): embed.add_field(name="Remaining:", value=f"`{data['Remaining']}`", inline=True)
+            if not (data["IsLimited"] or data["Remaining"] == 0 or isCollectible): embed.add_field(name="Price:", value=f"<:Robux:1199463545151168533> `{data['PriceInRobux']}`", inline=True)
+        thumbnail_url = await RoModules.get_item_thumbnail(item, "420x420")
+        if thumbnail_url not in [-1, -2]: embed.set_thumbnail(url=thumbnail_url)
+        embed.color = 0x00FF00
+        await interaction.followup.send(embed=embed)
+        return
+    except Exception as e: await handle_unknown_error(e, interaction, "getitemdetails")
 
 if testing_mode:loop.run_until_complete(client.start(RWI.TESTING))
 else: loop.run_until_complete(client.start(RWI.PRODUCTION))
