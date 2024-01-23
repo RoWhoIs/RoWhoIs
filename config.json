@@ -1,0 +1,20 @@
+{
+    "RoWhoIs": {
+      "testing": true,
+      "opt_out": [],
+      "banned_users": [],
+      "admin_ids": [],
+      "log_config_updates": false
+    },
+    "Roquest": {
+      "log_token_failures": false
+    },
+    "RoModules": {},
+    "Proxy": {
+      "enable_proxying": false,
+      "proxy_urls": [],
+      "username": "",
+      "password": ""
+    }    
+  }
+  
