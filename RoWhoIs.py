@@ -502,14 +502,14 @@ async def getitemdetails(interaction: discord.Interaction, item: int):
         embed.url = f"https://www.roblox.com/catalog/{item}"
         if data["CollectibleItemId"] != None: isCollectible = True
         else: isCollectible = False
-        embed.title = f"{'<:Limited:1199463458316492850>' if data["IsLimited"] else '<:LimitedU:1199463513505157240>' if data["IsLimitedUnique"] else '<:Collectible:1199466929816084611>' if isCollectible else ''} {data["Name"]}"
-        embed.add_field(name="Creator:", value=(f"`{data["Creator"]["Name"]}` (`{data["Creator"]["Id"]}`) {'<:RoWhoIsStaff:1186713381038719077>' if userid in staff_ids else '<:verified:1186711315679563886>' if data["Creator"]["HasVerifiedBadge"] else ''}"))
-        embed.add_field(name="Description:", value=f"`{data["Description"]}`" if data["Description"] != "" else None, inline=False)
-        embed.add_field(name="Created:", value=f"`{(await fancy_time(data["Created"]))}`", inline=True)
-        embed.add_field(name="Updated:", value=f"`{(await fancy_time(data["Updated"]))}`", inline=True)
+        embed.title = f"{'<:Limited:1199463458316492850>' if data['IsLimited'] else '<:LimitedU:1199463513505157240>' if data['IsLimitedUnique'] else '<:Collectible:1199466929816084611>' if isCollectible else ''} {data['Name']}"
+        embed.add_field(name="Creator:", value=(f"`{data['Creator']['Name']}` (`{data['Creator']['Id']}`) {'<:RoWhoIsStaff:1186713381038719077>' if userid in staff_ids else '<:verified:1186711315679563886>' if data['Creator']['HasVerifiedBadge'] else ''}"))
+        embed.add_field(name="Description:", value=f"`{data['Description']}`" if data['Description'] != "" else None, inline=False)
+        embed.add_field(name="Created:", value=f"`{(await fancy_time(data['Created']))}`", inline=True)
+        embed.add_field(name="Updated:", value=f"`{(await fancy_time(data['Updated']))}`", inline=True)
         if isCollectible:
-            embed.add_field(name="Quantity:", value=f"`{data["CollectiblesItemDetails"]["TotalQuantity"]}`", inline=True)
-            if data["CollectiblesItemDetails"]["CollectibleLowestResalePrice"] != None and data["IsForSale"]: embed.add_field(name="Lowest Price:", value=f"<:Robux:1199463545151168533> `{data["CollectiblesItemDetails"]["CollectibleLowestResalePrice"]}`", inline=True)
+            embed.add_field(name="Quantity:", value=f"`{data['CollectiblesItemDetails']['TotalQuantity']}`", inline=True)
+            if data['CollectiblesItemDetails']['CollectibleLowestResalePrice'] is not None and data['IsForSale']: embed.add_field(name="Lowest Price:", value=f"<:Robux:1199463545151168533> `{data['CollectiblesItemDetails']['CollectibleLowestResalePrice']}`", inline=True)
             elif data["IsForSale"]: embed.add_field(name="Lowest Price:", value=f"`No resellers`", inline=True)
         if data["IsForSale"]:
             if (data["Remaining"] is not None and data["Remaining"] != 0): embed.add_field(name="Remaining:", value=f"`{data['Remaining']}`", inline=True)
