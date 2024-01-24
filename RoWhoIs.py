@@ -209,12 +209,13 @@ async def whois(interaction: discord.Interaction, user: str):
             embed.description = "User doesn't exist."
             await interaction.followup.send(embed=embed, ephemeral=True)
             return
+        user_thumbnail = await RoModules.get_player_thumbnail(user_id[0], "420x420") # Otherwise causes issues with response sent without user_thumbnail
+        if user_thumbnail: embed.set_thumbnail(url=user_thumbnail)
         if banned == True: private_inventory = True 
         else: private_inventory = True
         veriftype = await RoModules.check_verification(user_id[0]) if not banned and user_id[0] != 1 else None
         last_online_formatted = await fancy_time(await RoModules.last_online(user_id[0]))
         joined_timestamp = await fancy_time(created)
-        user_thumbnail = await RoModules.get_player_thumbnail(user_id[0], "420x420")
         previous_usernames = await RoModules.get_previous_usernames(user_id[0]) if not banned else []
         groups = await RoModules.get_group_count(user_id[0])
         friends, followers, following = await RoModules.get_socials(user_id[0])
@@ -258,7 +259,6 @@ async def whois(interaction: discord.Interaction, user: str):
         embed.add_field(name="Friends:", value=f"`{friends}`" if friends not in [-1, -2] else "Failed to fetch.", inline=True)
         embed.add_field(name="Followers:", value=f"`{followers}`" if followers not in [-1, -2] else "Failed to fetch.", inline=True)
         embed.add_field(name="Following:", value=f"`{following}`" if following not in [-1, -2] else "Failed to fetch.", inline=True)
-        if user_thumbnail: embed.set_thumbnail(url=user_thumbnail)
         await interaction.followup.send(embed=embed)
     except Exception as e: await handle_unknown_error(e, interaction, "whois")
 
@@ -288,8 +288,7 @@ async def ownsitem(interaction: discord.Interaction, user: str, item_id: int):
             uaid_list = [item["instanceId"] for item in verifhat["data"][:50]]
             more_items = total_items_owned - 50
             thumbnail_url = await RoModules.get_item_thumbnail(item_id, "420x420")
-            if thumbnail_url != -1:
-                embed.set_thumbnail(url=thumbnail_url)
+            if thumbnail_url != -1: embed.set_thumbnail(url=thumbnail_url)
             embed.color = 0x00FF00
             embed.title = f"{user_id[1]} owns {total_items_owned} {item_name}{'s' if total_items_owned > 1 else ''}!"
             embed.description = "**UAIDs:**\n" + ', '.join([f"`{uaid}`" for uaid in map(str, uaid_list)])
