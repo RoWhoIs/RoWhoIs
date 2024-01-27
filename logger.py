@@ -10,7 +10,7 @@ class AsyncLogCollector:
         self.log_levels = {'INFO': '\033[32mINFO\033[0m','WARN': '\033[33mWARN\033[0m','ERROR': '\033[31mERROR\033[0m','FATAL': '\033[31;1mFATAL\033[0m'}
     async def log(self, level, message):
         timestamp = self.get_colored_timestamp()
-        print(formatted_message = self.log_format % {'timestamp': timestamp, 'level': self.log_levels.get(level, level), 'message': message})
+        print(self.log_format % {'timestamp': timestamp, 'level': self.log_levels.get(level, level), 'message': message})
         plain_log = self.log_format % {'timestamp': self.get_timestamp(), 'level': level, 'message': message}
         async with aiofiles.open(self.filename, mode='a') as file: await file.write(plain_log + '\n')
     async def info(self, message): await self.log('INFO', message)
