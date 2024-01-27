@@ -10,7 +10,6 @@ log_config_updates, testing_mode = None, None
 
 with open('config.json', 'r') as file: config = json.load(file) # Must be ran sync on init
 testing_mode = config.get("RoWhoIs", {}).get("testing", False)
-# /getgamedetails when?
 
 class RoWhoIs(discord.Client):
     def __init__(self, *, intents: discord.Intents):
@@ -147,8 +146,8 @@ async def on_app_command_error(interaction: discord.Interaction,error: discord.a
     if isinstance(error, discord.app_commands.CommandOnCooldown):
         await interaction.response.send_message(f"Your enthusiasm is greatly appreciated, but please slow down! Try again in {round(error.retry_after)} seconds.", ephemeral=True)
     else:
-        await interaction.response.send_message(f"Whoops! Looks like we encountered an unexpected error. We've reported this to our dev team and we'll fix it shortly!", ephemeral=True)
         await log_collector.fatal(f"Unexpected error occured during core command function: {error}")
+        await interaction.response.send_message(f"Whoops! Looks like we encountered an unexpected error. We've reported this to our dev team and we'll fix it shortly!", ephemeral=True)
         
 @client.tree.command()
 @discord.app_commands.checks.cooldown(5, 60, key=lambda i: (i.user.id))
@@ -438,7 +437,7 @@ async def isingroup(interaction: discord.Interaction, user: str, group:int):
             return
     except Exception as e: await handle_unknown_error(e, interaction, "isingroup")
 
-@client.tree.command() # Still somehow less lines than whois LOL
+@client.tree.command()
 @discord.app_commands.checks.cooldown(2, 60, key=lambda i: (i.user.id))
 async def getclothingtexture(interaction: discord.Interaction, clothing_id: int):
     """Get the texture file of a clothing item"""
@@ -481,7 +480,7 @@ async def getclothingtexture(interaction: discord.Interaction, clothing_id: int)
         await interaction.followup.send(embed=embed)
     except Exception as e: await handle_unknown_error(e, interaction, "getclothingtexture")
 
-@client.tree.command() # Still somehow less lines than whois LOL
+@client.tree.command()
 @discord.app_commands.checks.cooldown(2, 60, key=lambda i: (i.user.id))
 async def getitemdetails(interaction: discord.Interaction, item: int):
     """Get advanced details about a catalog item."""
