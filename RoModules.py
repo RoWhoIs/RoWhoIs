@@ -1,4 +1,4 @@
-import Roquest
+import Roquest, asyncio
 from logger import AsyncLogCollector
 log_collector = AsyncLogCollector("logs/RoModules.log")
 
@@ -32,18 +32,16 @@ async def convert_to_username(userid:int):
 
 async def check_verification(user_id:int):
     try:
-        verifhat = await Roquest.Roquest("GET", f"https://inventory.roblox.com/v1/users/{user_id}/items/4/102611803")
+        verifhat, verifsign = await asyncio.gather(
+            Roquest.Roquest("GET", f"https://inventory.roblox.com/v1/users/{user_id}/items/4/102611803"),
+            Roquest.Roquest("GET", f"https://inventory.roblox.com/v1/users/{user_id}/items/4/1567446")
+        )
         hat_owned = verifhat not in [-1, 403] and verifhat not in [400, 404] and any("type" in item for item in verifhat.get("data", []))
-    except Exception as e:
-        await log_collector.error(f"Encountered an error while running the verify command: {e}")
-        return -1
-    try:
-        verifsign = await Roquest.Roquest("GET", f"https://inventory.roblox.com/v1/users/{user_id}/items/4/1567446")
         sign_owned = verifsign not in [-1, 403] and verifhat not in [400, 404] and any("type" in item for item in verifsign.get("data", []))
+        return 4 if hat_owned and sign_owned else 1 if hat_owned else 2 if sign_owned else 3
     except Exception as e:
         await log_collector.error(f"Encountered an error while running the check_verification function: {e}")
         return -1
-    return 4 if hat_owned and sign_owned else 1 if hat_owned else 2 if sign_owned else 3
 
 async def last_online(user_id:int):
     try:
@@ -118,13 +116,15 @@ async def get_group_count(user_id:int):
     
 async def get_socials(user_id:int): # Returns Friends, Followers, Following
     try:
-        friend_count = await Roquest.Roquest("GET", f"https://friends.roblox.com/v1/users/{user_id}/friends/count")
+        friend_count, following_count, follow_count = await asyncio.gather(
+            Roquest.Roquest("GET", f"https://friends.roblox.com/v1/users/{user_id}/friends/count"),
+            Roquest.Roquest("GET", f"https://friends.roblox.com/v1/users/{user_id}/followings/count"),
+            Roquest.Roquest("GET", f"https://friends.roblox.com/v1/users/{user_id}/followers/count")
+        )
         if friend_count in [-1, 403]: return -2, -2, -2
         elif friend_count in [400, 404]: return -1, -1, -1
-        following_count = await Roquest.Roquest("GET", f"https://friends.roblox.com/v1/users/{user_id}/followings/count")
         if following_count in [-1, 403]: return -2, -2, -2
         elif following_count in [400, 404]: return -1, -1, -1
-        follow_count = await Roquest.Roquest("GET", f"https://friends.roblox.com/v1/users/{user_id}/followers/count")
         if follow_count in [-1, 403]: return -2, -2, -2
         elif follow_count in [400, 404]: return -1, -1, -1
         return friend_count["count"], follow_count["count"], following_count["count"]

@@ -179,6 +179,10 @@ async def username(interaction: discord.Interaction, userid: int):
         if not (await check_user(interaction, embed)): return
         if not (await validate_user(interaction, embed, userid)): return
         username = await RoModules.convert_to_username(userid)
+        if username[0] == -1:
+            embed.description = "User doesn't exist."
+            await interaction.followup.send(embed=embed, ephemeral=True)
+            return
         if username[0] == username[1]: embed.title = f"{username[0]} {'<:RoWhoIsStaff:1186713381038719077>' if userid in staff_ids else '<:verified:1186711315679563886>' if username[2] else ''}"
         else: embed.title = f"{username[0]} ({username[1]}) {'<:RoWhoIsStaff:1186713381038719077>' if userid in staff_ids else '<:verified:1186711315679563886>' if username[2] else ''}"
         embed.description = f"**Username:** `{username[0]}`"
@@ -208,16 +212,23 @@ async def whois(interaction: discord.Interaction, user: str):
             embed.description = "User doesn't exist."
             await interaction.followup.send(embed=embed, ephemeral=True)
             return
-        user_thumbnail = await RoModules.get_player_thumbnail(user_id[0], "420x420") # Otherwise causes issues with response sent without user_thumbnail
+        user_thumbnail, unformattedLastOnline, groups, (friends, followers, following) = await asyncio.gather(
+            RoModules.get_player_thumbnail(user_id[0], "420x420"),
+            RoModules.last_online(user_id[0]),
+            RoModules.get_group_count(user_id[0]),
+            RoModules.get_socials(user_id[0])
+        )
+        if banned or user_id[0] == 1: veriftype, previous_usernames = None, []
+        else:
+            previous_usernames, veriftype = await asyncio.gather(
+                RoModules.get_previous_usernames(user_id[0]),
+                RoModules.check_verification(user_id[0]), 
+            )
         if user_thumbnail: embed.set_thumbnail(url=user_thumbnail)
         if banned == True: private_inventory = True 
         else: private_inventory = True
-        veriftype = await RoModules.check_verification(user_id[0]) if not banned and user_id[0] != 1 else None
-        last_online_formatted = await fancy_time(await RoModules.last_online(user_id[0]))
+        last_online_formatted = await fancy_time(unformattedLastOnline)
         joined_timestamp = await fancy_time(created)
-        previous_usernames = await RoModules.get_previous_usernames(user_id[0]) if not banned else []
-        groups = await RoModules.get_group_count(user_id[0])
-        friends, followers, following = await RoModules.get_socials(user_id[0])
         total_rap, total_value, cursor = 0, 0, ""
         while not banned and user_id[0] != 1:
             rap = await Roquest.Roquest("GET", f"https://inventory.roblox.com/v1/users/{user_id[0]}/assets/collectibles?limit=100&sortOrder=Asc&cursor={cursor}")
