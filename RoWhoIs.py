@@ -457,7 +457,7 @@ async def getclothingtexture(interaction: discord.Interaction, clothing_id: int)
     if not (await check_user(interaction, embed)): return
     try:
         async def send_image(clothing_id:int):
-            uploaded_image = discord.File(f'cache/clothing/{clothing_id}.png', filename="image.png")
+            uploaded_image = discord.File(f'cache/clothing/{clothing_id}.png', filename="rowhois-{clothing_id}.png")
             await interaction.followup.send("", file=uploaded_image)
             return
         try:
