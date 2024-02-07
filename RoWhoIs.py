@@ -358,6 +358,7 @@ async def limited(interaction: discord.Interaction, limited: str):
             if thumbnail_url not in [-1, -2]: embed.set_thumbnail(url=thumbnail_url)
             embed.color = 0x00FF00
             embed.title = f"{name} ({acronym})" if acronym != "" else f"{name}"
+            embed.url = f"https://www.roblox.com/catalog/{limited_id}/"
             embed.description = f"ID: `{limited_id}`\nRAP: `{rap}`\nValue: `{value}`"
             await interaction.followup.send(embed=embed)
         else:
