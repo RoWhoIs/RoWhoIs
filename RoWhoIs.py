@@ -187,11 +187,10 @@ def main(testing_mode:bool, staff_ids, opt_out, user_blocklist, log_config_updat
                 embed.description = "User doesn't exist."
                 await interaction.followup.send(embed=embed, ephemeral=True)
                 return
-            if banned or user_id[0] == 1:
-                veriftype, previous_usernames = None, []
-                tasks = [RoModules.get_player_thumbnail(user_id[0], "420x420"),RoModules.last_online(user_id[0]),RoModules.get_group_count(user_id[0]),RoModules.get_socials(user_id[0])]
+            if banned or user_id[0] == 1: tasks = [RoModules.nil_pointer(),RoModules.nil_pointer(),RoModules.get_player_thumbnail(user_id[0], "420x420"),RoModules.last_online(user_id[0]),RoModules.get_group_count(user_id[0]),RoModules.get_socials(user_id[0])]
             else: tasks = [RoModules.get_previous_usernames(user_id[0]),RoModules.check_verification(user_id[0]),RoModules.get_player_thumbnail(user_id[0], "420x420"),RoModules.last_online(user_id[0]),RoModules.get_group_count(user_id[0]),RoModules.get_socials(user_id[0])]
             previous_usernames, veriftype, user_thumbnail, unformattedLastOnline, groups, (friends, followers, following) = await asyncio.gather(*tasks)
+            if banned or user_id[0] == 1: veriftype, previous_usernames = None, []
             if user_thumbnail: embed.set_thumbnail(url=user_thumbnail)
             if banned == True: private_inventory = True 
             else: private_inventory = True

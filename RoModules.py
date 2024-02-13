@@ -191,3 +191,5 @@ async def get_rolidata_from_item(rolidata, item): # Returns limited id, name, ac
         if item.lower() in [item_data[0].lower(), item_data[1].lower(), limited_id]:
             return limited_id, item_data[0], item_data[1], item_data[2], item_data[4]
     else: return -1, -1, -1, -1, -1
+
+async def nil_pointer(): return 0 #Returns nil data
