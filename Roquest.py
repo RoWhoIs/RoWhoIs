@@ -74,7 +74,7 @@ async def Roquest(method, url, max_retries=3, retry_interval=3, **kwargs):
                 async with main_session.request(method, url, proxy=proxy, proxy_auth=proxyCredentials, timeout=4, **kwargs) as resp:
                     if resp.status == 200: return await resp.json()
                     elif resp.status in [403, 404, 400]:
-                        await log_collector.warn(f"Failed to perform Roquest with method {method} to {url} {('on proxy ' + proxy) if proxy != None else ''}: Got status code {resp.status}. {retry}/{max_retries}")
+                        await log_collector.warn(f"Failed to perform Roquest with method {method} to {url} {('on proxy ' + proxy) if proxy != None else ''}: Got status code {resp.status}. {retry + 1}/{max_retries}")
                         return resp.status
                     elif resp.status == 429:
                         proxy = await proxy_picker(lastProxy, False)

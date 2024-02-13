@@ -1,6 +1,9 @@
 import RoWhoIs, Roquest, json, asyncio, subprocess, os
 from logger import AsyncLogCollector
 
+for folder in ["logs", "cache", "cache/clothing"]:
+    if not os.path.exists(folder): os.makedirs(folder)
+
 logCollector = AsyncLogCollector("logs/Server.log")
 
 def sync_logging(errorLevel, errorContent):
@@ -42,6 +45,4 @@ def load_runtime(shortHash):
 
 shortHash = get_version()
 sync_logging("info", f"Initializing RoWhoIs on version {shortHash}...")
-for folder in ["logs", "cache", "cache/clothing"]:
-    if not os.path.exists(folder): os.makedirs(folder)
 load_runtime(shortHash)
