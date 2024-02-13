@@ -1,5 +1,5 @@
 import Roquest, RoModules
-import asyncio, discord, aiofiles, re, io
+import asyncio, discord, aiofiles, re, io, aiohttp
 from secret import RWI
 from logger import AsyncLogCollector
 from datetime import datetime
@@ -85,6 +85,16 @@ def main(testing_mode:bool, staff_ids, opt_out, user_blocklist, log_config_updat
     async def on_ready():
         await log_collector.info(f'RoWhoIs initialized! Logged in as {client.user} (ID: {client.user.id})')
         await client.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="over Robloxia"))
+
+    @client.event
+    async def on_guild_join(guild): # How's this for conciseness? LOL!
+        if not testing_mode:
+            try:
+                await log_collector.info("RoWhoIs has joined a new server. Updating registries...")
+                async with aiohttp.ClientSession() as session:
+                    async with session.post(f"https://top.gg/api/bots/{client.user.id}/stats", headers={"Authorization":RWI.TOPGG}, body={"server_count":len(client.guilds)}) as response: pass
+                    async with session.post(f"https://discordbotlist.com/api/v1/bots/{client.user.id}/stats", headers={"Authorization":RWI.DBL}, json={"guilds":len(client.guilds)}) as response: pass
+            except Exception as e: await log_collector.error("Failed to update registries.")
 
     @client.tree.command()
     @discord.app_commands.checks.cooldown(3, 60, key=lambda i: (i.user.id))
