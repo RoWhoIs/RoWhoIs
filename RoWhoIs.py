@@ -92,8 +92,10 @@ def main(testing_mode:bool, staff_ids, opt_out, user_blocklist, log_config_updat
             try:
                 await log_collector.info("RoWhoIs has joined a new server. Updating registries...")
                 async with aiohttp.ClientSession() as session:
-                    async with session.post(f"https://top.gg/api/bots/{client.user.id}/stats", headers={"Authorization":RWI.TOPGG}, body={"server_count":len(client.guilds)}) as response: pass
-                    async with session.post(f"https://discordbotlist.com/api/v1/bots/{client.user.id}/stats", headers={"Authorization":RWI.DBL}, json={"guilds":len(client.guilds)}) as response: pass
+                    if RWI.TOPGG != "": 
+                        async with session.post(f"https://top.gg/api/bots/{client.user.id}/stats", headers={"Authorization":RWI.TOPGG}, body={"server_count":len(client.guilds)}) as response: pass
+                    if RWI.DBL != "":
+                        async with session.post(f"https://discordbotlist.com/api/v1/bots/{client.user.id}/stats", headers={"Authorization":RWI.DBL}, json={"guilds":len(client.guilds)}) as response: pass
             except Exception as e: await log_collector.error(f"Failed to update registries. {e}")
 
     @client.tree.command()

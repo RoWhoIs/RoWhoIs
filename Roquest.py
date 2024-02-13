@@ -71,7 +71,7 @@ async def Roquest(method, url, max_retries=3, retry_interval=3, **kwargs):
         await log_collector.info(f"Performing Roquest with method {method} to {url} {('on proxy ' + proxy) if proxy != None else ''}")
         for retry in range(max_retries):
             try:
-                async with main_session.request(method, url, proxy=proxy, proxy_auth=proxyCredentials, timeout=3, **kwargs) as resp:
+                async with main_session.request(method, url, proxy=proxy, proxy_auth=proxyCredentials, timeout=4, **kwargs) as resp:
                     if resp.status == 200: return await resp.json()
                     elif resp.status in [403, 404, 400]:
                         await log_collector.warn(f"Failed to perform Roquest with method {method} to {url} {('on proxy ' + proxy) if proxy != None else ''}: Got status code {resp.status}. {retry}/{max_retries}")
@@ -85,7 +85,7 @@ async def Roquest(method, url, max_retries=3, retry_interval=3, **kwargs):
             except Exception as e:  
                 proxy = await proxy_picker(lastProxy, True)
                 lastProxy = proxy
-                await log_collector.error(f"An error occurred during the request {('on proxy ' + proxy) if proxy != None else ''}: {e}")
+                await log_collector.error(f"An error occurred during Roquest {('on proxy ' + proxy) if proxy != None else ''} to {url} ({method}): {e if e != '' else 'connection timed out'}")
         await log_collector.error(f"Failed to make a successful Roquest after {max_retries} retries to {url} ({method}) {('on proxy ' + proxy) if proxy != None else ''}")
         return -1
 

@@ -1,4 +1,4 @@
-import RoWhoIs, Roquest, json, asyncio, subprocess
+import RoWhoIs, Roquest, json, asyncio, subprocess, os
 from logger import AsyncLogCollector
 
 logCollector = AsyncLogCollector("logs/Server.log")
@@ -42,4 +42,6 @@ def load_runtime(shortHash):
 
 shortHash = get_version()
 sync_logging("info", f"Initializing RoWhoIs on version {shortHash}...")
+for folder in ["logs", "cache", "cache/clothing"]:
+    if not os.path.exists(folder): os.makedirs(folder)
 load_runtime(shortHash)
