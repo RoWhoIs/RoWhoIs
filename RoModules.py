@@ -90,7 +90,7 @@ async def get_previous_usernames(user_id:int):
         usernames = []
         next_page_cursor = None
         while True:
-            url = f"https://users.roblox.com/v1/users/{user_id}/username-history?limit=10&sortOrder=Asc"
+            url = f"https://users.roblox.com/v1/users/{user_id}/username-history?limit=100&sortOrder=Asc"
             if next_page_cursor:
                 url += f"&cursor={next_page_cursor}"
             data = await Roquest.Roquest("GET", url)
