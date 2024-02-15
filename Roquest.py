@@ -72,22 +72,22 @@ async def Roquest(method, url, max_retries=3, retry_interval=3, **kwargs):
         for retry in range(max_retries):
             try:
                 async with main_session.request(method, url, proxy=proxy, proxy_auth=proxyCredentials, timeout=4, **kwargs) as resp:
-                    if resp.status == 200: return await resp.json()
+                    if resp.status == 200: return resp.status, await resp.json()
                     elif resp.status in [403, 404, 400]:
                         await log_collector.warn(f"Failed to perform Roquest with method {method} to {url} {('on proxy ' + proxy) if proxy != None else ''}: Got status code {resp.status}. {retry + 1}/{max_retries}")
-                        return resp.status
+                        return resp.status, await resp.json()
                     elif resp.status == 429:
                         proxy = await proxy_picker(lastProxy, False)
                         lastProxy = proxy
                     else:
-                        await log_collector.warn(f"Roquest to {url} with method {method} failed with status code {resp.status} {('on proxy ' + proxy) if proxy != None else ''}. Retrying...")
+                        await log_collector.warn(f"Roquest to {url} with method {method} failed with status code {resp.status} {('on proxy ' + proxy) if proxy != None else ''}. Retrying... {retry + 1}/{max_retries}")
                         await asyncio.sleep(retry_interval)
             except Exception as e:  
                 proxy = await proxy_picker(lastProxy, True)
                 lastProxy = proxy
                 await log_collector.error(f"An error occurred during Roquest {('on proxy ' + proxy) if proxy != None else ''} to {url} ({method}): {e if e != '' else 'connection timed out'}")
         await log_collector.error(f"Failed to make a successful Roquest after {max_retries} retries to {url} ({method}) {('on proxy ' + proxy) if proxy != None else ''}")
-        return -1
+        return -1, {"error":"Failed to retrieve data."}
 
 async def RoliData(max_retries=5, retry_interval=5):
     async with aiohttp.ClientSession(cookies={".ROBLOSECURITY": RWI.RSEC}) as session:
