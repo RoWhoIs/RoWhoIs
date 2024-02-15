@@ -118,6 +118,7 @@ async def help(interaction: discord.Interaction):
     embedVar.add_field(name="ownsitem {UserId}/{username}, {itemId}", value="Retrieve whether a user owns an item or not. Works with players who have a private inventory.", inline=True)
     embedVar.add_field(name="ownsbadge {UserId}/{username}, {badgeId}", value="Retrieve whether a user owns a badge or not. Works with players who have a private inventory.", inline=True)
     embedVar.add_field(name="isfriendswith {user1}, {user2}", value="Check if two players are friended.", inline=True)
+    embedVar.add_field(name="group {groupId}", value="Get detailed group information from a Group ID.", inline=True)
     embedVar.add_field(name="isingroup {user}, {group}", value="Check if a player is in the specified group.", inline=True)
     embedVar.add_field(name="limited {limited name}/{limited acronym}", value="Returns a limited ID, the rap, and value of the specified limited.", inline=True)
     embedVar.add_field(name="getitemdetails {item}", value="Returns details about a catalog item.", inline=True)
@@ -135,7 +136,7 @@ async def on_app_command_error(interaction: discord.Interaction,error: discord.a
 @client.tree.command()
 @discord.app_commands.checks.cooldown(5, 60, key=lambda i: (i.user.id))
 async def userid(interaction: discord.Interaction, username: str):
-    """Get a User ID from a username."""
+    """Get a User ID from a username"""
     await interaction.response.defer(ephemeral=False)
     try:
         embed = discord.Embed(color=0xFF0000)
@@ -155,7 +156,7 @@ async def userid(interaction: discord.Interaction, username: str):
 @client.tree.command()
 @discord.app_commands.checks.cooldown(5, 60, key=lambda i: (i.user.id))
 async def username(interaction: discord.Interaction, userid: int):
-    """Get a username from a User ID."""
+    """Get a username from a User ID"""
     await interaction.response.defer(ephemeral=False)
     try:
         embed = discord.Embed(color=0xFF0000)
@@ -250,7 +251,7 @@ async def whois(interaction: discord.Interaction, user: str):
 @client.tree.command()
 @discord.app_commands.checks.cooldown(3, 60, key=lambda i: (i.user.id))
 async def ownsitem(interaction: discord.Interaction, user: str, item_id: int):
-    """Check if a player owns a specific item."""
+    """Check if a player owns a specific item"""
     await interaction.response.defer(ephemeral=False)
     embed = discord.Embed(color=0xFF0000)
     if not (await check_user(interaction, embed)): return
@@ -292,7 +293,7 @@ async def ownsitem(interaction: discord.Interaction, user: str, item_id: int):
 @client.tree.command()
 @discord.app_commands.checks.cooldown(3, 60, key=lambda i: (i.user.id))
 async def ownsbadge(interaction: discord.Interaction, user: str, badge_id: int):
-    """Check if a player owns a specified badge and return it's award date."""
+    """Check if a player owns a specified badge and return it's award date"""
     await interaction.response.defer(ephemeral=False)
     embed = discord.Embed(color=0xFF0000)
     if not (await check_user(interaction, embed)): return
@@ -326,7 +327,7 @@ async def ownsbadge(interaction: discord.Interaction, user: str, badge_id: int):
 @client.tree.command()
 @discord.app_commands.checks.cooldown(3, 60, key=lambda i: (i.user.id))
 async def limited(interaction: discord.Interaction, limited: str):
-    """Returns a limited ID, the rap, and value of a specified limited."""
+    """Returns a limited ID, the rap, and value of a specified limited"""
     await interaction.response.defer(ephemeral=False)
     embed = discord.Embed(color=0xFF0000)
     if not (await check_user(interaction, embed)): return
@@ -474,7 +475,7 @@ async def getclothingtexture(interaction: discord.Interaction, clothing_id: int)
 @client.tree.command()
 @discord.app_commands.checks.cooldown(2, 60, key=lambda i: (i.user.id))
 async def getitemdetails(interaction: discord.Interaction, item: int):
-    """Get advanced details about a catalog item."""
+    """Get advanced details about a catalog item"""
     await interaction.response.defer(ephemeral=False)
     embed = discord.Embed(color=0xFF0000)
     if not (await check_user(interaction, embed)): return
@@ -513,7 +514,7 @@ async def getitemdetails(interaction: discord.Interaction, item: int):
 @client.tree.command()
 @discord.app_commands.checks.cooldown(2, 60, key=lambda i: (i.user.id))
 async def getmembership(interaction: discord.Interaction, user: str):
-    """Checks whether a user has premium and if they had Builders Club."""
+    """Checks whether a user has premium and if they had Builders Club"""
     await interaction.response.defer(ephemeral=False)
     embed = discord.Embed(color=0xFF0000)
     if not (await check_user(interaction, embed)): return
