@@ -53,7 +53,7 @@ async def fancy_time(last_online_timestamp: str) -> str:
         await log_collector.error(f"Error formatting time: {e}")
         return last_online_timestamp
     
-async def validate_user(interaction, embed, code):
+async def validate_user(interaction:discord.Interaction, embed:discord.Embed, code):
     if code == -1:
         embed.description = "User doesn't exist."
         await interaction.followup.send(embed=embed, ephemeral=True)
@@ -69,7 +69,7 @@ async def validate_user(interaction, embed, code):
         return False
     else: return True
 
-async def check_user(interaction, embed):
+async def check_user(interaction:discord.Interaction, embed:discord.Embed):
     if interaction.user.id in userBlocklist:
         embed.description = "You have been permanently banned from using RoWhoIs. In accordance to our [Terms of Service](https://www.robloxians.com/Terms-Of-Service/), we reserve the right to block any user from using our service."
         await log_collector.warn(f"Blocklist user {interaction.user.id} attempted to call a command and was denied!")
@@ -77,7 +77,7 @@ async def check_user(interaction, embed):
         return False
     else: return True
 
-async def handle_unknown_error(error, interaction, command:str):
+async def handle_unknown_error(error, interaction:discord.Interaction, command:str):
     embed = discord.Embed(color=0xFF0000)
     await log_collector.error(f"Error in the {command} command: {error}")
     embed.description = "Whoops! An unknown error occurred. Please try again later."
