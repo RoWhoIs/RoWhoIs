@@ -202,4 +202,28 @@ async def get_membership(user:int): # Returns successType, hasPremium, ownedBc, 
     ownedObc =  checkObc[0] not in [-1, 403, 400, 404] and any("type" in item for item in checkObc[1].get("data", []))
     return True, hasPremium, ownedBc, ownedTbc, ownedObc
 
+async def get_group(group:int): # Returns name (0), description (1), created (2), verified (3), owner (4), shout (5), members (6), public (7), isLocked (8)
+    try:
+        getGroup, getGroupV1 = await asyncio.gather(Roquest.Roquest("GET", f"https://groups.roblox.com/v2/groups?groupIds={group}"),Roquest.Roquest("GET", f"https://groups.roblox.com/v1/groups/{group}"))
+        if getGroup[0] == 200 and getGroupV1[0] == 200:
+            groupName = getGroup[1]['data'][0]['name']
+            groupDescription = getGroup[1]['data'][0]['description']
+            groupCreated = getGroup[1]['data'][0]['created']
+            groupVerified = getGroup[1]['data'][0]['hasVerifiedBadge']
+            if getGroupV1[1]['owner'] is not None:
+                if getGroupV1[1]['owner']['username'] is None: groupOwner = [False, False, False]
+                else: groupOwner = [getGroupV1[1]['owner']['username'], getGroupV1[1]['owner']['userId'], getGroupV1[1]['owner']['hasVerifiedBadge']]
+            else: groupowner = [False, False, False]
+            if getGroupV1[1]['shout'] is None: groupShout = [False, False, False]
+            else: groupShout = [getGroupV1[1]['shout']['body'], getGroupV1[1]['shout']['poster']['username'], getGroupV1[1]['shout']['poster']['userId'], getGroupV1[1]['shout']['poster']['hasVerifiedBadge']]
+            groupMembers = getGroupV1[1]['memberCount']
+            groupPublic = getGroupV1[1]['publicEntryAllowed']
+            if 'groupLocked' in getGroupV1[1]: groupLocked = getGroupV1[1]['isLocked']
+            else: groupLocked = False
+            return groupName, groupDescription, groupCreated, groupVerified, groupOwner, groupShout, groupMembers, groupPublic, groupLocked
+        else: return False, False, False, False, False, False, False, False, False, False
+    except Exception as e:
+        await log_collector.error(f"Encountered an error while running the get_groups function: {e}")
+        return -1, -1, -1, -1, -1, -1, -1, -1, -1, -1
+
 async def nil_pointer(): return 0 #Returns nil data

@@ -535,3 +535,38 @@ async def getmembership(interaction: discord.Interaction, user: str):
     embed.color = 0x00FF00
     await interaction.followup.send(embed=embed)
     return
+
+@client.tree.command()
+@discord.app_commands.checks.cooldown(3, 60, key=lambda i: (i.user.id))
+async def group(interaction: discord.Interaction, group:int):
+    """Get detailed group information from a Group ID"""
+    await interaction.response.defer(ephemeral=False)
+    embed = discord.Embed(color=0xFF0000)
+    if not (await check_user(interaction, embed)): return
+    try:
+        groupInfo = await RoModules.get_group(group)
+        if not groupInfo[0]:
+            embed.description = "Group does not exist."
+            await interaction.followup.send(embed=embed)
+            return
+        if groupInfo[0] == -1:
+            embed.description = "Whoops! An error occurred. Please try again later."
+            await interaction.followup.send(embed=embed)
+            return
+        groupThumbnail = await RoModules.get_group_emblem(group, "420x420")
+        if groupThumbnail: embed.set_thumbnail(url=groupThumbnail)
+        embed.title = f"{groupInfo[0]}{' <:verified:1186711315679563886>' if groupInfo[3] else ''}"
+        embed.add_field(name="Group ID:", value=f"`{group}`")
+        embed.add_field(name="Status:", value=f"`{'Locked' if groupInfo[8] else 'Okay'}`", inline=True)
+        formattedTime = await fancy_time(groupInfo[2])
+        embed.add_field(name="Created:", value=f"`{formattedTime}`", inline=True)
+        if groupInfo[4][0] != False: embed.add_field(name="Owner:", value=f"`{groupInfo[4][0]}` (`{groupInfo[4][1]}`) {' <:verified:1186711315679563886>' if groupInfo[4][2] else ''}", inline=True)
+        else: embed.add_field(name="Owner:", value=f"Nobody!", inline=True)
+        embed.add_field(name="Members:", value=f"`{groupInfo[6]}`", inline=True)
+        embed.add_field(name="Joinable:", value=f"`{'False' if groupInfo[8] else 'True' if groupInfo[7] else 'False'}`", inline=True)
+        if groupInfo[5][0] != False and groupInfo[5][0] != "": embed.add_field(name="Shout:", value=f"`{groupInfo[5][0]}` -- `{groupInfo[5][1]}` (`{groupInfo[5][2]}`) {' <:verified:1186711315679563886>' if groupInfo[5][3] else ''}", inline=False)
+        if groupInfo[1] != "": embed.add_field(name="Group Description:", value=f"`{groupInfo[1]}`", inline=False)
+        embed.color = 0x00FF00
+        await interaction.followup.send(embed=embed)
+        return
+    except Exception as e: await handle_unknown_error(e, interaction, "group")
