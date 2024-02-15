@@ -39,8 +39,10 @@ def load_runtime(shortHash):
         password = config.get("Proxy", {}).get("password", False)
         if password == "": password = None
         proxyUrls.extend([id for module_data in config.values() if 'proxy_urls' in module_data for id in module_data['proxy_urls']])
-        Roquest.set_configs(proxyingEnabled, proxyUrls, username, password)
-        RoWhoIs.main(testingMode, staffIds, optOut, userBlocklist, verboseLogging, shortHash)
+        try:
+            Roquest.set_configs(proxyingEnabled, proxyUrls, username, password)
+            RoWhoIs.main(testingMode, staffIds, optOut, userBlocklist, verboseLogging, shortHash)
+        except Exception as e: sync_logging("fatal", f"A fatal error occurred during runtime: {e}")
     except Exception as e: sync_logging("fatal", f"Failed to initialize! Invalid config? {e}")
 
 shortHash = get_version()

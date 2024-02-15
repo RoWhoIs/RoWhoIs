@@ -1,5 +1,5 @@
 import Roquest, RoModules
-import asyncio, discord, aiofiles, re, io, aiohttp
+import asyncio, discord, aiofiles, re, io, aiohttp, signal
 from secret import RWI
 from logger import AsyncLogCollector
 from datetime import datetime
@@ -18,6 +18,12 @@ class RoWhoIs(discord.Client):
         super().__init__(intents=intents)
         self.tree = discord.app_commands.CommandTree(self)
     async def setup_hook(self): await self.tree.sync(guild=None)
+    
+async def shutdown(loop):
+    await log_collector.info("Gracefully shutting down RoWhoIs...")
+    await discord.Client.close(client)
+    for task in asyncio.all_tasks(loop): task.cancel()
+    loop.stop()
 
 async def update_rolidata():
     global RoliData
@@ -87,6 +93,7 @@ async def handle_unknown_error(error, interaction:discord.Interaction, command:s
 client = RoWhoIs(intents=discord.Intents.default())
 loop = asyncio.get_event_loop()
 loop.create_task(update_rolidata())
+loop.add_signal_handler(signal.SIGINT, lambda: asyncio.create_task(shutdown(loop)))
 
 @client.event
 async def on_ready():
