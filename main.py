@@ -1,6 +1,9 @@
 import RoWhoIs, Roquest, json, asyncio, subprocess, os
 from logger import AsyncLogCollector
 
+for folder in ["logs", "cache", "cache/clothing"]:
+    if not os.path.exists(folder): os.makedirs(folder)
+
 logCollector = AsyncLogCollector("logs/Server.log")
 
 def sync_logging(errorLevel, errorContent):
@@ -36,12 +39,12 @@ def load_runtime(shortHash):
         password = config.get("Proxy", {}).get("password", False)
         if password == "": password = None
         proxyUrls.extend([id for module_data in config.values() if 'proxy_urls' in module_data for id in module_data['proxy_urls']])
-        Roquest.set_configs(proxyingEnabled, proxyUrls, username, password)
-        RoWhoIs.main(testingMode, staffIds, optOut, userBlocklist, verboseLogging, shortHash)
+        try:
+            Roquest.set_configs(proxyingEnabled, proxyUrls, username, password)
+            RoWhoIs.main(testingMode, staffIds, optOut, userBlocklist, verboseLogging, shortHash)
+        except Exception as e: sync_logging("fatal", f"A fatal error occurred during runtime: {e}")
     except Exception as e: sync_logging("fatal", f"Failed to initialize! Invalid config? {e}")
 
 shortHash = get_version()
 sync_logging("info", f"Initializing RoWhoIs on version {shortHash}...")
-for folder in ["logs", "cache", "cache/clothing"]:
-    if not os.path.exists(folder): os.makedirs(folder)
 load_runtime(shortHash)

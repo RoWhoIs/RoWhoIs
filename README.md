@@ -13,7 +13,7 @@ The following are all external dependencies RoWhoIs relies on to work:
 
 These dependencies can be satisfied by pip:
 
-```
+```bash
 pip3 install -r requirements.txt
 ```
 
@@ -93,7 +93,7 @@ RoWhoIs containerizes operation types by file. This eases development and makes 
 `main.py` is used for initializing `RoWhoIs.py`, the main server. From there, `RoWhoIs.py` generally uses `RoModules.py`, a file containing modules for performing different API calls, to carry out command fulfillment. `RoModules.py` uses `Roquest.py`.
 `Roquest.py` is where all requests to APIs are handled, including proxying.  Finally, `logger.py` is the utility from [AsyncLogger](https://github.com/aut-mn/AsyncLogger) used to asynchronously log everything.
 
-```
+```bash
 .
 ├── RoModules.py
 ├── RoWhoIs.py
