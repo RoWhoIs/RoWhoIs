@@ -214,7 +214,7 @@ async def whois(interaction: discord.Interaction, user: str):
         joined_timestamp = await fancy_time(created)
         total_rap, total_value, cursor = 0, 0, ""
         while not banned and user_id[0] != 1:
-            rap = await Roquest.Roquest("GET", "inventory", f"v1/users/{user_id[0]}/assets/collectibles?limit=100&sortOrder=Asc&cursor={cursor}")
+            rap = await Roquest.Roquest("GET", f"https://inventory.roblox.com/v1/users/{user_id[0]}/assets/collectibles?limit=100&sortOrder=Asc&cursor={cursor}")
             if rap[0] == 403:
                 private_inventory = True
                 break
@@ -266,7 +266,7 @@ async def ownsitem(interaction: discord.Interaction, user: str, item_id: int):
         user_id = [int(user), None] if user.isdigit() else await RoModules.convert_to_id(user)
         if not (await validate_user(interaction, embed, user_id[0])): return
         if user_id[1] == None: user_id[1] = (await RoModules.get_player_profile(user_id[0]))[3]
-        verifhat = await Roquest.Roquest("GET", "inventory", f"v1/users/{user_id[0]}/items/4/{item_id}")
+        verifhat = await Roquest.Roquest("GET", f"https://inventory.roblox.com/v1/users/{user_id[0]}/items/4/{item_id}")
         if verifhat[0] in [-1, -2]:
             embed.description = "Whoops! An error occurred. Please try again later."
             await interaction.followup.send(embed=embed, ephemeral=True)
@@ -308,7 +308,7 @@ async def ownsbadge(interaction: discord.Interaction, user: str, badge_id: int):
         user_id = [int(user), None] if user.isdigit() else await RoModules.convert_to_id(user)
         if not (await validate_user(interaction, embed, user_id[0])): return
         if user_id[1] == None: user_id[1] = (await RoModules.get_player_profile(user_id[0]))[3]
-        verifhat = await Roquest.Roquest("GET", "badges", f"v1/users/{user_id[0]}/badges/awarded-dates?badgeIds={badge_id}")
+        verifhat = await Roquest.Roquest("GET", f"https://badges.roblox.com/v1/users/{user_id[0]}/badges/awarded-dates?badgeIds={badge_id}")
         if verifhat[0] in [-1, -2]:
             embed.description = "Whoops! An error occurred. Please try again later."
             await interaction.followup.send(embed=embed, ephemeral=True)
@@ -487,7 +487,7 @@ async def getitemdetails(interaction: discord.Interaction, item: int):
     embed = discord.Embed(color=0xFF0000)
     if not (await check_user(interaction, embed)): return
     try:
-        data = await Roquest.Roquest("GET", "economy", f"v2/assets/{item}/details")
+        data = await Roquest.Roquest("GET", f"https://economy.roblox.com/v2/assets/{item}/details")
         if data[0] in [404, 400]:
             embed.description = "Item does not exist."
             await interaction.followup.send(embed=embed)
