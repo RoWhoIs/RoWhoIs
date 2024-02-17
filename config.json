@@ -6,7 +6,9 @@
     "admin_ids": [],
     "log_config_updates": false
   },
-  "Roquest": {},
+  "Roquest": {
+    "log_proxying":false
+  },
   "RoModules": {},
   "Proxy": {
     "proxying_enabled": false,
