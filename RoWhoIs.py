@@ -59,7 +59,7 @@ async def fancy_time(last_online_timestamp: str) -> str:
         await log_collector.error(f"Error formatting time: {e}")
         return last_online_timestamp
     
-async def validate_user(interaction:discord.Interaction, embed:discord.Embed, code):
+async def validate_user(interaction:discord.Interaction, embed:discord.Embed, code) -> bool:
     if code == -1:
         embed.description = "User doesn't exist."
         await interaction.followup.send(embed=embed, ephemeral=True)
@@ -75,7 +75,7 @@ async def validate_user(interaction:discord.Interaction, embed:discord.Embed, co
         return False
     else: return True
 
-async def check_user(interaction:discord.Interaction, embed:discord.Embed):
+async def check_user(interaction:discord.Interaction, embed:discord.Embed) -> bool:
     if interaction.user.id in userBlocklist:
         embed.description = "You have been permanently banned from using RoWhoIs. In accordance to our [Terms of Service](https://www.robloxians.com/Terms-Of-Service/), we reserve the right to block any user from using our service."
         await log_collector.warn(f"Blocklist user {interaction.user.id} attempted to call a command and was denied!")
@@ -210,6 +210,7 @@ async def whois(interaction: discord.Interaction, user: str):
         if user_thumbnail: embed.set_thumbnail(url=user_thumbnail)
         if banned == True: private_inventory = True 
         else: private_inventory = True
+        if unformattedLastOnline in [-1, -2]: last_online_formatted = "Unable to retrieve data."
         last_online_formatted = await fancy_time(unformattedLastOnline)
         joined_timestamp = await fancy_time(created)
         total_rap, total_value, cursor = 0, 0, ""

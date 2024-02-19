@@ -63,6 +63,11 @@ RoWhoIs utilizes `config.json` to load the following settings:
 - Username, Password (Authentication)
   - Note if the `username` field is left blank, authentication will automatically be disabled.
 
+### Roquest class
+
+- log_proxying
+  - Logs validation attempts for the proxy pool and bad proxies.
+
 ## Proxying
 
 When scaling RoWhoIs, it becomes very apparent that rate-limiting will be a limiting factor in serving data to users. An easy workaround for this is by using the built-in proxying structure for RoWhoIs.
