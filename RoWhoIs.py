@@ -210,6 +210,7 @@ async def whois(interaction: discord.Interaction, user: str):
         if user_thumbnail: embed.set_thumbnail(url=user_thumbnail)
         if banned == True: private_inventory = True 
         else: private_inventory = True
+        if unformattedLastOnline in [-1, -2]: last_online_formatted = "Unable to retrieve data."
         last_online_formatted = await fancy_time(unformattedLastOnline)
         joined_timestamp = await fancy_time(created)
         total_rap, total_value, cursor = 0, 0, ""

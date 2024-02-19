@@ -42,7 +42,7 @@ async def check_verification(user_id:int):
 
 async def last_online(user_id:int):
     try:
-        last_data = await Roquest.Roquest("POST", "presence", "v1/presence/last-online", json={"userIds": [user_id]})
+        last_data = await Roquest.Roquest("POST", "presence", "v1/presence/last-online", failRetry=True, json={"userIds": [user_id]})
         if last_data[0] in [-1, 403]: return -2
         elif last_data[0] in [404, 400]: return -1
         else: return last_data[1]["lastOnlineTimestamps"][0]["lastOnline"]
@@ -62,7 +62,7 @@ async def get_player_thumbnail(user_id:int, size):
 
 async def get_item_thumbnail(item_id:int, size):
     try:
-        thumbnail_url = await Roquest.Roquest("GET", "thumbnails", f"v1/assets?assetIds={item_id}&returnPolicy=PlaceHolder&size={size}&format=Png&isCircular=false")
+        thumbnail_url = await Roquest.Roquest("GET", "thumbnails", f"v1/assets?assetIds={item_id}&returnPolicy=PlaceHolder&size={size}&format=Png&isCircular=false", failRetry=True)
         if thumbnail_url[0] in [-1, 403, 404, 400]: return "https://www.robloxians.com/resources/not-available.png"
         elif thumbnail_url[1]["data"][0]["state"] == "Blocked": return "https://robloxians.com/resources/blocked.png"
         else: return thumbnail_url[1]["data"][0]["imageUrl"]
@@ -149,7 +149,7 @@ async def get_groups(user_id:int):
     
 async def get_player_headshot(user_id:int, size):
     try:
-        thumbnail_url = await Roquest.Roquest("GET", "thumbnails", f"v1/users/avatar-headshot?userIds={user_id}&size={size}&format=Png&isCircular=false")
+        thumbnail_url = await Roquest.Roquest("GET", "thumbnails", f"v1/users/avatar-headshot?userIds={user_id}&size={size}&format=Png&isCircular=false", failRetry=True)
         if thumbnail_url[0] in [-1, 403, 404, 400]: return "https://www.robloxians.com/resources/not-available.png"
         elif thumbnail_url[1]["data"][0]["state"] == "Blocked": return "https://robloxians.com/resources/blocked.png"
         else: return thumbnail_url[1]["data"][0]["imageUrl"]
@@ -159,7 +159,7 @@ async def get_player_headshot(user_id:int, size):
     
 async def get_badge_thumbnail(badge_id:int):
     try:
-        thumbnail_url = await Roquest.Roquest("GET", "thumbnails", f"v1/badges/icons?badgeIds={badge_id}&size=150x150&format=Png&isCircular=false")
+        thumbnail_url = await Roquest.Roquest("GET", "thumbnails", f"v1/badges/icons?badgeIds={badge_id}&size=150x150&format=Png&isCircular=false", failRetry=True)
         if thumbnail_url[0] in [-1, 403, 404, 400]: return "https://www.robloxians.com/resources/not-available.png"
         elif thumbnail_url[1]["data"][0]["state"] == "Blocked": return "https://robloxians.com/resources/blocked.png"
         else: return thumbnail_url[1]["data"][0]["imageUrl"]
@@ -169,7 +169,7 @@ async def get_badge_thumbnail(badge_id:int):
     
 async def get_group_emblem(group:int, size):
     try:
-        thumbnail_url = await Roquest.Roquest("GET", "thumbnails", f"v1/groups/icons?groupIds={group}&size={size}&format=Png&isCircular=false")
+        thumbnail_url = await Roquest.Roquest("GET", "thumbnails", f"v1/groups/icons?groupIds={group}&size={size}&format=Png&isCircular=false", failRetry=True)
         if thumbnail_url[0] in [-1, 403, 404, 400]: return "https://www.robloxians.com/resources/not-available.png"
         elif thumbnail_url[1]["data"][0]["state"] == "Blocked": return "https://robloxians.com/resources/blocked.png"
         else: return thumbnail_url[1]["data"][0]["imageUrl"]

@@ -69,38 +69,46 @@ async def token_renewal():
                 async with main_session.post("https://auth.roblox.com/v2/logout") as resp:
                     if 'x-csrf-token' in resp.headers: x_csrf_token = resp.headers['x-csrf-token']
                     else: x_csrf_token = None
-            await asyncio.sleep(250)
+            await asyncio.sleep(301)
         except Exception as e:
             await log_collector.error(f"token_renewal encountered an error while updating x-csrf-token: {e}")
             pass
 
 loop = asyncio.get_event_loop()
 
-async def Roquest(method:str, node:str, endpoint:str, **kwargs):
+async def Roquest(method:str, node:str, endpoint:str, failRetry=False, **kwargs):
     global proxyCredentials, lastProxy, x_csrf_token
     method = method.lower()
     async with aiohttp.ClientSession(cookies={".roblosecurity": RWI.RSEC}, headers={"x-csrf-token":x_csrf_token}) as main_session:
-        proxy = await proxy_picker(lastProxy, False)
-        lastProxy = proxy
-        await log_collector.info(f"{method.upper()} {node} [{proxy if proxy != None else 'non-proxied'}] | {endpoint}")
-        for retry in range(3):
-            try:
-                async with main_session.request(method, f"https://{node}.roblox.com/{endpoint}", proxy=proxy, proxy_auth=proxyCredentials, timeout=4, **kwargs) as resp:
-                    if resp.status == 200: return resp.status, await resp.json()
-                    elif resp.status in [403, 404, 400]:
-                        await log_collector.warn(f"{method.upper()} {node} [{proxy if proxy != None else 'non-proxied'}] | {endpoint}: {resp.status} - {retry + 1}/3")
-                        return resp.status, await resp.json()
-                    elif resp.status == 429:
-                        proxy = await proxy_picker(lastProxy, False)
-                        lastProxy = proxy
-                    else:
-                        await log_collector.warn(f"{method.upper()} {node} [{proxy if proxy != None else 'non-proxied'}] | {endpoint}: {resp.status}. Retrying... {retry + 1}/3")
-                        await asyncio.sleep(3)
-            except Exception as e:  
-                proxy = await proxy_picker(proxy, True)
-                await log_collector.error(f"{method.upper()} {node} [{proxy if proxy != None else 'non-proxied'}] | {endpoint}: {e if e != '' else 'Connection timed out.'}")
-        await log_collector.error(f"{method.upper()} {node} [{proxy if proxy != None else 'non-proxied'}] | {endpoint}: Failed after 3 attempts." )
-        return -1, {"error":"Failed to retrieve data."}
+        try:
+            for retry in range(3):
+                proxy = await proxy_picker(lastProxy, False) # Moved here so on retry, switch proxies
+                await log_collector.info(f"{method.upper()} {node} [{proxy if proxy != None else 'non-proxied'}] | {endpoint}")
+                lastProxy = proxy
+                try:
+                    async with main_session.request(method, f"https://{node}.roblox.com/{endpoint}", proxy=proxy, proxy_auth=proxyCredentials, timeout=4, **kwargs) as resp:
+                        if resp.status == 200: return resp.status, await resp.json()
+                        elif resp.status in [404, 400]: # Standard not exist, disregard retries
+                            await log_collector.warn(f"{method.upper()} {node} [{proxy if proxy != None else 'non-proxied'}] | {endpoint}: {resp.status}")
+                            return resp.status, await resp.json()
+                        elif resp.status == 403:
+                            await log_collector.warn(f"{method.upper()} {node} [{proxy if proxy != None else 'non-proxied'}] | {endpoint}: {resp.status} {('-' + (retry + 1) + '/3') if failRetry else ''}")
+                            if not failRetry: return resp.status, await  resp.json()
+                            await asyncio.sleep(2)
+                        elif resp.status == 429:
+                            proxy = await proxy_picker(lastProxy, False)
+                            lastProxy = proxy
+                        else:
+                            await log_collector.warn(f"{method.upper()} {node} [{proxy if proxy != None else 'non-proxied'}] | {endpoint}: {resp.status}. Retrying... {retry + 1}/3")
+                            await asyncio.sleep(2)
+                except Exception as e:  
+                    proxy = await proxy_picker(proxy, True)
+                    await log_collector.error(f"{method.upper()} {node} [{proxy if proxy != None else 'non-proxied'}] | {endpoint}: {e if e != '' else 'Connection timed out.'}")
+            await log_collector.error(f"{method.upper()} {node} [{proxy if proxy != None else 'non-proxied'}] | {endpoint}: Failed after 3 attempts." )
+            return resp.status, {"error":"Failed to retrieve data."}
+        except Exception as e:
+            await log_collector.error(f"{method.upper()} {node} [{proxy if proxy != None else 'non-proxied'}] | {endpoint}: Severe error: {e}" )
+            return -1, {"error":"Failed to retrieve data."}
 
 async def RoliData():
     async with aiohttp.ClientSession(cookies={".ROBLOSECURITY": RWI.RSEC}) as session:
