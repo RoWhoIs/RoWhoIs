@@ -104,7 +104,7 @@ async def on_ready():
 async def on_guild_join(guild): # How's this for conciseness? LOL!
     if not testingMode:
         try:
-            await log_collector.info("RoWhoIs has joined a new server. Updating registries...")
+            await log_collector.info(f"RoWhoIs has joined a new server. Total servers: {len(client.guilds)}. Updating registries...")
             async with aiohttp.ClientSession() as session:
                 if RWI.TOPGG != "": 
                     async with session.post(f"https://top.gg/api/bots/{client.user.id}/stats", headers={"Authorization":RWI.TOPGG}, json={"server_count":len(client.guilds)}) as response: pass
@@ -529,7 +529,7 @@ async def getmembership(interaction: discord.Interaction, user: str):
     user_id = [int(user), None] if user.isdigit() else await RoModules.convert_to_id(user)
     if not (await validate_user(interaction, embed, user_id[0])): return
     userProfile = await RoModules.get_player_profile(user_id[0])
-    if user_id[1] == None: user_id[1] = (userProfile[1])
+    if user_id[1] == None: user_id[1] = (userProfile[3])
     data = await RoModules.get_membership(user_id[0])
     if not data[0]:
         embed.description = "User does not exist or has been banned."
