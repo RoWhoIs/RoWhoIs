@@ -9,7 +9,7 @@ An advanced Roblox lookup Discord bot utility.
 RoWhoIs relies on a set of dependencies to function properly.
 The following are all external dependencies RoWhoIs relies on to work:
 
-`aiofiles, aiohttp, asyncio, discord`
+`aiofiles, aiohttp, discord`
 
 These dependencies can be satisfied by pip:
 

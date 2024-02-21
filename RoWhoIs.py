@@ -526,24 +526,26 @@ async def getmembership(interaction: discord.Interaction, user: str):
     await interaction.response.defer(ephemeral=False)
     embed = discord.Embed(color=0xFF0000)
     if not (await check_user(interaction, embed)): return
-    user_id = [int(user), None] if user.isdigit() else await RoModules.convert_to_id(user)
-    if not (await validate_user(interaction, embed, user_id[0])): return
-    userProfile = await RoModules.get_player_profile(user_id[0])
-    if user_id[1] == None: user_id[1] = (userProfile[3])
-    data = await RoModules.get_membership(user_id[0])
-    if not data[0]:
-        embed.description = "User does not exist or has been banned."
+    try:
+        user_id = [int(user), None] if user.isdigit() else await RoModules.convert_to_id(user)
+        if not (await validate_user(interaction, embed, user_id[0])): return
+        userProfile = await RoModules.get_player_profile(user_id[0])
+        if user_id[1] == None: user_id[1] = (userProfile[3])
+        data = await RoModules.get_membership(user_id[0])
+        if not data[0]:
+            embed.description = "User does not exist or has been banned."
+            await interaction.followup.send(embed=embed)
+            return
+        if all(not data[i] for i in range(1, 5)): noTiers = True
+        else: noTiers = False
+        # We're gettin' shcwifty in here with these f-string expressions
+        newline = '\n'
+        embed.title = f"{user_id[1]}'s memberships:"
+        embed.description = f"{('<:Premium:1207508505834168370> `Premium`' + newline) if data[1] else ''}{('<:BuildersClub:1207508440172208159> `Builders Club`' + newline) if data[2] else ''}{('<:TurboBuildersClub:1207508465329901630> `Turbo Builders Club`' + newline) if data[3] else ''}{('<:OutrageousBuildersClub:1207508480223617054> `Outrageous Builders Club`' + newline) if data[4] else ''}{(user_id[1] + ' has no memberships.') if noTiers else ''}"
+        embed.color = 0x00FF00
         await interaction.followup.send(embed=embed)
         return
-    if all(not data[i] for i in range(1, 5)): noTiers = True
-    else: noTiers = False
-    # We're gettin' shcwifty in here with these f-string expressions
-    newline = '\n'
-    embed.title = f"{user_id[1]}'s memberships:"
-    embed.description = f"{('<:Premium:1207508505834168370> `Premium`' + newline) if data[1] else ''}{('<:BuildersClub:1207508440172208159> `Builders Club`' + newline) if data[2] else ''}{('<:TurboBuildersClub:1207508465329901630> `Turbo Builders Club`' + newline) if data[3] else ''}{('<:OutrageousBuildersClub:1207508480223617054> `Outrageous Builders Club`' + newline) if data[4] else ''}{(user_id[1] + ' has no memberships.') if noTiers else ''}"
-    embed.color = 0x00FF00
-    await interaction.followup.send(embed=embed)
-    return
+    except Exception as e: await handle_unknown_error(e, interaction, "getmembership")
 
 @client.tree.command()
 @discord.app_commands.checks.cooldown(3, 60, key=lambda i: (i.user.id))

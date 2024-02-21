@@ -1,22 +1,31 @@
-import RoWhoIs, Roquest, json, asyncio, subprocess, os
+import json, asyncio, subprocess, os
+
+if not os.path.exists("logger.py"): 
+    print("Missing logger.py! RoWhoIs will not be able to initialize.")
+    exit(-1)
 from logger import AsyncLogCollector
 
 for folder in ["logs", "cache", "cache/clothing"]:
     if not os.path.exists(folder): os.makedirs(folder)
-
 logCollector = AsyncLogCollector("logs/Server.log")
 
 def sync_logging(errorLevel, errorContent):
     log_functions = {"fatal": logCollector.fatal,"error": logCollector.error,"warn": logCollector.warn,"info": logCollector.info}
-    asyncio.get_event_loop().run_until_complete(log_functions[errorLevel](errorContent))
+    asyncio.new_event_loop().run_until_complete(log_functions[errorLevel](errorContent))
 
 def get_version():
     try:
         short_commit_id = subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD']).strip()
         return short_commit_id.decode('utf-8')
-    except subprocess.CalledProcessError as e:
-        sync_logging("error", f"Error getting short commit ID: {e}")
-        return 0
+    except subprocess.CalledProcessError as e: return 0 # Assume not git workspace
+    
+shortHash = get_version()
+sync_logging("info", f"Initializing RoWhoIs on version {shortHash}...")
+
+for file in ["secret.py", "Roquest.py", "RoWhoIs.py", "config.json"]:
+    if not os.path.exists(file):
+        sync_logging("fatal", f"Missing {file}! RoWhoIs will not be able to initialize.")
+        exit(-1)
 
 def load_runtime(shortHash):
     optOut, userBlocklist, staffIds, proxyUrls = [], [], [], []
@@ -41,11 +50,10 @@ def load_runtime(shortHash):
         if password == "": password = None
         proxyUrls.extend([id for module_data in config.values() if 'proxy_urls' in module_data for id in module_data['proxy_urls']])
         try:
+            import RoWhoIs, Roquest
             Roquest.set_configs(proxyingEnabled, proxyUrls, username, password, logProxying)
             RoWhoIs.main(testingMode, staffIds, optOut, userBlocklist, verboseLogging, shortHash)
         except Exception as e: sync_logging("fatal", f"A fatal error occurred during runtime: {e}")
     except Exception as e: sync_logging("fatal", f"Failed to initialize! Invalid config? {e}")
 
-shortHash = get_version()
-sync_logging("info", f"Initializing RoWhoIs on version {shortHash}...")
 load_runtime(shortHash)
