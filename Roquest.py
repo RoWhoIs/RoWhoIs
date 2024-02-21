@@ -13,7 +13,7 @@ def set_configs(enable_proxying:bool, proxy_urls, username:str, password, log_pr
     if enableProxying: loop.create_task(proxy_handler())
     loop.create_task(token_renewal())
 
-async def proxy_handler():
+async def proxy_handler() -> None:
     global enableProxying, proxyUrls, proxyCredentials, proxyPool, logProxying
     try:
         while enableProxying:
@@ -61,7 +61,7 @@ async def proxy_picker(currentProxy, didError:bool):
         await log_collector.error(f"Proxy picker fallbacking to non-proxied. Severe error: {e}")
         return None
 
-async def token_renewal():
+async def token_renewal() -> None:
     global x_csrf_token
     while True:
         try:
@@ -76,7 +76,7 @@ async def token_renewal():
 
 loop = asyncio.get_event_loop()
 
-async def Roquest(method:str, node:str, endpoint:str, failRetry=False, **kwargs):
+async def Roquest(method:str, node:str, endpoint:str, failRetry=False, **kwargs) -> tuple[int, str]:
     global proxyCredentials, lastProxy, x_csrf_token
     method = method.lower()
     async with aiohttp.ClientSession(cookies={".roblosecurity": RWI.RSEC}, headers={"x-csrf-token":x_csrf_token}) as main_session:
@@ -100,7 +100,7 @@ async def Roquest(method:str, node:str, endpoint:str, failRetry=False, **kwargs)
                             lastProxy = proxy
                         else:
                             await log_collector.warn(f"{method.upper()} {node} [{proxy if proxy != None else 'non-proxied'}] | {endpoint}: {resp.status}. Retrying... {retry + 1}/3")
-                            await asyncio.sleep(2)
+                        await asyncio.sleep(2)
                 except Exception as e:  
                     proxy = await proxy_picker(proxy, True)
                     await log_collector.error(f"{method.upper()} {node} [{proxy if proxy != None else 'non-proxied'}] | {endpoint}: {e if e != '' else 'Connection timed out.'}")
@@ -110,7 +110,7 @@ async def Roquest(method:str, node:str, endpoint:str, failRetry=False, **kwargs)
             await log_collector.error(f"{method.upper()} {node} [{proxy if proxy != None else 'non-proxied'}] | {endpoint}: Severe error: {e}" )
             return -1, {"error":"Failed to retrieve data."}
 
-async def RoliData():
+async def RoliData() -> None:
     async with aiohttp.ClientSession(cookies={".ROBLOSECURITY": RWI.RSEC}) as session:
         for retry in range(3):
             async with session.get("https://www.rolimons.com/itemapi/itemdetails") as resp:
@@ -119,9 +119,9 @@ async def RoliData():
                     await log_collector.warn(f"GET rolimons | temdetails: {resp.status} (WAIT 5s) {retry + 1}/3")
                     await asyncio.sleep(5)
                 else: await log_collector.warn(f"GET rolimons | temdetails: {resp.status} {retry + 1}/3")
-        raise await log_collector.error(f"GET rolimons | temdetails: Failed after 3 attempts.")
+        raise await log_collector.error(f"GET rolimons | itemdetails: Failed after 3 attempts.")
 
-async def GetFileContent(asset_id):
+async def GetFileContent(asset_id:int) -> tuple[bool, int]:
     global proxyCredentials, lastProxy, x_csrf_token
     try:
         proxy = await proxy_picker(lastProxy, False)
@@ -131,13 +131,13 @@ async def GetFileContent(asset_id):
             async with main_session.request("GET", f"https://assetdelivery.roblox.com/v1/asset/?id={asset_id}", proxy=proxy, proxy_auth=proxyCredentials) as resp:
                 if resp.status == 200:
                     content = await resp.read()
-                    return content
+                    return True, content
                 else: 
                     await log_collector.warn(f"GETFILECONTENT [{proxy if proxy != None else 'non-proxied'}] | {asset_id}: {resp.status}")
-                    return False
+                    return False, resp.status # Returns 409 if a user tries to get a game with getclothingtexture (Yes, that really happened)
     except Exception as e:
         await proxy_picker(proxy, True)
         await log_collector.error(f"GETFILECONTENT [{proxy if proxy != None else 'non-proxied'}] | {asset_id}: {e}")
-        return False
+        return False, 0
     finally: # Hold the connection hostage until we FINISH downloading THE FILE.
         if resp: await resp.release()
