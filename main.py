@@ -1,4 +1,4 @@
-import json, asyncio, subprocess, os
+import json, asyncio, subprocess, os, ErrorDict
 
 if not os.path.exists("logger.py"): 
     print("Missing logger.py! RoWhoIs will not be able to initialize.")
@@ -17,7 +17,7 @@ def get_version():
     try:
         short_commit_id = subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD']).strip()
         return short_commit_id.decode('utf-8')
-    except subprocess.CalledProcessError as e: return 0 # Assume not git workspace
+    except subprocess.CalledProcessError: return 0 # Assume not git workspace
     
 shortHash = get_version()
 sync_logging("info", f"Initializing RoWhoIs on version {shortHash}...")

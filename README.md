@@ -96,22 +96,18 @@ It's a general best practice to make sure the proxy is located within a close re
 RoWhoIs containerizes operation types by file. This eases development and makes the codebase easier to manage.
 
 `main.py` is used for initializing `RoWhoIs.py`, the main server. From there, `RoWhoIs.py` generally uses `RoModules.py`, a file containing modules for performing different API calls, to carry out command fulfillment. `RoModules.py` uses `Roquest.py`.
-`Roquest.py` is where all requests to APIs are handled, including proxying.  Finally, `logger.py` is the utility from [AsyncLogger](https://github.com/aut-mn/AsyncLogger) used to asynchronously log everything.
+`Roquest.py` is where all requests to APIs are handled, including proxying. `ErrorDict.py` is used as an error dictionary. If ever something were to go wrong with RoWhoIs, it'll be an error object defined by that. Finally, `logger.py` is the utility from [AsyncLogger](https://github.com/aut-mn/AsyncLogger) used to asynchronously log everything.
 
 ```bash
 .
 ├── RoModules.py
 ├── RoWhoIs.py
 ├── Roquest.py
+├── ErrorDict.py
 ├── cache
 │   └── clothing
 ├── config.json
 ├── logger.py
-├── logs
-│   ├── RoModules.log
-│   ├── RoWhoIs.log
-│   ├── Roquest.log
-│   └── Server.log
 ├── main.py
 └── secret.py
 ```
