@@ -132,6 +132,7 @@ async def help(interaction: discord.Interaction):
     embedVar.add_field(name="limited {limited name}/{limited acronym}", value="Returns a limited ID, the rap, and value of the specified limited.", inline=True)
     embedVar.add_field(name="getitemdetails {item}", value="Returns details about a catalog item.", inline=True)
     embedVar.add_field(name="getmembership {userId}/{username}", value="Check if a player has Premium or has had Builders Club.", inline=True)
+    embedVar.add_field(name="checkusername {username}", value="Check if a username is available", inline=True)
     embedVar.set_footer(text=f"Version {shortHash}")
     await interaction.followup.send(embed=embedVar)
 
@@ -448,13 +449,14 @@ async def getclothingtexture(interaction: discord.Interaction, clothing_id: int)
         try:
             async with aiofiles.open(f'cache/clothing/{clothing_id}.png', 'rb') as clothing_texture: await send_image(clothing_id)
         except FileNotFoundError:
-            initAsset = await Roquest.GetFileContent(clothing_id)
-            if not initAsset[0]:
+            try: initAsset = await Roquest.GetFileContent(clothing_id)
+            except Exception as e: 
+                if (await handle_error(e, interaction, "getclothingtexture", "Asset")): return
+            if not initAsset:
                 embed.description = "Failed to get clothing texture!"
-                if initAsset[1] == 409: embed.description = "Invalid asset type."
                 await interaction.followup.send(embed=embed)
                 return
-            initAssetContent = io.BytesIO(initAsset[1])
+            initAssetContent = io.BytesIO(initAsset)
             initAssetContent = initAssetContent.read().decode()
             match = re.search(r'<url>.*id=(\d+)</url>', initAssetContent)
             if match:
@@ -473,7 +475,7 @@ async def getclothingtexture(interaction: discord.Interaction, clothing_id: int)
                 await interaction.followup.send(embed=embed)
                 return
     except UnicodeDecodeError as e:
-        embed.description = "Invalid asset type."
+        embed.description = "Invalid item type."
         await interaction.followup.send(embed=embed)
     except Exception as e: await handle_error(e, interaction, "getclothingtexture", "Clothing ID")
 

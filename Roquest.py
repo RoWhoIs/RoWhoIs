@@ -1,4 +1,4 @@
-import aiohttp, asyncio
+import aiohttp, asyncio, ErrorDict
 from secret import RWI
 from logger import AsyncLogCollector
 
@@ -132,7 +132,7 @@ async def RoliData() -> None:
                 else: await log_collector.warn(f"GET rolimons | temdetails: {resp.status} {retry + 1}/3")
         raise await log_collector.error(f"GET rolimons | itemdetails: Failed after 3 attempts.")
 
-async def GetFileContent(asset_id:int) -> tuple[bool, int]:
+async def GetFileContent(asset_id:int) -> bytearray:
     global proxyCredentials, lastProxy, x_csrf_token
     try:
         proxy = await proxy_picker(lastProxy, False)
@@ -142,13 +142,10 @@ async def GetFileContent(asset_id:int) -> tuple[bool, int]:
             async with main_session.request("GET", f"https://assetdelivery.roblox.com/v1/asset/?id={asset_id}", proxy=proxy, proxy_auth=proxyCredentials) as resp:
                 if resp.status == 200:
                     content = await resp.read()
-                    return True, content
+                    return content
+                elif resp.status == 409: raise ErrorDict.MismatchedDataError  # Returns 409 if a user tries to get a game with getclothingtexture (Yes, that really happened)
                 else: 
                     await log_collector.warn(f"GETFILECONTENT [{proxy if proxy != None else 'non-proxied'}] | {asset_id}: {resp.status}")
-                    return False, resp.status # Returns 409 if a user tries to get a game with getclothingtexture (Yes, that really happened)
-    except Exception as e:
-        await proxy_picker(proxy, True)
-        await log_collector.error(f"GETFILECONTENT [{proxy if proxy != None else 'non-proxied'}] | {asset_id}: {e}")
-        return False, 0
+                    return False
     finally: # Hold the connection hostage until we FINISH downloading THE FILE.
         if resp: await resp.release()
