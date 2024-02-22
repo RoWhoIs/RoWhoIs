@@ -3,7 +3,7 @@ from secret import RWI
 from logger import AsyncLogCollector
 
 log_collector = AsyncLogCollector("logs/Roquest.log")
-lastProxy, x_csrf_token = None, None
+lastProxy, x_csrf_token = None, ""
 
 def set_configs(enable_proxying:bool, proxy_urls, username:str, password, log_proxying:bool):
     global enableProxying, proxyUrls, proxyCredentials, proxyPool, logProxying
@@ -11,7 +11,7 @@ def set_configs(enable_proxying:bool, proxy_urls, username:str, password, log_pr
     if username != "": proxyCredentials = aiohttp.BasicAuth(login=username, password=password)
     else: proxyCredentials = None
     if enableProxying: loop.create_task(proxy_handler())
-    loop.create_task(token_renewal())
+    loop.create_task(validate_cookie())
 
 async def proxy_handler() -> None:
     global enableProxying, proxyUrls, proxyCredentials, proxyPool, logProxying
@@ -60,6 +60,13 @@ async def proxy_picker(currentProxy, didError:bool):
     except Exception as e:
         await log_collector.error(f"Proxy picker fallbacking to non-proxied. Severe error: {e}")
         return None
+    
+async def validate_cookie():
+    """Validates the RSEC value from config.json"""
+    async with aiohttp.ClientSession(cookies={".roblosecurity": RWI.RSEC}) as main_session:
+        async with main_session.get("https://users.roblox.com/v1/users/authenticated") as resp:
+            if resp.headers == 200: loop.create_task(token_renewal())
+            else:  await log_collector.error("Invalid ROBLOSECURITY cookie. RoWhoIs will not function properly.")
 
 async def token_renewal() -> None:
     global x_csrf_token
@@ -68,7 +75,7 @@ async def token_renewal() -> None:
             async with aiohttp.ClientSession(cookies={".roblosecurity": RWI.RSEC}) as main_session:
                 async with main_session.post("https://auth.roblox.com/v2/logout") as resp:
                     if 'x-csrf-token' in resp.headers: x_csrf_token = resp.headers['x-csrf-token']
-                    else: x_csrf_token = None
+                    else: x_csrf_token = ""
             await asyncio.sleep(301)
         except Exception as e:
             await log_collector.error(f"token_renewal encountered an error while updating x-csrf-token: {e}")
