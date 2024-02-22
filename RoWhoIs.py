@@ -81,6 +81,7 @@ async def handle_error(error, interaction:discord.Interaction, command:str, cont
     elif type(error) == ErrorDict.MismatchedDataError: embed.description = f"{context} is invalid."
     elif type(error) == ErrorDict.RatelimitedError: embed.description = "RoWhoIs is experienceing unusually high demand. Please try again."
     else: 
+        if type(error) == ErrorDict.InvalidAuthorizationError: await Roquest.token_renewal()
         embed.description = "Whoops! An unknown error occurred. Please try again later."
         await log_collector.error(f"Error in the {command} command: {error}")
     await interaction.followup.send(embed=embed, ephemeral=True)
@@ -573,3 +574,22 @@ async def group(interaction: discord.Interaction, group:int):
         await interaction.followup.send(embed=embed)
         return
     except Exception as e: await handle_error(e, interaction, "group", "Group ID")
+
+@client.tree.command()
+@discord.app_commands.checks.cooldown(4, 60, key=lambda i: (i.user.id))
+async def checkusername(interaction: discord.Interaction, username:str):
+    """Check if a username is available"""
+    await interaction.response.defer(ephemeral=False)
+    embed = discord.Embed(color=0xFF0000)
+    if not (await validate_user(interaction, embed)): return
+    try:
+        try: usernameInfo = await RoModules.validate_username(username)
+        except Exception as e: 
+            if (await handle_error(e, interaction, "username", "Username")): return
+        if usernameInfo[0] == 0: 
+            embed.color = 0x00FF00
+            embed.description = "Username is available!"
+        elif usernameInfo[0] == 1: embed.description = "Username is taken."
+        else: embed.description = f"Username not available.\n**Reason:** {usernameInfo[1]}"
+        await interaction.followup.send(embed=embed)
+    except Exception as e: await handle_error(e, interaction, "username", "Username")

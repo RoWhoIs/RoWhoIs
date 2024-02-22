@@ -61,25 +61,29 @@ async def proxy_picker(currentProxy, didError:bool):
         await log_collector.error(f"Proxy picker fallbacking to non-proxied. Severe error: {e}")
         return None
     
-async def validate_cookie():
+async def validate_cookie() -> None:
     """Validates the RSEC value from config.json"""
     async with aiohttp.ClientSession(cookies={".roblosecurity": RWI.RSEC}) as main_session:
         async with main_session.get("https://users.roblox.com/v1/users/authenticated") as resp:
-            if resp.headers == 200: loop.create_task(token_renewal())
+            if resp.status == 200: loop.create_task(token_renewal(True))
             else:  await log_collector.error("Invalid ROBLOSECURITY cookie. RoWhoIs will not function properly.")
 
-async def token_renewal() -> None:
+async def token_renewal(automated:bool=False) -> None:
     global x_csrf_token
-    while True:
-        try:
-            async with aiohttp.ClientSession(cookies={".roblosecurity": RWI.RSEC}) as main_session:
-                async with main_session.post("https://auth.roblox.com/v2/logout") as resp:
-                    if 'x-csrf-token' in resp.headers: x_csrf_token = resp.headers['x-csrf-token']
-                    else: x_csrf_token = ""
-            await asyncio.sleep(301)
-        except Exception as e:
-            await log_collector.error(f"token_renewal encountered an error while updating x-csrf-token: {e}")
-            pass
+    try:
+        async with aiohttp.ClientSession(cookies={".roblosecurity": RWI.RSEC}) as main_session:
+            async with main_session.post("https://auth.roblox.com/v2/logout") as resp:
+                if 'x-csrf-token' in resp.headers: x_csrf_token = resp.headers['x-csrf-token']
+                else: x_csrf_token = ""
+    except Exception as e:
+        await log_collector.error(f"token_renewal encountered an error while updating x-csrf-token: {e}")
+        pass
+    if automated:
+        while True:
+            try:
+                await token_renewal()
+                await asyncio.sleep(301)
+            except Exception: pass
 
 loop = asyncio.get_event_loop()
 

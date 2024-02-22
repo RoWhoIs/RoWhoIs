@@ -1,6 +1,4 @@
 import Roquest, asyncio, ErrorDict
-from logger import AsyncLogCollector
-log_collector = AsyncLogCollector("logs/RoModules.log")
 
 async def general_error_handler(data:int, expectedResponseCode:int=200) -> None:
     """Will throw an error when data doesn't match requirements"""
@@ -150,6 +148,12 @@ async def get_group(group:int) -> tuple[str, str, str, bool, tuple[str, int, boo
     if 'groupLocked' in getGroupV1[1]: groupLocked = getGroupV1[1]['isLocked']
     else: groupLocked = False
     return groupName, groupDescription, groupCreated, groupVerified, groupOwner, groupShout, groupMembers, groupPublic, groupLocked
+
+async def validate_username(username:str) -> tuple[int,str]:
+    """Validate if a username is available"""
+    data = await Roquest.Roquest("POST", "auth", f"v2/usernames/validate", json={"username": username,"birthday": "2000-01-01T00:00:00.000Z","context": 0})
+    await general_error_handler(data[0])
+    return data[1]['code'], data[1]['message']
 
 async def nil_pointer() -> int: 
     """Returns nil data"""
