@@ -1,9 +1,9 @@
-import aiohttp, asyncio
+import aiohttp, asyncio, ErrorDict
 from secret import RWI
 from logger import AsyncLogCollector
 
 log_collector = AsyncLogCollector("logs/Roquest.log")
-lastProxy, x_csrf_token = None, None
+lastProxy, x_csrf_token = None, ""
 
 def set_configs(enable_proxying:bool, proxy_urls, username:str, password, log_proxying:bool):
     global enableProxying, proxyUrls, proxyCredentials, proxyPool, logProxying
@@ -11,7 +11,7 @@ def set_configs(enable_proxying:bool, proxy_urls, username:str, password, log_pr
     if username != "": proxyCredentials = aiohttp.BasicAuth(login=username, password=password)
     else: proxyCredentials = None
     if enableProxying: loop.create_task(proxy_handler())
-    loop.create_task(token_renewal())
+    loop.create_task(validate_cookie())
 
 async def proxy_handler() -> None:
     global enableProxying, proxyUrls, proxyCredentials, proxyPool, logProxying
@@ -60,19 +60,30 @@ async def proxy_picker(currentProxy, didError:bool):
     except Exception as e:
         await log_collector.error(f"Proxy picker fallbacking to non-proxied. Severe error: {e}")
         return None
+    
+async def validate_cookie() -> None:
+    """Validates the RSEC value from config.json"""
+    async with aiohttp.ClientSession(cookies={".roblosecurity": RWI.RSEC}) as main_session:
+        async with main_session.get("https://users.roblox.com/v1/users/authenticated") as resp:
+            if resp.status == 200: loop.create_task(token_renewal(True))
+            else:  await log_collector.error("Invalid ROBLOSECURITY cookie. RoWhoIs will not function properly.")
 
-async def token_renewal() -> None:
+async def token_renewal(automated:bool=False) -> None:
     global x_csrf_token
-    while True:
-        try:
-            async with aiohttp.ClientSession(cookies={".roblosecurity": RWI.RSEC}) as main_session:
-                async with main_session.post("https://auth.roblox.com/v2/logout") as resp:
-                    if 'x-csrf-token' in resp.headers: x_csrf_token = resp.headers['x-csrf-token']
-                    else: x_csrf_token = None
-            await asyncio.sleep(301)
-        except Exception as e:
-            await log_collector.error(f"token_renewal encountered an error while updating x-csrf-token: {e}")
-            pass
+    try:
+        async with aiohttp.ClientSession(cookies={".roblosecurity": RWI.RSEC}) as main_session:
+            async with main_session.post("https://auth.roblox.com/v2/logout") as resp:
+                if 'x-csrf-token' in resp.headers: x_csrf_token = resp.headers['x-csrf-token']
+                else: x_csrf_token = ""
+    except Exception as e:
+        await log_collector.error(f"token_renewal encountered an error while updating x-csrf-token: {e}")
+        pass
+    if automated:
+        while True:
+            try:
+                await token_renewal()
+                await asyncio.sleep(301)
+            except Exception: pass
 
 loop = asyncio.get_event_loop()
 
@@ -121,7 +132,7 @@ async def RoliData() -> None:
                 else: await log_collector.warn(f"GET rolimons | temdetails: {resp.status} {retry + 1}/3")
         raise await log_collector.error(f"GET rolimons | itemdetails: Failed after 3 attempts.")
 
-async def GetFileContent(asset_id:int) -> tuple[bool, int]:
+async def GetFileContent(asset_id:int) -> bytearray:
     global proxyCredentials, lastProxy, x_csrf_token
     try:
         proxy = await proxy_picker(lastProxy, False)
@@ -131,13 +142,10 @@ async def GetFileContent(asset_id:int) -> tuple[bool, int]:
             async with main_session.request("GET", f"https://assetdelivery.roblox.com/v1/asset/?id={asset_id}", proxy=proxy, proxy_auth=proxyCredentials) as resp:
                 if resp.status == 200:
                     content = await resp.read()
-                    return True, content
+                    return content
+                elif resp.status == 409: raise ErrorDict.MismatchedDataError  # Returns 409 if a user tries to get a game with getclothingtexture (Yes, that really happened)
                 else: 
                     await log_collector.warn(f"GETFILECONTENT [{proxy if proxy != None else 'non-proxied'}] | {asset_id}: {resp.status}")
-                    return False, resp.status # Returns 409 if a user tries to get a game with getclothingtexture (Yes, that really happened)
-    except Exception as e:
-        await proxy_picker(proxy, True)
-        await log_collector.error(f"GETFILECONTENT [{proxy if proxy != None else 'non-proxied'}] | {asset_id}: {e}")
-        return False, 0
+                    return False
     finally: # Hold the connection hostage until we FINISH downloading THE FILE.
         if resp: await resp.release()

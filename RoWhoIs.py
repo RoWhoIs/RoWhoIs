@@ -81,6 +81,7 @@ async def handle_error(error, interaction:discord.Interaction, command:str, cont
     elif type(error) == ErrorDict.MismatchedDataError: embed.description = f"{context} is invalid."
     elif type(error) == ErrorDict.RatelimitedError: embed.description = "RoWhoIs is experienceing unusually high demand. Please try again."
     else: 
+        if type(error) == ErrorDict.InvalidAuthorizationError: await Roquest.token_renewal()
         embed.description = "Whoops! An unknown error occurred. Please try again later."
         await log_collector.error(f"Error in the {command} command: {error}")
     await interaction.followup.send(embed=embed, ephemeral=True)
@@ -131,6 +132,7 @@ async def help(interaction: discord.Interaction):
     embedVar.add_field(name="limited {limited name}/{limited acronym}", value="Returns a limited ID, the rap, and value of the specified limited.", inline=True)
     embedVar.add_field(name="getitemdetails {item}", value="Returns details about a catalog item.", inline=True)
     embedVar.add_field(name="getmembership {userId}/{username}", value="Check if a player has Premium or has had Builders Club.", inline=True)
+    embedVar.add_field(name="checkusername {username}", value="Check if a username is available", inline=True)
     embedVar.set_footer(text=f"Version {shortHash}")
     await interaction.followup.send(embed=embedVar)
 
@@ -447,13 +449,14 @@ async def getclothingtexture(interaction: discord.Interaction, clothing_id: int)
         try:
             async with aiofiles.open(f'cache/clothing/{clothing_id}.png', 'rb') as clothing_texture: await send_image(clothing_id)
         except FileNotFoundError:
-            initAsset = await Roquest.GetFileContent(clothing_id)
-            if not initAsset[0]:
+            try: initAsset = await Roquest.GetFileContent(clothing_id)
+            except Exception as e: 
+                if (await handle_error(e, interaction, "getclothingtexture", "Asset")): return
+            if not initAsset:
                 embed.description = "Failed to get clothing texture!"
-                if initAsset[1] == 409: embed.description = "Invalid asset type."
                 await interaction.followup.send(embed=embed)
                 return
-            initAssetContent = io.BytesIO(initAsset[1])
+            initAssetContent = io.BytesIO(initAsset)
             initAssetContent = initAssetContent.read().decode()
             match = re.search(r'<url>.*id=(\d+)</url>', initAssetContent)
             if match:
@@ -472,7 +475,7 @@ async def getclothingtexture(interaction: discord.Interaction, clothing_id: int)
                 await interaction.followup.send(embed=embed)
                 return
     except UnicodeDecodeError as e:
-        embed.description = "Invalid asset type."
+        embed.description = "Invalid item type."
         await interaction.followup.send(embed=embed)
     except Exception as e: await handle_error(e, interaction, "getclothingtexture", "Clothing ID")
 
@@ -573,3 +576,22 @@ async def group(interaction: discord.Interaction, group:int):
         await interaction.followup.send(embed=embed)
         return
     except Exception as e: await handle_error(e, interaction, "group", "Group ID")
+
+@client.tree.command()
+@discord.app_commands.checks.cooldown(4, 60, key=lambda i: (i.user.id))
+async def checkusername(interaction: discord.Interaction, username:str):
+    """Check if a username is available"""
+    await interaction.response.defer(ephemeral=False)
+    embed = discord.Embed(color=0xFF0000)
+    if not (await validate_user(interaction, embed)): return
+    try:
+        try: usernameInfo = await RoModules.validate_username(username)
+        except Exception as e: 
+            if (await handle_error(e, interaction, "username", "Username")): return
+        if usernameInfo[0] == 0: 
+            embed.color = 0x00FF00
+            embed.description = "Username is available!"
+        elif usernameInfo[0] == 1: embed.description = "Username is taken."
+        else: embed.description = f"Username not available.\n**Reason:** {usernameInfo[1]}"
+        await interaction.followup.send(embed=embed)
+    except Exception as e: await handle_error(e, interaction, "username", "Username")
