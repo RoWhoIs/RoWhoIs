@@ -1,7 +1,8 @@
-import Roquest, RoModules, ErrorDict
+from server import Roquest, RoModules
 import asyncio, discord, aiofiles, re, io, aiohttp, signal
-from secret import RWI
-from logger import AsyncLogCollector
+from server.secret import RWI
+from utils.logger import AsyncLogCollector
+from utils import ErrorDict
 from datetime import datetime
 
 testingMode = None
@@ -12,14 +13,14 @@ def main(testing_mode:bool, staff_ids, opt_out, user_blocklist, log_config_updat
     if testingMode:loop.run_until_complete(client.start(RWI.TESTING))
     else: loop.run_until_complete(client.start(RWI.PRODUCTION))
 
-log_collector = AsyncLogCollector("logs/RoWhoIs.log")
+log_collector = AsyncLogCollector("logs/main.log")
 class RoWhoIs(discord.Client):
     def __init__(self, *, intents: discord.Intents):
         super().__init__(intents=intents)
         self.tree = discord.app_commands.CommandTree(self)
     async def setup_hook(self): await self.tree.sync(guild=None)
     
-async def shutdown(loop:asyncio.BaseEventLoop): # Will cause event loop stopped before future error if ran during init
+async def shutdown(loop:asyncio.BaseEventLoop):
     await log_collector.info("Gracefully shutting down RoWhoIs...")
     await discord.Client.close(client)
     for task in asyncio.all_tasks(loop): task.cancel()

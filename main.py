@@ -1,13 +1,13 @@
-import json, asyncio, subprocess, os, ErrorDict
+import json, asyncio, subprocess, os, datetime
 
-if not os.path.exists("logger.py"): 
+if not os.path.exists("utils/logger.py"): 
     print("Missing logger.py! RoWhoIs will not be able to initialize.")
     exit(-1)
-from logger import AsyncLogCollector
+from utils.logger import AsyncLogCollector
 
 for folder in ["logs", "cache", "cache/clothing"]:
     if not os.path.exists(folder): os.makedirs(folder)
-logCollector = AsyncLogCollector("logs/Server.log")
+logCollector = AsyncLogCollector("logs/main.log")
 
 def sync_logging(errorLevel, errorContent):
     log_functions = {"fatal": logCollector.fatal,"error": logCollector.error,"warn": logCollector.warn,"info": logCollector.info}
@@ -22,7 +22,7 @@ def get_version():
 shortHash = get_version()
 sync_logging("info", f"Initializing RoWhoIs on version {shortHash}...")
 
-for file in ["secret.py", "Roquest.py", "RoWhoIs.py", "config.json"]:
+for file in ["server/secret.py", "server/Roquest.py", "server/RoWhoIs.py", "config.json"]:
     if not os.path.exists(file):
         sync_logging("fatal", f"Missing {file}! RoWhoIs will not be able to initialize.")
         exit(-1)
@@ -50,10 +50,12 @@ def load_runtime(shortHash):
         if password == "": password = None
         proxyUrls.extend([id for module_data in config.values() if 'proxy_urls' in module_data for id in module_data['proxy_urls']])
         try:
-            import RoWhoIs, Roquest
+            from server import Roquest, RoWhoIs
             Roquest.set_configs(proxyingEnabled, proxyUrls, username, password, logProxying)
             RoWhoIs.main(testingMode, staffIds, optOut, userBlocklist, verboseLogging, shortHash)
+        except RuntimeError: pass # Occurs when exited before fully initialized
         except Exception as e: sync_logging("fatal", f"A fatal error occurred during runtime: {e}")
+        os.rename("logs/main.log", f"logs/server-{datetime.datetime.now().strftime('%Y-%m-%d-%H%M%S')}.log")
     except Exception as e: sync_logging("fatal", f"Failed to initialize! Invalid config? {e}")
 
 load_runtime(shortHash)

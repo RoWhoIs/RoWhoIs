@@ -1,8 +1,9 @@
-import aiohttp, asyncio, ErrorDict
-from secret import RWI
-from logger import AsyncLogCollector
+import aiohttp, asyncio
+from server.secret import RWI
+from utils.logger import AsyncLogCollector
+from utils import ErrorDict
 
-log_collector = AsyncLogCollector("logs/Roquest.log")
+log_collector = AsyncLogCollector("logs/main.log")
 lastProxy, x_csrf_token = None, ""
 
 def set_configs(enable_proxying:bool, proxy_urls, username:str, password, log_proxying:bool):
