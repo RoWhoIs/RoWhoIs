@@ -451,6 +451,10 @@ async def getclothingtexture(interaction: discord.Interaction, clothing_id: int)
             async with aiofiles.open(f'cache/clothing/{clothing_id}.png', 'rb') as clothing_texture: await send_image(clothing_id)
         except FileNotFoundError:
             try: initAsset = await Roquest.GetFileContent(clothing_id)
+            except ErrorDict.AssetNotAvailable:
+                embed.description = "Cannot fetch moderated assets."
+                await interaction.followup.send(embed=embed)
+                return
             except Exception as e: 
                 if (await handle_error(e, interaction, "getclothingtexture", "Asset")): return
             if not initAsset:
@@ -462,7 +466,16 @@ async def getclothingtexture(interaction: discord.Interaction, clothing_id: int)
             match = re.search(r'<url>.*id=(\d+)</url>', initAssetContent)
             if match:
                 async with aiofiles.open(f'cache/clothing/{clothing_id}.png', 'wb') as cached_image:
-                    downloadedAsset = await Roquest.GetFileContent(match.group(1))
+                    try: downloadedAsset = await Roquest.GetFileContent(match.group(1))
+                    except ErrorDict.AssetNotAvailable:
+                        embed.description = "Cannot fetch moderated assets."
+                        await interaction.followup.send(embed=embed)
+                        await cached_image.close()
+                        return
+                    except Exception as e:
+                        if (await handle_error(e, interaction, "getclothingtexture", "Asset")): 
+                            await cached_image.close()
+                            return
                     if not downloadedAsset:
                         embed.description = "Failed to get clothing texture!"
                         await interaction.followup.send(embed=embed)
