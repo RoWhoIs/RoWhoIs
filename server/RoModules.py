@@ -1,4 +1,6 @@
-import Roquest, asyncio, ErrorDict
+import asyncio
+from server import Roquest
+from utils import ErrorDict
 
 async def general_error_handler(data:int, expectedResponseCode:int=200) -> None:
     """Will throw an error when data doesn't match requirements"""

@@ -26,7 +26,7 @@ For RoWhoIs to properly start, it needs several things:
 - A .ROBLOSECURITY cookie (optional)
 - A top.gg and discordbotlist token (optional)
 
-These should be stored in a file named `secret.py` and should be formatted as so:
+These should be stored in a file named `secret.py`, stored under the server folder, and should be formatted as so:
 
 ```python
 class RWI():
@@ -41,7 +41,7 @@ class RWI():
 
 ## Configuration
 
-RoWhoIs utilizes `config.json` to load the following settings:
+RoWhoIs utilizes `config.json` in the main folder to load the following settings:
 
 ### RoWhoIs class
 
@@ -98,21 +98,29 @@ RoWhoIs containerizes operation types by file. This eases development and makes 
 `main.py` is used for initializing `RoWhoIs.py`, the main server. From there, `RoWhoIs.py` generally uses `RoModules.py`, a file containing modules for performing different API calls, to carry out command fulfillment. `RoModules.py` uses `Roquest.py`.
 `Roquest.py` is where all requests to APIs are handled, including proxying. `ErrorDict.py` is used as an error dictionary. If ever something were to go wrong with RoWhoIs, it'll be an error object defined by that. Finally, `logger.py` is the utility from [AsyncLogger](https://github.com/aut-mn/AsyncLogger) used to asynchronously log everything.
 
+Logs that are live are written to main.log, and sessions that are gracefully closed have log files named `server-YYYY-MM-DD-HHmmSS.log`
+
 ```bash
 .
-├── RoModules.py
-├── RoWhoIs.py
-├── Roquest.py
-├── ErrorDict.py
 ├── cache
 │   └── clothing
+│       └── 106779740.png
+├── logs
+│   └── server-2024-02-22-150004.log
+├── server
+│   └── RoModules.py
+│   └── Roquest.py
+│   └── RoWhoIs.py
+│   └── secret.py
+├── utils
+│   └── ErrorDict.py
+│   └── logger.py
 ├── config.json
 ├── logger.py
-├── main.py
-└── secret.py
+└── main.py
 ```
 
-<sub>Standard filestructure for a RoWhoIs server</sub>
+<sub>Example filestructure for a RoWhoIs server</sub>
 
 ## Caching
 

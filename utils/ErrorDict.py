@@ -21,3 +21,7 @@ class UnexpectedServerResponseError(Exception):
 class RatelimitedError(Exception):
     """Raised when the requested resource was ratelimited."""
     pass
+
+class AssetNotAvailable(Exception):
+    """Raised when the requested asset is not available."""
+    pass

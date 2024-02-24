@@ -1,8 +1,9 @@
-import aiohttp, asyncio, ErrorDict
-from secret import RWI
-from logger import AsyncLogCollector
+import aiohttp, asyncio
+from server.secret import RWI
+from utils.logger import AsyncLogCollector
+from utils import ErrorDict
 
-log_collector = AsyncLogCollector("logs/Roquest.log")
+log_collector = AsyncLogCollector("logs/main.log")
 lastProxy, x_csrf_token = None, ""
 
 def set_configs(enable_proxying:bool, proxy_urls, username:str, password, log_proxying:bool):
@@ -82,7 +83,7 @@ async def token_renewal(automated:bool=False) -> None:
         while True:
             try:
                 await token_renewal()
-                await asyncio.sleep(301)
+                await asyncio.sleep(50) # Recheck quickly to ensure we have a refreshed token before a command is ran
             except Exception: pass
 
 loop = asyncio.get_event_loop()
@@ -144,6 +145,8 @@ async def GetFileContent(asset_id:int) -> bytearray:
                     content = await resp.read()
                     return content
                 elif resp.status == 409: raise ErrorDict.MismatchedDataError  # Returns 409 if a user tries to get a game with getclothingtexture (Yes, that really happened)
+                elif resp.status == 403:
+                    if (await resp.json())['errors'][0]['message'] == 'Asset is not approved for the requester': raise ErrorDict.AssetNotAvailable
                 else: 
                     await log_collector.warn(f"GETFILECONTENT [{proxy if proxy != None else 'non-proxied'}] | {asset_id}: {resp.status}")
                     return False
