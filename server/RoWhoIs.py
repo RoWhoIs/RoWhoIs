@@ -381,7 +381,7 @@ async def isfriendswith(interaction: discord.Interaction, user1: str, user2: str
         try: userfriends = await RoModules.get_friends(user_id1[0])
         except Exception as e: 
             if await handle_error(e, interaction, "isfriendswith", "User"): return
-        friended = False # Local variable 'friended' referenced before assignment 🤓
+        friended = False
         if user_id1[1] is None: user_id1[1] = (await RoModules.get_player_profile(user_id1[0]))[3]
         for friends in userfriends['data']:
             if friends['id'] == user2 or friends['name'] == user2:
@@ -422,7 +422,7 @@ async def isingroup(interaction: discord.Interaction, user: str, group: int):
         except Exception as e: 
             if await handle_error(e, interaction, "isingroup", "User"): return
         usergroups = await RoModules.get_groups(user_id[0])
-        ingroup = False # Local variable 'ingroup' referenced before assignment 🤓
+        ingroup = False
         if usergroups in [-2, -1]:
             await interaction.followup.send("Whoops! An error occurred. Please try again later.", ephemeral=True)
             return
@@ -489,7 +489,7 @@ async def getclothingtexture(interaction: discord.Interaction, clothing_id: int)
                         if await handle_error(e, interaction, "getclothingtexture", "Asset"):
                             await cached_image.close()
                             return
-                    if not downloadedAsset:
+                    if not downloadedAsset or len(downloadedAsset) < 512: # Not likely to trigger, prevents caching malformed images
                         embed.description = "Failed to get clothing texture!"
                         await interaction.followup.send(embed=embed)
                         await cached_image.close()
