@@ -270,9 +270,12 @@ async def ownsitem(interaction: discord.Interaction, user: str, item_id: int):
     embed = discord.Embed(color=0xFF0000)
     if not (await validate_user(interaction, embed)): return
     try:
-        user_id = [int(user), Any] if user.isdigit() else await RoModules.convert_to_id(user)
-        if not (await validate_user(interaction, embed, user_id[0])): return
-        if user_id[1] is None: user_id[1] = (await RoModules.get_player_profile(user_id[0]))[3]
+        try:
+            user_id = [int(user), Any] if user.isdigit() else await RoModules.convert_to_id(user)
+            if not (await validate_user(interaction, embed, user_id[0])): return
+            if user_id[1] is None: user_id[1] = await RoModules.get_player_profile(user_id[0])[3]
+        except Exception as e:
+            if await handle_error(e, interaction, "ownsitem", "User"): return
         verifhat = await Roquest.Roquest("GET", "inventory", f"v1/users/{user_id[0]}/items/4/{item_id}")
         if verifhat[0] != 200:
             if 'errors' in verifhat[1]:
@@ -465,7 +468,7 @@ async def getclothingtexture(interaction: discord.Interaction, clothing_id: int)
                 embed.description = "Cannot fetch moderated assets."
                 await interaction.followup.send(embed=embed)
                 return
-            except Exception as e: 
+            except Exception as e:
                 if await handle_error(e, interaction, "getclothingtexture", "Asset"): return
             if not initAsset:
                 embed.description = "Failed to get clothing texture!"
@@ -590,11 +593,12 @@ async def group(interaction: discord.Interaction, group: int):
         embed.add_field(name="Status:", value=f"`{'Locked' if groupInfo[8] else 'Okay'}`", inline=True)
         formattedTime = await fancy_time(groupInfo[2])
         embed.add_field(name="Created:", value=f"`{formattedTime}`", inline=True)
-        if groupInfo[4][0] is not False: embed.add_field(name="Owner:", value=f"`{groupInfo[4][0]}` (`{groupInfo[4][1]}`) {(' ' + emojiTable.get('verified')) if groupInfo[4][2] else ''}", inline=True)
+        if groupInfo[4] is not None: embed.add_field(name="Owner:", value=f"`{groupInfo[4][0]}` (`{groupInfo[4][1]}`) {(' ' + emojiTable.get('verified')) if groupInfo[4][2] else ''}", inline=True)
         else: embed.add_field(name="Owner:", value=f"Nobody!", inline=True)
         embed.add_field(name="Members:", value=f"`{groupInfo[6]}`", inline=True)
         embed.add_field(name="Joinable:", value=f"`{'False' if groupInfo[8] else 'True' if groupInfo[7] else 'False'}`", inline=True)
-        if groupInfo[5][0] is not False and groupInfo[5][0] != "": embed.add_field(name="Shout:", value=f"`{groupInfo[5][0]}` -- `{groupInfo[5][1]}` (`{groupInfo[5][2]}`) {('' + emojiTable.get('verified')) if groupInfo[5][3] else ''}", inline=False)
+        if groupInfo[5] is not None:
+            if groupInfo[5][0] != "": embed.add_field(name="Shout:", value=f"`{groupInfo[5][0]}` -- `{groupInfo[5][1]}` (`{groupInfo[5][2]}`) {('' + emojiTable.get('verified')) if groupInfo[5][3] else ''}", inline=False)
         if groupInfo[1] != "": embed.add_field(name="Group Description:", value=f"`{groupInfo[1]}`", inline=False)
         embed.colour = 0x00FF00
         await interaction.followup.send(embed=embed)

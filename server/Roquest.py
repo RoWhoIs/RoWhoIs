@@ -150,7 +150,7 @@ async def GetFileContent(asset_id: int) -> bytes:
         proxy = await proxy_picker(lastProxy, False)
         lastProxy = proxy
         await log_collector.info(f"GETFILECONTENT [{proxy if proxy is not None else 'non-proxied'}] | {asset_id}")
-        async with aiohttp.ClientSession(cookies={".ROBLOSECURITY": roblosecurity}, headers={"x-csrf-token": x_csrf_token}) as main_session:
+        async with aiohttp.ClientSession(cookies={".ROBLOSECURITY": rsec}, headers={"x-csrf-token": x_csrf_token}) as main_session:
             async with main_session.request("GET", f"https://assetdelivery.roblox.com/v1/asset/?id={asset_id}", proxy=proxy, proxy_auth=proxyCredentials) as resp:
                 if resp.status == 200:
                     content = await resp.read()
@@ -158,6 +158,7 @@ async def GetFileContent(asset_id: int) -> bytes:
                 elif resp.status == 409: raise ErrorDict.MismatchedDataError  # Returns 409 if a user tries to get a game with getclothingtexture (Yes, that really happened)
                 elif resp.status == 403:
                     if (await resp.json())['errors'][0]['message'] == 'Asset is not approved for the requester': raise ErrorDict.AssetNotAvailable
+                elif resp.status in [404, 400]: raise ErrorDict.DoesNotExistError
                 else:
                     await log_collector.warn(f"GETFILECONTENT [{proxy if proxy is not None else 'non-proxied'}] | {asset_id}: {resp.status}")
                     raise ErrorDict.UnexpectedServerResponseError

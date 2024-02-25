@@ -2,7 +2,7 @@
 RoWhoIs modules library. If a roquest is likely to be reused multiple times throughought the main program, it is likely to be here.
 """
 import asyncio
-from typing import Any, Union
+from typing import Any, Union, Tuple, List
 from server import Roquest
 from utils import ErrorDict
 
@@ -135,7 +135,7 @@ async def get_membership(user: int) -> tuple[bool, bool, bool, bool]:
     ownedObc = any("type" in item for item in checkObc[1].get("data", []))
     return checkPremium[1], ownedBc, ownedTbc, ownedObc
 
-async def get_group(group: int) -> tuple[Any, Any, Any, Any, Union[list[bool], list[Any]], Union[list[bool], list[Any]], Any, Any, Union[bool, Any]]:
+async def get_group(group: int) -> tuple[str, str, str, bool, list[Union[str, int, bool]], list[Union[str, str, int, bool]], int, bool, bool]:
     """Returns name (0), description (1), created (2), verified (3), owner (4), shout (5), members (6), public (7), isLocked (8)"""
     getGroup, getGroupV1 = await asyncio.gather(Roquest.Roquest("GET", "groups", f"v2/groups?groupIds={group}"), Roquest.Roquest("GET", "groups", f"v1/groups/{group}"))
     await asyncio.gather(general_error_handler(getGroup[0]), general_error_handler(getGroupV1[0]))
@@ -144,14 +144,14 @@ async def get_group(group: int) -> tuple[Any, Any, Any, Any, Union[list[bool], l
     groupCreated = getGroup[1]['data'][0]['created']
     groupVerified = getGroup[1]['data'][0]['hasVerifiedBadge']
     if getGroupV1[1]['owner'] is not None:
-        if getGroupV1[1]['owner']['username'] is None: groupOwner = [False, False, False]
+        if getGroupV1[1]['owner']['username'] is None: groupOwner = None
         else: groupOwner = [getGroupV1[1]['owner']['username'], getGroupV1[1]['owner']['userId'], getGroupV1[1]['owner']['hasVerifiedBadge']]
     else: groupOwner = [False, False, False]
-    if getGroupV1[1]['shout'] is None: groupShout = [False, False, False]
+    if getGroupV1[1]['shout'] is None: groupShout = None
     else: groupShout = [getGroupV1[1]['shout']['body'], getGroupV1[1]['shout']['poster']['username'], getGroupV1[1]['shout']['poster']['userId'], getGroupV1[1]['shout']['poster']['hasVerifiedBadge']]
     groupMembers = getGroupV1[1]['memberCount']
     groupPublic = getGroupV1[1]['publicEntryAllowed']
-    if 'groupLocked' in getGroupV1[1]: groupLocked = getGroupV1[1]['isLocked']
+    if 'isLocked' in getGroupV1[1]: groupLocked = getGroupV1[1]['isLocked']
     else: groupLocked = False
     return groupName, groupDescription, groupCreated, groupVerified, groupOwner, groupShout, groupMembers, groupPublic, groupLocked
 
