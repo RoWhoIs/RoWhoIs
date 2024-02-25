@@ -42,7 +42,7 @@ except KeyError:
     exit(-1)
 try:
     from server import Roquest, RoWhoIs
-    Roquest.initialize(config["Proxying"])
+    Roquest.initialize(config)
     RoWhoIs.run(productionMode, shortHash, config)
 except RuntimeError: pass  # Occurs when exited before fully initialized
 except ErrorDict.MissingRequiredConfigs: sync_logging("fatal", f"Missing or malformed configuration options detected!")

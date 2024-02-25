@@ -1,5 +1,4 @@
 import aiohttp, asyncio
-from server.secret import RWI
 from utils.logger import AsyncLogCollector
 from utils import ErrorDict
 from typing import Any
@@ -10,12 +9,13 @@ lastProxy, x_csrf_token = None, ""
 def initialize(config):
     """Sets configurations for proxying. Needs to be ran before running any other function."""
     try:
-        global enableProxying, proxyUrls, proxyCredentials, logProxying
-        enableProxying = config["proxying_enabled"]
-        logProxying = config["log_proxying"]
-        username, password = config["username"], config["password"]
+        global enableProxying, proxyUrls, proxyCredentials, logProxying, rsec
+        enableProxying = config["Proxying"]["proxying_enabled"]
+        logProxying = config["Proxying"]["log_proxying"]
+        username, password = config["Proxying"]["username"], config["Proxying"]["password"]
+        rsec = config["Authentication"]["roblosecurity"]
         if password == "": password = None
-        proxyUrls = config["proxy_urls"]
+        proxyUrls = config["Proxying"]["proxy_urls"]
         if username != "": proxyCredentials = aiohttp.BasicAuth(login=username, password=password)
         else: proxyCredentials = None
         if enableProxying: loop.create_task(proxy_handler())
@@ -72,7 +72,7 @@ async def proxy_picker(currentproxy, diderror: bool):
 
 async def validate_cookie() -> None:
     """Validates the RSEC value from config.json"""
-    async with aiohttp.ClientSession(cookies={".roblosecurity": RWI.RSEC}) as main_session:
+    async with aiohttp.ClientSession(cookies={".roblosecurity": rsec}) as main_session:
         async with main_session.get("https://users.roblox.com/v1/users/authenticated") as resp:
             if resp.status == 200: await loop.create_task(token_renewal(True))
             else: await log_collector.error("Invalid ROBLOSECURITY cookie. RoWhoIs will not function properly.")
@@ -80,7 +80,7 @@ async def validate_cookie() -> None:
 async def token_renewal(automated: bool = False) -> None:
     global x_csrf_token
     try:
-        async with aiohttp.ClientSession(cookies={".roblosecurity": RWI.RSEC}) as main_session:
+        async with aiohttp.ClientSession(cookies={".roblosecurity": rsec}) as main_session:
             async with main_session.post("https://auth.roblox.com/v2/logout") as resp:
                 if 'x-csrf-token' in resp.headers: x_csrf_token = resp.headers['x-csrf-token']
                 else: x_csrf_token = ""
@@ -99,7 +99,7 @@ loop = asyncio.get_event_loop()
 async def Roquest(method: str, node: str, endpoint: str, failretry=False, **kwargs) -> [int, Any]:
     global proxyCredentials, lastProxy, x_csrf_token
     method = method.lower()
-    async with aiohttp.ClientSession(cookies={".roblosecurity": RWI.RSEC}, headers={"x-csrf-token": x_csrf_token}) as main_session:
+    async with aiohttp.ClientSession(cookies={".roblosecurity": rsec}, headers={"x-csrf-token": x_csrf_token}) as main_session:
         try:
             for retry in range(3):
                 proxy = await proxy_picker(lastProxy, False) # Moved here so on retry, switch proxies
@@ -132,7 +132,7 @@ async def Roquest(method: str, node: str, endpoint: str, failretry=False, **kwar
 
 async def RoliData():
     """Fetches Rolimons limited data"""
-    async with aiohttp.ClientSession(cookies={".ROBLOSECURITY": RWI.RSEC}) as session:
+    async with aiohttp.ClientSession(cookies={".ROBLOSECURITY": rsec}) as session:
         for retry in range(3):
             async with session.get("https://www.rolimons.com/itemapi/itemdetails") as resp:
                 if resp.status == 200: return await resp.json()
@@ -150,7 +150,7 @@ async def GetFileContent(asset_id: int) -> bytes:
         proxy = await proxy_picker(lastProxy, False)
         lastProxy = proxy
         await log_collector.info(f"GETFILECONTENT [{proxy if proxy is not None else 'non-proxied'}] | {asset_id}")
-        async with aiohttp.ClientSession(cookies={".ROBLOSECURITY": RWI.RSEC}, headers={"x-csrf-token": x_csrf_token}) as main_session:
+        async with aiohttp.ClientSession(cookies={".ROBLOSECURITY": roblosecurity}, headers={"x-csrf-token": x_csrf_token}) as main_session:
             async with main_session.request("GET", f"https://assetdelivery.roblox.com/v1/asset/?id={asset_id}", proxy=proxy, proxy_auth=proxyCredentials) as resp:
                 if resp.status == 200:
                     content = await resp.read()

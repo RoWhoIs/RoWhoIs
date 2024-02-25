@@ -1,6 +1,5 @@
 from server import Roquest, RoModules
 import asyncio, discord, aiofiles, re, io, aiohttp, signal
-from server.secret import RWI
 from utils import logger, ErrorDict
 from datetime import datetime
 from typing import Any
@@ -9,15 +8,16 @@ from typing import Any
 def run(productionmode: bool, shorthash: str, config) -> None:
     """Runs the server."""
     try:
-        global productionMode, staffIds, optOut, userBlocklist, shortHash, emojiTable
+        global productionMode, staffIds, optOut, userBlocklist, shortHash, emojiTable, botToken
         emojiTable = {"verified": config['Emojis']['verified'], "staff": config['Emojis']['staff'], "donor": config['Emojis']['donor'], "limited": config['Emojis']['limited'], "limitedu": config['Emojis']['limitedu'], "robux": config['Emojis']['robux'], "collectible": config['Emojis']['collectible'], "bc": config['Emojis']['bc'], "tbc": config['Emojis']['tbc'], "obc": config['Emojis']['obc'], "premium": config['Emojis']['premium']}
+        botToken = {"topgg": config['Authentication']['topgg'], "dbl": config['Authentication']['dbl']}
         shortHash = shorthash
         productionMode = productionmode
         staffIds = config['RoWhoIs']['admin_ids']
         optOut = config['RoWhoIs']['opt_out']
         userBlocklist = config['RoWhoIs']['banned_users']
-        if not productionMode: loop.run_until_complete(client.start(RWI.TESTING))
-        else: loop.run_until_complete(client.start(RWI.PRODUCTION))
+        if not productionMode: loop.run_until_complete(client.start(config['Authentication']['testing']))
+        else: loop.run_until_complete(config['Authentication']['production'])
     except KeyError: raise ErrorDict.MissingRequiredConfigs
 
 log_collector = logger.AsyncLogCollector("logs/main.log")
@@ -119,10 +119,10 @@ async def on_guild_join():
         try:
             await log_collector.info(f"RoWhoIs has joined a new server. Total servers: {len(client.guilds)}. Updating registries...")
             async with aiohttp.ClientSession() as session:
-                if RWI.TOPGG is not None:
-                    async with session.post(f"https://top.gg/api/bots/{client.user.id}/stats", headers={"Authorization": RWI.TOPGG}, json={"server_count": len(client.guilds)}): pass
-                if RWI.DBL is not None:
-                    async with session.post(f"https://discordbotlist.com/api/v1/bots/{client.user.id}/stats", headers={"Authorization": RWI.DBL}, json={"guilds": len(client.guilds)}): pass
+                if botToken.get("topgg") != "":
+                    async with session.post(f"https://top.gg/api/bots/{client.user.id}/stats", headers={"Authorization": botToken.get("topgg")}, json={"server_count": len(client.guilds)}): pass
+                if botToken.get("dbl") != "":
+                    async with session.post(f"https://discordbotlist.com/api/v1/bots/{client.user.id}/stats", headers={"Authorization": botToken.get("dbl")}, json={"guilds": len(client.guilds)}): pass
         except Exception as e: await log_collector.error(f"Failed to update registries. {e}")
 
 @client.tree.command()
