@@ -4,6 +4,25 @@ An advanced Roblox lookup Discord bot utility.
 
 ![Demo of the whois command](https://www.robloxians.com/resources/demo-whois-small.gif)
 
+## Commands
+
+|      Command       | Parameters         |                                                                                                                                                                                Description |
+|:------------------:|:-------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|
+|        help        | None               |                                                                                                                                                   Displays a list of commands RoWhoIs has. |
+|       whois        | `User`             | Returns User ID, account status, joined, last online, description, previous usernames, verified email, total rap, total value, group count, friend count, follower count, following count. |
+| getclothingtexture | `Clothing ID`      |                                                                                                                         Returns a PNG file containing the texture for a 2D clothing asset. |
+|      ownsitem      | `User`, `Item ID`  |                                                                                          Returns the item name, a count of the item owned and the unique asset ids for each item if owned. |
+|     ownsbadge      | `User`, `Badge ID` |                                                                                                                                        Returns badge award date, name, and image if owned. |
+|   isfriendswith    | `User1`, `User`    |                                                                                                                                                                  Returns True/False embed. |
+|       group        | `Group ID`         |                                                                                         Returns the group name, ID, status, created, owner username, owner userid, shout, and description. |
+|     isingroup      | `User`, `Group ID` |                                                                                                                                              Returns player's role and group name if True. |
+|      limited       | `Limited`          |                                                                                                                                               Returns the ID, RAP, and Value of a limited. |
+|   getitemdetails   | `Item ID`          |                                                                                   Returns the creator username & id, description, created, updated, quantity, remaining, and lowest price. |
+|   getmembership    | `User`             |                                                                                                                               Returns whether a player has Premium, or has had BC/TBC/OBC. |
+|   checkusername    | `Username`         |                                                                                                                                                    Checks whether a username is available. |
+|       userid       | `Username`         |                                                                                                                                                       Returns the User ID from a username. |
+|      username      | `User ID`          |                                                                                                                                                       Returns the username from a User ID. |
+
 ## Dependencies
 
 RoWhoIs relies on a set of dependencies to function properly.
@@ -23,18 +42,19 @@ For RoWhoIs to properly start, it needs several things:
 
 - A production Discord bot token
 - A testing Discord bot token (optional)
-- A .ROBLOSECURITY cookie (optional)
+- A .ROBLOSECURITY cookie
 - A top.gg and discordbotlist token (optional)
 
-These should be stored in a file named `secret.py`, stored under the server folder, and should be formatted as so:
+These can all be found in `config.json` under the `Authentication` key.
 
-```python
-class RWI():
-  PRODUCTION = "Production Bot Token here"
-  TESTING = "Testing Bot Token here"
-  RSEC = "Roblosecurity cookie here"
-  TOPGG = "Top.gg Token here"
-  DBL = "DiscordBotList Token here"
+```json
+"Authentication": {
+    "production": "Production bot token here",
+    "testing": "Testing bot token here",
+    "roblosecurity": "Roblosecurity cookie here",
+    "topgg": "Top.GG token here",
+    "dbl": "DiscordBotList token here"
+  }
 ```
 
 <sup>Note for any optional values, just pass a blank string.</sup>
@@ -46,27 +66,42 @@ RoWhoIs utilizes `config.json` in the main folder to load the following settings
 ### RoWhoIs class
 
 - Testing/Production Mode toggle
+  - Switches the Bot token so you can safely test experimental features in a sandboxed environment.
 - Opt-out users
   - Roblox User IDs of users who have requested to not be searchable by RoWhoIs
 - Banned users
   - Discord User IDs of users who are restricted from using RoWhoIs
 - Admin users
   - These users will get a special icon next to their RoWhoIs profile
-- Configuration update logging
-  - RoWhoIs often checks configuration files for any new changes that need to be loaded, and this can sometimes bloat the logs with unnecessary information.
 
 ### Proxy class
 
 - Proxying enabled toggle
+- Log proxying updates
 - Proxy URL tables
   - Proxies _must_ be formatted with the method, ip, and port.
 - Username, Password (Authentication)
   - Note if the `username` field is left blank, authentication will automatically be disabled.
 
-### Roquest class
+### Emojis class
 
-- log_proxying
-  - Logs validation attempts for the proxy pool and bad proxies.
+All configuration options for this are optional. To disable any specific emoji, just leave a blank string.
+
+To obtain these emojis, simply put a backslash behind the emoji in Discord then send it. An example output of this is: `<:verified:1186711315679563886>`
+
+| Emoji       | Use case                                                                          |
+|:------------|:----------------------------------------------------------------------------------|
+| verified    | Used for players who have the "verified" status on their profile.                 |
+| staff       | Used on the profile of RoWhoIs operators.                                         |
+| donor       | Currently unused, placed on the profile of users who donate to RoWhoIs.           |
+| limited     | Applied to a limited item.                                                        |
+| limitedu    | Applied to a limited-unique item.                                                 |
+| robux       | Used for symbolizing the virtual currency.                                        |
+| collectible | Used for user-generated limiteds.                                                 |
+| bc          | Used for players who had Builders Club, a predecessor to Premium 450.             |
+| tbc         | Used for players who had Turbo Builders Club, a predecessor to Premium 1000.      |
+| obc         | Used for players who had Outrageous Builders Club, a predecessor to Premium 2200. |
+| premium     | Used for players who have the Premium subscription.                               |
 
 ## Proxying
 
@@ -100,7 +135,7 @@ RoWhoIs containerizes operation types by file. This eases development and makes 
 
 Logs that are live are written to main.log, and sessions that are gracefully closed have log files named `server-YYYY-MM-DD-HHmmSS.log`
 
-```bash
+```
 .
 ├── cache
 │   └── clothing
@@ -111,12 +146,10 @@ Logs that are live are written to main.log, and sessions that are gracefully clo
 │   └── RoModules.py
 │   └── Roquest.py
 │   └── RoWhoIs.py
-│   └── secret.py
 ├── utils
 │   └── ErrorDict.py
 │   └── logger.py
 ├── config.json
-├── logger.py
 └── main.py
 ```
 

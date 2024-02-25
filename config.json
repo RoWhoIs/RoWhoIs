@@ -1,19 +1,35 @@
 {
+  "Authentication": {
+    "production": "",
+    "testing": "",
+    "roblosecurity": "",
+    "topgg": "",
+    "dbl": ""
+  },
   "RoWhoIs": {
-    "testing": true,
+    "production_mode": false,
     "opt_out": [],
     "banned_users": [],
-    "admin_ids": [],
-    "log_config_updates": false
+    "admin_ids": []
   },
-  "Roquest": {
-    "log_proxying":false
-  },
-  "RoModules": {},
-  "Proxy": {
+  "Proxying": {
     "proxying_enabled": false,
+    "log_proxying":false,
     "proxy_urls": [],
     "username": "",
     "password": ""
-  }    
+  },
+  "Emojis": {
+    "verified": "",
+    "staff": "",
+    "donor": "",
+    "limited": "",
+    "limitedu": "",
+    "robux": "",
+    "collectible": "",
+    "bc": "",
+    "tbc": "",
+    "obc": "",
+    "premium": ""
+  }
 }
