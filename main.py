@@ -1,61 +1,51 @@
-import json, asyncio, subprocess, os, datetime
+import asyncio, subprocess, datetime, json, os
 
-if not os.path.exists("utils/logger.py"): 
-    print("Missing logger.py! RoWhoIs will not be able to initialize.")
+if not os.path.exists("utils/logger.py"):
+    print("Missing utils/logger.py! RoWhoIs will not be able to initialize.")
     exit(-1)
 from utils.logger import AsyncLogCollector
 
 for folder in ["logs", "cache", "cache/clothing"]:
     if not os.path.exists(folder): os.makedirs(folder)
+
 logCollector = AsyncLogCollector("logs/main.log")
 
-def sync_logging(errorLevel, errorContent):
-    log_functions = {"fatal": logCollector.fatal,"error": logCollector.error,"warn": logCollector.warn,"info": logCollector.info}
-    asyncio.new_event_loop().run_until_complete(log_functions[errorLevel](errorContent))
+def sync_logging(errorlevel: str, errorcontent: str) -> None:
+    """Allows for synchronous logging using https://github.com/aut-mn/AsyncLogger"""
+    log_functions = {"fatal": logCollector.fatal, "error": logCollector.error, "warn": logCollector.warn, "info": logCollector.info}
+    asyncio.new_event_loop().run_until_complete(log_functions[errorlevel](errorcontent))
 
-def get_version():
-    try:
-        short_commit_id = subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD']).strip()
-        return short_commit_id.decode('utf-8')
-    except subprocess.CalledProcessError: return 0 # Assume not git workspace
-    
-shortHash = get_version()
+try:
+    short_commit_id = subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD']).strip()
+    shortHash = short_commit_id.decode('utf-8')
+except subprocess.CalledProcessError: shortHash = 0 # Assume not part of a git workspace
+
 sync_logging("info", f"Initializing RoWhoIs on version {shortHash}...")
 
-for file in ["server/secret.py", "server/Roquest.py", "server/RoWhoIs.py", "config.json"]:
+for file in ["server/Roquest.py", "server/RoWhoIs.py", "config.json", "utils/ErrorDict.py"]:
     if not os.path.exists(file):
         sync_logging("fatal", f"Missing {file}! RoWhoIs will not be able to initialize.")
         exit(-1)
 
-def load_runtime(shortHash):
-    optOut, userBlocklist, staffIds, proxyUrls = [], [], [], []
-    try:
-        # RoWhoIs
-        with open('config.json', 'r') as file: config = json.load(file)
-        testingMode = config.get("RoWhoIs", {}).get("testing", False)
-        if testingMode: sync_logging("warn", "Currently running in testing mode.")
-        else: sync_logging("warn", "Currently running in production mode.")
-        verboseLogging = config.get("RoWhoIs", {}).get("log_config_updates", False)
-        if not verboseLogging: sync_logging("info", "In config.json: log_config_updates set to False. Successful configuration updates will not be logged.")
-        optOut.extend([id for module_data in config.values() if 'opt_out' in module_data for id in module_data['opt_out']])
-        if verboseLogging: sync_logging("info", "Opt-out IDs updated successfully.")
-        userBlocklist.extend([id for module_data in config.values() if 'banned_users' in module_data for id in module_data['banned_users']])
-        if verboseLogging: sync_logging("info", "User blocklist updated successfully.")
-        staffIds.extend([id for module_data in config.values() if 'admin_ids' in module_data for id in module_data['admin_ids']])
-        # Roquest
-        proxyingEnabled = config.get("Proxy", {}).get("proxying_enabled", False)
-        logProxying = config.get("Roquest", {}).get("log_proxying", False)
-        username = config.get("Proxy", {}).get("username", False)
-        password = config.get("Proxy", {}).get("password", False)
-        if password == "": password = None
-        proxyUrls.extend([id for module_data in config.values() if 'proxy_urls' in module_data for id in module_data['proxy_urls']])
-        try:
-            from server import Roquest, RoWhoIs
-            Roquest.set_configs(proxyingEnabled, proxyUrls, username, password, logProxying)
-            RoWhoIs.main(testingMode, staffIds, optOut, userBlocklist, verboseLogging, shortHash)
-        except RuntimeError: pass # Occurs when exited before fully initialized
-        except Exception as e: sync_logging("fatal", f"A fatal error occurred during runtime: {e}")
-        os.rename("logs/main.log", f"logs/server-{datetime.datetime.now().strftime('%Y-%m-%d-%H%M%S')}.log")
-    except Exception as e: sync_logging("fatal", f"Failed to initialize! Invalid config? {e}")
+with open('config.json', 'r') as configfile:
+    config = json.load(configfile)
+    configfile.close()
 
-load_runtime(shortHash)
+try:
+    from utils import ErrorDict
+    productionMode = config['RoWhoIs']['production_mode']
+    if productionMode: sync_logging("warn", "Currently running in production mode.")
+    else: sync_logging("warn", "Currently running in testing mode.")
+except KeyError:
+    sync_logging("fatal", "Failed to retrieve production type. RoWhoIs will not be able to initialize.")
+    exit(-1)
+try:
+    from server import Roquest, RoWhoIs
+    Roquest.initialize(config)
+    RoWhoIs.run(productionMode, shortHash, config)
+except RuntimeError: pass  # Occurs when exited before fully initialized
+except ErrorDict.MissingRequiredConfigs: sync_logging("fatal", f"Missing or malformed configuration options detected!")
+except Exception as e: sync_logging("fatal", f"A fatal error occurred during runtime: {e}")
+
+os.rename("logs/main.log", f"logs/server-{datetime.datetime.now().strftime('%Y-%m-%d-%H%M%S')}.log")
+exit(1)

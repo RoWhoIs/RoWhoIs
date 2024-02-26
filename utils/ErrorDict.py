@@ -1,3 +1,7 @@
+"""
+RoWhoIs error dictionary
+"""
+
 class DoesNotExistError(Exception):
     """Raised when the requested resource does not exist."""
     pass
@@ -24,4 +28,8 @@ class RatelimitedError(Exception):
 
 class AssetNotAvailable(Exception):
     """Raised when the requested asset is not available."""
+    pass
+
+class MissingRequiredConfigs(Exception):
+    """Raised when configuration options were missing or malformed"""
     pass
