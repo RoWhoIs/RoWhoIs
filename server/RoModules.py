@@ -2,7 +2,7 @@
 RoWhoIs modules library. If a roquest is likely to be reused multiple times throughought the main program, it is likely to be here.
 """
 import asyncio
-from typing import Any, Union, Tuple, List
+from typing import Any, Union, Tuple, List, Dict
 from server import Roquest
 from utils import ErrorDict
 
@@ -15,26 +15,28 @@ async def general_error_handler(data: int, expectedresponsecode: int = 200) -> N
     elif data == 429: raise ErrorDict.RatelimitedError
     elif data != expectedresponsecode: raise ErrorDict.UnexpectedServerResponseError
 
-async def convert_to_id(username) -> tuple[int, str, str, bool]:
+async def convert_to_id(username: str) -> tuple[int, str, str, bool]:
     """Returns user id, username, display name, verified badge"""
-    userid = await Roquest.Roquest("POST", "users", "v1/usernames/users", json={"usernames": [username], "excludeBannedUsers": False})
-    await general_error_handler(userid[0])
-    if "data" in userid[1] and userid[1]["data"]:
-        user_data = userid[1]["data"][0]
+    data = await Roquest.Roquest("POST", "users", "v1/usernames/users", json={"usernames": [username], "excludeBannedUsers": False})
+    await general_error_handler(data[0])
+    if "data" in data[1] and data[1]["data"]:
+        user_data = data[1]["data"][0]
         if "id" in user_data and "name" in user_data: return user_data["id"], user_data["name"], user_data["displayName"], user_data["hasVerifiedBadge"]
         else: raise ErrorDict.DoesNotExistError
     else: raise ErrorDict.DoesNotExistError
         
-async def convert_to_username(userid: int) -> tuple[str, str, bool]:
-    userid = await Roquest.Roquest("POST", "users", "v1/users", json={"userIds": [userid], "excludeBannedUsers": False})
-    await general_error_handler(userid[0])
-    if "data" in userid[1] and userid[1]["data"]:
-        user_data = userid[1]["data"][0]
+async def convert_to_username(user: int) -> tuple[str, str, bool]:
+    """Converts a user id into a username. Returns name, display name, and verified status."""
+    data = await Roquest.Roquest("POST", "users", "v1/users", json={"userIds": [user], "excludeBannedUsers": False})
+    await general_error_handler(data[0])
+    if "data" in data[1] and data[1]["data"]:
+        user_data = data[1]["data"][0]
         if "id" in user_data: return user_data["name"], user_data["displayName"], user_data["hasVerifiedBadge"]
         else: raise ErrorDict.DoesNotExistError
     else: raise ErrorDict.DoesNotExistError
 
 async def check_verification(user_id: int) -> int:
+    """Retrieves the email verification status for a given account"""
     verifhat, verifsign = await asyncio.gather(Roquest.Roquest("GET", "inventory", f"v1/users/{user_id}/items/4/102611803"), Roquest.Roquest("GET", "inventory", f"v1/users/{user_id}/items/4/1567446"))
     await asyncio.gather(general_error_handler(verifhat[0]), general_error_handler(verifsign[0]))
     hatOwned = any("type" in item for item in verifhat[1].get("data", []))
@@ -42,11 +44,13 @@ async def check_verification(user_id: int) -> int:
     return 4 if hatOwned and signOwned else 1 if hatOwned else 2 if signOwned else 3
 
 async def last_online(user_id: int):
+    """Retrieves the last online date of a player"""
     last_data = await Roquest.Roquest("POST", "presence", "v1/presence/last-online", failretry=True, json={"userIds": [user_id]})
     await general_error_handler(last_data[0])
     return last_data[1]["lastOnlineTimestamps"][0]["lastOnline"]
 
 async def get_player_thumbnail(user_id: int, size):
+    """Retrieves a full-body thumbnail of a player's avatar"""
     thumbnail_url = await Roquest.Roquest("GET", "thumbnails", f"v1/users/avatar?userIds={user_id}&size={size}&format=Png&isCircular=false")
     if thumbnail_url[0] != 200: return "https://www.robloxians.com/resources/not-available.png"
     elif thumbnail_url[1]["data"][0]["state"] == "Blocked": return "https://robloxians.com/resources/blocked.png"
@@ -54,6 +58,7 @@ async def get_player_thumbnail(user_id: int, size):
 
 
 async def get_item_thumbnail(item_id: int, size):
+    """Retrieves the thumbnail of a given item"""
     thumbnail_url = await Roquest.Roquest("GET", "thumbnails", f"v1/assets?assetIds={item_id}&returnPolicy=PlaceHolder&size={size}&format=Png&isCircular=false", failretry=True)
     if thumbnail_url[0] != 200: return "https://www.robloxians.com/resources/not-available.png"
     elif thumbnail_url[1]["data"][0]["state"] == "Blocked": return "https://robloxians.com/resources/blocked.png"
@@ -66,6 +71,7 @@ async def get_player_profile(user_id: int) -> tuple[str, str, bool, str, str, bo
     return desc[1]["description"], desc[1]["created"], desc[1]["isBanned"], desc[1]["name"], desc[1]["displayName"], desc[1]["hasVerifiedBadge"]
 
 async def get_previous_usernames(user_id: int):
+    """Returns a player's previous usernames"""
     usernames = []
     next_page_cursor = None
     while True:
@@ -78,11 +84,6 @@ async def get_previous_usernames(user_id: int):
         next_page_cursor = data[1].get("nextPageCursor")
         if not next_page_cursor: break
     return usernames
-
-async def get_group_count(user_id: int) -> int:
-    gdata = await Roquest.Roquest("GET", "groups", f"v2/users/{user_id}/groups/roles?includeLocked=true")
-    await general_error_handler(gdata[0])
-    return len(gdata[1]['data'])
     
 async def get_socials(user_id: int) -> tuple[int, int, int]:
     """Returns Friends, Followers, Following"""
@@ -160,6 +161,56 @@ async def validate_username(username: str) -> tuple[int, str]:
     data = await Roquest.Roquest("POST", "auth", f"v2/usernames/validate", json={"username": username, "birthday": "2000-01-01T00:00:00.000Z", "context": 0})
     await general_error_handler(data[0])
     return data[1]['code'], data[1]['message']
+
+async def get_limiteds(user: int, roliData) -> tuple[bool, int, int, List[Dict[int, int]]]:
+    """Retrieves the RAP and value of a player"""
+    privateInventory, totalRap, totalValue, items, cursor = True, 0, 0, [], ""
+    while True:
+        rap = await Roquest.Roquest("GET", "inventory",f"v1/users/{user}/assets/collectibles?limit=100&sortOrder=Asc&cursor={cursor}")
+        if rap[0] == 403:
+            privateInventory = True
+            break
+        if rap[0] != 200: raise ErrorDict.UnexpectedServerResponseError
+        else: privateInventory = False
+        data = rap[1].get("data", [])
+        if not data: break
+        for item in data:
+            assetId = str(item.get("assetId", 0))
+            if assetId in roliData['items']:
+                items.append(assetId)
+                itemValue = roliData['items'][assetId][4]
+                if itemValue is not None: totalValue += itemValue
+            rap_value = item.get("recentAveragePrice", 0)
+            if rap_value is not None: totalRap += rap_value
+        cursor = rap[1].get("nextPageCursor")
+        if not cursor: break
+    return privateInventory, totalRap, totalValue, items
+
+async def get_item(item:int):
+    """Retrieves an item and returns its data"""
+    data = await Roquest.Roquest("GET", "economy", f"v2/assets/{item}/details")
+    await general_error_handler(data[0])
+    return data[1]
+
+async def owns_item(user: int, item: int) -> tuple[bool, int, str, List[Dict[int, int]]]:
+    """Retrieves whether a player owns an item and returns the UAID and name of item if True"""
+    itemData = await Roquest.Roquest("GET", "inventory", f"v1/users/{user}/items/4/{item}")
+    if 'errors' in itemData[1]: return None, 0, itemData[1]['errors'][0]['message'], []
+    await general_error_handler(itemData[0])
+    if itemData[1]["data"] and any("type" in item for item in itemData[1]["data"]):
+        itemName = itemData[1]['data'][0]['name']
+        totalOwned = len(itemData[1]['data'])
+        uaidList = [item["instanceId"] for item in itemData[1]["data"][:50]]
+        return True, totalOwned, itemName, uaidList
+    else: return False, 0, "", []
+
+async def owns_badge(user:int, badge:int) -> tuple[bool, str]:
+    """Retrieve whether a player owns a badge and returns the award date if True"""
+    data = await Roquest.Roquest("GET", "badges", f"v1/users/{user}/badges/awarded-dates?badgeIds={badge}")
+    await general_error_handler(data[0])
+    if data[1]["data"] and any("type" for _ in data[1]["data"][0]):
+        return True, data[1]["data"][0]["awardedDate"]
+    else: return False, 0
 
 async def nil_pointer() -> int: 
     """Returns nil data"""
