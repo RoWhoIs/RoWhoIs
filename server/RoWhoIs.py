@@ -47,25 +47,23 @@ async def update_rolidata() -> None:
         await asyncio.sleep(3600)
 
 async def fancy_time(last_online_timestamp: str) -> str:
-    """Converts a datetime string to a human-readable format"""
+    """Converts a datetime string to a human-readable, relative format"""
     try:
-        try: last_online_datetime = datetime.strptime(last_online_timestamp, "%Y-%m-%dT%H:%M:%S.%fZ")
+        try: lastOnlineDatetime = datetime.strptime(last_online_timestamp, "%Y-%m-%dT%H:%M:%S.%fZ")
         except ValueError:
-            try: last_online_datetime = datetime.strptime(last_online_timestamp, "%Y-%m-%dT%H:%M:%SZ")
+            try: lastOnlineDatetime = datetime.strptime(last_online_timestamp, "%Y-%m-%dT%H:%M:%SZ")
             except ValueError:
                 data = str(last_online_timestamp)
-                microseconds = int(data[-7:-1])
-                last_online_datetime = datetime.strptime(data[:-7] + 'Z', "%Y-%m-%dT%H:%M:%S.%fZ").replace(microsecond=microseconds)
-        current_datetime = datetime.utcnow()
-        time_difference = current_datetime - last_online_datetime
-        time_units = [("year", 12, time_difference.days // 365), ("month", 1, time_difference.days // 30),  ("week", 7, time_difference.days // 7), ("day", 1, time_difference.days), ("hour", 60, time_difference.seconds // 3600), ("minute", 60, time_difference.seconds // 60), ("second", 1, time_difference.seconds)]
-        for unit, _, value in time_units:
+                lastOnlineDatetime = datetime.strptime(data[:-7] + 'Z', "%Y-%m-%dT%H:%M:%S.%fZ").replace(microsecond=int(data[-7:-1]))
+        timeDifference = datetime.utcnow() - lastOnlineDatetime
+        timeUnits = [("year", 12, timeDifference.days // 365), ("month", 1, timeDifference.days // 30),  ("week", 7, timeDifference.days // 7), ("day", 1, timeDifference.days), ("hour", 60, timeDifference.seconds // 3600), ("minute", 60, timeDifference.seconds // 60), ("second", 1, timeDifference.seconds)]
+        for unit, _, value in timeUnits:
             if value > 0:
-                last_online_formatted = f"{value} {unit + 's' if value != 1 else unit} ago"
+                lastOnlineFormatted = f"{value} {unit + 's' if value != 1 else unit} ago"
                 break
-        else: last_online_formatted = f"{time_difference.seconds} {'second' if time_difference.seconds == 1 else 'seconds'} ago"
-        last_online_formatted += f" ({last_online_datetime.strftime('%m/%d/%Y %H:%M:%S')})"
-        return last_online_formatted
+        else: lastOnlineFormatted = f"{timeDifference.seconds} {'second' if timeDifference.seconds == 1 else 'seconds'} ago"
+        lastOnlineFormatted += f" ({lastOnlineDatetime.strftime('%m/%d/%Y %H:%M:%S')})"
+        return lastOnlineFormatted
     except Exception as e:
         await log_collector.error(f"Error formatting time: {e} | Returning fallback data: {last_online_timestamp}")
         return last_online_timestamp
@@ -564,7 +562,7 @@ async def getmembership(interaction: discord.Interaction, user: str):
         try: data = await RoModules.get_membership(user_id[0])
         except Exception as e:
             if await handle_error(e, interaction, "getmembership", "User"): return
-        if all(not data[i] for i in range(1, 5)): noTiers = True
+        if all(not data[i] for i in range(1, 4)): noTiers = True
         else: noTiers = False
         # We're gettin' shcwifty in here with these f-string expressions
         newline = '\n'

@@ -1,8 +1,7 @@
 import asyncio, subprocess, datetime, json, os
-from utils import ErrorDict
 
 if not os.path.exists("utils/logger.py"):
-    print("Missing logger.py! RoWhoIs will not be able to initialize.")
+    print("Missing utils/logger.py! RoWhoIs will not be able to initialize.")
     exit(-1)
 from utils.logger import AsyncLogCollector
 
@@ -23,7 +22,7 @@ except subprocess.CalledProcessError: shortHash = 0 # Assume not part of a git w
 
 sync_logging("info", f"Initializing RoWhoIs on version {shortHash}...")
 
-for file in ["server/Roquest.py", "server/RoWhoIs.py", "config.json"]:
+for file in ["server/Roquest.py", "server/RoWhoIs.py", "config.json", "utils/ErrorDict.py"]:
     if not os.path.exists(file):
         sync_logging("fatal", f"Missing {file}! RoWhoIs will not be able to initialize.")
         exit(-1)
@@ -31,7 +30,9 @@ for file in ["server/Roquest.py", "server/RoWhoIs.py", "config.json"]:
 with open('config.json', 'r') as configfile:
     config = json.load(configfile)
     configfile.close()
+
 try:
+    from utils import ErrorDict
     productionMode = config['RoWhoIs']['production_mode']
     if productionMode: sync_logging("warn", "Currently running in production mode.")
     else: sync_logging("warn", "Currently running in testing mode.")
