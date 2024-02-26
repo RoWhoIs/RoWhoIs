@@ -17,8 +17,9 @@ def run(productionmode: bool, shorthash: str, config) -> None:
         optOut = config['RoWhoIs']['opt_out']
         userBlocklist = config['RoWhoIs']['banned_users']
         if not productionMode: loop.run_until_complete(client.start(config['Authentication']['testing']))
-        else: loop.run_until_complete(config['Authentication']['production'])
+        else: loop.run_until_complete(client.start(config['Authentication']['production']))
     except KeyError: raise ErrorDict.MissingRequiredConfigs
+    except Exception as e: print(e)
 
 log_collector = logger.AsyncLogCollector("logs/main.log")
 
