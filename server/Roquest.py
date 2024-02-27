@@ -1,3 +1,6 @@
+"""
+RoWhoIs library for performing raw requests to API endpoints.
+"""
 import aiohttp, asyncio
 from utils.logger import AsyncLogCollector
 from utils import ErrorDict
@@ -23,6 +26,7 @@ def initialize(config):
     except KeyError: raise ErrorDict.MissingRequiredConfigs
 
 async def proxy_handler() -> None:
+    """Determines what proxies are usable by the server"""
     global enableProxying, proxyUrls, proxyCredentials, proxyPool, logProxying
     try:
         while enableProxying:
@@ -46,6 +50,7 @@ async def proxy_handler() -> None:
         pass
 
 async def proxy_picker(currentproxy, diderror: bool):
+    """Chronologically picks a usable proxy from the proxy pool"""
     try:
         global proxyPool, logProxying
         if not enableProxying: return None
@@ -78,6 +83,7 @@ async def validate_cookie() -> None:
             else: await log_collector.error("Invalid ROBLOSECURITY cookie. RoWhoIs will not function properly.")
 
 async def token_renewal(automated: bool = False) -> None:
+    """Renews the X-CSRF token"""
     global x_csrf_token
     try:
         async with aiohttp.ClientSession(cookies={".roblosecurity": rsec}) as main_session:
@@ -96,7 +102,8 @@ async def token_renewal(automated: bool = False) -> None:
 
 loop = asyncio.get_event_loop()
 
-async def Roquest(method: str, node: str, endpoint: str, failretry=False, **kwargs) -> [int, Any]:
+async def Roquest(method: str, node: str, endpoint: str, failretry=False, **kwargs) -> tuple[int, Any]:
+    """Performs API calls to Roblox, returns status code and json response"""
     global proxyCredentials, lastProxy, x_csrf_token
     method = method.lower()
     async with aiohttp.ClientSession(cookies={".roblosecurity": rsec}, headers={"x-csrf-token": x_csrf_token}) as main_session:
