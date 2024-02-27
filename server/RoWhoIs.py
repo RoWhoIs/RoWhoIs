@@ -54,7 +54,7 @@ async def fancy_time(last_online_timestamp: str) -> str:
             except ValueError:
                 data = str(last_online_timestamp)
                 lastOnlineDatetime = datetime.datetime.strptime(data[:-7] + 'Z', "%Y-%m-%dT%H:%M:%S.%fZ").replace(microsecond=int(data[-7:-1]))
-        timeDifference = datetime.datetime.now(datetime.UTC).replace(tzinfo=None) - lastOnlineDatetime
+        timeDifference = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None) - lastOnlineDatetime
         timeUnits = [("year", 12, timeDifference.days // 365), ("month", 1, timeDifference.days // 30),  ("week", 7, timeDifference.days // 7), ("day", 1, timeDifference.days), ("hour", 60, timeDifference.seconds // 3600), ("minute", 60, timeDifference.seconds // 60), ("second", 1, timeDifference.seconds)]
         for unit, _, value in timeUnits:
             if value > 0:
@@ -139,6 +139,7 @@ async def help(interaction: discord.Interaction):
     embedVar.add_field(name="whois {UserId}/{username}", value="Get detailed profile information from a User ID/Username.", inline=True)
     embedVar.add_field(name="getclothingtexture {itemId}", value="Retrieves the texture file for a 2D clothing asset.", inline=True)
     embedVar.add_field(name="userid {Username}", value="Get a User ID based off a username.", inline=True)
+    embedVar.add_field(name="username {UserId}", value="Get a username based off a User ID.", inline=True)
     embedVar.add_field(name="ownsitem {UserId}/{username}, {itemId}", value="Retrieve whether a user owns an item or not. Works with players who have a private inventory.", inline=True)
     embedVar.add_field(name="ownsbadge {UserId}/{username}, {badgeId}", value="Retrieve whether a user owns a badge or not. Works with players who have a private inventory.", inline=True)
     embedVar.add_field(name="isfriendswith {user1}, {user2}", value="Check if two players are friended.", inline=True)
@@ -487,7 +488,7 @@ async def getitemdetails(interaction: discord.Interaction, item: int):
         if data["CollectibleItemId"] is not None: isCollectible = True
         else: isCollectible = False
         embed.title = f"{emojiTable.get('limited') if data['IsLimited'] else emojiTable.get('limitedu') if data['IsLimitedUnique'] else emojiTable.get('collectible') if isCollectible else ''} {data['Name']}"
-        embed.add_field(name="Creator:", value=f"`{data['Creator']['Name']}` (`{data['Creator']['Id']}`) {emojiTable.get('staff') if userid in staffIds else emojiTable.get('verified') if data['Creator']['HasVerifiedBadge'] else ''}")
+        embed.add_field(name="Creator:", value=f"`{data['Creator']['Name']}` (`{data['Creator']['CreatorTargetId']}`) {emojiTable.get('staff') if userid in staffIds else emojiTable.get('verified') if data['Creator']['HasVerifiedBadge'] else ''}")
         if data['Description'] != "": embed.add_field(name="Description:", value=f"`{data['Description']}`", inline=False)
         embed.add_field(name="Created:", value=f"`{(await fancy_time(data['Created']))}`", inline=True)
         embed.add_field(name="Updated:", value=f"`{(await fancy_time(data['Updated']))}`", inline=True)
