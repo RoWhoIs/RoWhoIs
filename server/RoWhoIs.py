@@ -112,7 +112,7 @@ async def on_ready():
 
 @client.event
 async def on_guild_join():
-    if not testingMode:
+    if productionMode:
         try:
             await log_collector.info(f"RoWhoIs has joined a new server. Total servers: {len(client.guilds)}. Updating registries...")
             async with aiohttp.ClientSession() as session:
