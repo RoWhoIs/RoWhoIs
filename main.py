@@ -16,11 +16,15 @@ def sync_logging(errorlevel: str, errorcontent: str) -> None:
     asyncio.new_event_loop().run_until_complete(log_functions[errorlevel](errorcontent))
 
 try:
-    short_commit_id = subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD']).strip()
-    shortHash = short_commit_id.decode('utf-8')
-except subprocess.CalledProcessError: shortHash = 0 # Assume not part of a git workspace
+    tag = subprocess.check_output(['git', 'tag', '--contains', 'HEAD']).strip()
+    version = tag.decode('utf-8') if tag else None
+except subprocess.CalledProcessError:
+    try: # Fallback, rely on short hash
+        short_commit_id = subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD']).strip()
+        version = short_commit_id.decode('utf-8')
+    except subprocess.CalledProcessError: version = "0"  # Assume not part of a git workspace
 
-sync_logging("info", f"Initializing RoWhoIs on version {shortHash}...")
+sync_logging("info", f"Initializing RoWhoIs on version {version}...")
 
 for file in ["server/Roquest.py", "server/RoWhoIs.py", "config.json", "utils/ErrorDict.py"]:
     if not os.path.exists(file):
@@ -42,7 +46,7 @@ except KeyError:
 try:
     from server import Roquest, RoWhoIs
     Roquest.initialize(config)
-    RoWhoIs.run(productionMode, shortHash, config)
+    RoWhoIs.run(productionMode, version, config)
 except RuntimeError: pass  # Occurs when exited before fully initialized
 except ErrorDict.MissingRequiredConfigs: sync_logging("fatal", f"Missing or malformed configuration options detected!")
 except Exception as e: sync_logging("fatal", f"A fatal error occurred during runtime: {e}")

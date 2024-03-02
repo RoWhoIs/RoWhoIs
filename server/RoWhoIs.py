@@ -4,13 +4,13 @@ from utils import logger, ErrorDict
 from typing import Any
 
 
-def run(productionmode: bool, shorthash: str, config) -> None:
+def run(productionmode: bool, version: str, config) -> None:
     """Runs the server."""
     try:
         global productionMode, staffIds, optOut, userBlocklist, shortHash, emojiTable, botToken
         emojiTable = {key: config['Emojis'][key] for key in config['Emojis']}
         botToken = {"topgg": config['Authentication']['topgg'], "dbl": config['Authentication']['dbl']}
-        shortHash = shorthash
+        shortHash = version
         productionMode = productionmode
         staffIds = config['RoWhoIs']['admin_ids']
         optOut = config['RoWhoIs']['opt_out']
@@ -111,7 +111,7 @@ async def on_ready():
     await client.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="over Robloxia"))
 
 @client.event
-async def on_guild_join():
+async def on_guild_join(guild):
     if productionMode:
         try:
             await log_collector.info(f"RoWhoIs has joined a new server. Total servers: {len(client.guilds)}. Updating registries...")
