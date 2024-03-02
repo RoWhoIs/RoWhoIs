@@ -37,13 +37,13 @@ async def proxy_handler() -> None:
                 except Exception: pass
                 return False
             async with aiohttp.ClientSession() as session:
-                if len(proxyUrls) <= 0 and logProxying: await log_collector.warn("No usable proxies found! Fallbacking to non-proxied.")
+                if len(proxyUrls) <= 0 and logProxying: await log_collector.debug("No usable proxies found! Fallbacking to non-proxied.")
                 else:
                     tasks = [test_proxy(session, proxy_url) for proxy_url in proxyUrls]
                     results = await asyncio.gather(*tasks)
                     proxyPool = [proxy_url for proxy_url, result in zip(proxyUrls, results) if result]
-                    if len(proxyPool) <= 0 and logProxying: await log_collector.warn("No usable proxies found! Fallbacking to non-proxied.")
-                    elif logProxying: await log_collector.info(f"Refreshed proxy pool. {len(proxyPool)} usable IPs.")
+                    if len(proxyPool) <= 0 and logProxying: await log_collector.debug("No usable proxies found! Fallbacking to non-proxied.")
+                    elif logProxying: await log_collector.debug(f"Refreshed proxy pool. {len(proxyPool)} usable IPs.")
             await asyncio.sleep(300)
     except Exception as e:
         await log_collector.error(f"proxy_handler encountered a severe error while refreshing proxy pool: {e}")
@@ -55,7 +55,7 @@ async def proxy_picker(currentproxy, diderror: bool):
         global proxyPool, logProxying
         if not enableProxying: return None
         if diderror and currentproxy is not None:
-            if logProxying: await log_collector.warn(f"Removing bad proxy {currentproxy}.")
+            if logProxying: await log_collector.debug(f"Removing bad proxy {currentproxy}.")
             for proxy in proxyPool:
                 if proxy == currentproxy: proxyPool.remove(proxy)
         if len(proxyPool) == 0: return None
