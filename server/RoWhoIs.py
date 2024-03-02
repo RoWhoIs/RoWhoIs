@@ -8,7 +8,7 @@ def run(productionmode: bool, shorthash: str, config) -> None:
     """Runs the server."""
     try:
         global productionMode, staffIds, optOut, userBlocklist, shortHash, emojiTable, botToken
-        emojiTable = {"verified": config['Emojis']['verified'], "staff": config['Emojis']['staff'], "donor": config['Emojis']['donor'], "limited": config['Emojis']['limited'], "limitedu": config['Emojis']['limitedu'], "robux": config['Emojis']['robux'], "collectible": config['Emojis']['collectible'], "bc": config['Emojis']['bc'], "tbc": config['Emojis']['tbc'], "obc": config['Emojis']['obc'], "premium": config['Emojis']['premium']}
+        emojiTable = {key: config['Emojis'][key] for key in config['Emojis']}
         botToken = {"topgg": config['Authentication']['topgg'], "dbl": config['Authentication']['dbl']}
         shortHash = shorthash
         productionMode = productionmode
@@ -136,19 +136,20 @@ async def help(interaction: discord.Interaction):
     await interaction.response.defer(ephemeral=False)
     embedVar = discord.Embed(title="RoWhoIs Commands", color=discord.Color.from_rgb(135, 136, 138))
     if not (await validate_user(interaction, embedVar)): return
-    embedVar.add_field(name="whois {UserId}/{username}", value="Get detailed profile information from a User ID/Username.", inline=True)
-    embedVar.add_field(name="getclothingtexture {itemId}", value="Retrieves the texture file for a 2D clothing asset.", inline=True)
+    embedVar.add_field(name="whois {User}", value="Get detailed profile information from a User ID/Username.", inline=True)
+    embedVar.add_field(name="clothingtexture {itemId}", value="Retrieves the texture file for a 2D clothing asset.", inline=True)
     embedVar.add_field(name="userid {Username}", value="Get a User ID based off a username.", inline=True)
     embedVar.add_field(name="username {UserId}", value="Get a username based off a User ID.", inline=True)
-    embedVar.add_field(name="ownsitem {UserId}/{username}, {itemId}", value="Retrieve whether a user owns an item or not. Works with players who have a private inventory.", inline=True)
-    embedVar.add_field(name="ownsbadge {UserId}/{username}, {badgeId}", value="Retrieve whether a user owns a badge or not. Works with players who have a private inventory.", inline=True)
-    embedVar.add_field(name="isfriendswith {user1}, {user2}", value="Check if two players are friended.", inline=True)
+    embedVar.add_field(name="ownsitem {User}, {itemId}", value="Retrieve whether a user owns an item or not. Works with players who have a private inventory.", inline=True)
+    embedVar.add_field(name="ownsbadge {User}, {badgeId}", value="Retrieve whether a user owns a badge or not. Works with players who have a private inventory.", inline=True)
+    embedVar.add_field(name="isfriendswith {User1}, {User2}", value="Check if two players are friended.", inline=True)
     embedVar.add_field(name="group {groupId}", value="Get detailed group information from a Group ID.", inline=True)
     embedVar.add_field(name="isingroup {user}, {group}", value="Check if a player is in the specified group.", inline=True)
     embedVar.add_field(name="limited {limited name}/{limited acronym}", value="Returns a limited ID, the rap, and value of the specified limited.", inline=True)
-    embedVar.add_field(name="getitemdetails {item}", value="Returns details about a catalog item.", inline=True)
-    embedVar.add_field(name="getmembership {userId}/{username}", value="Check if a player has Premium or has had Builders Club.", inline=True)
+    embedVar.add_field(name="itemdetails {item}", value="Returns details about a catalog item.", inline=True)
+    embedVar.add_field(name="membership {User}", value="Check if a player has Premium or has had Builders Club.", inline=True)
     embedVar.add_field(name="checkusername {username}", value="Check if a username is available", inline=True)
+    embedVar.add_field(name="robloxbadges {user}", value="Shows what Roblox badges a player has", inline=True)
     embedVar.set_footer(text=f"Version {shortHash} | Made with <3 by autumnfication")
     await interaction.followup.send(embed=embedVar)
 
@@ -417,7 +418,7 @@ async def isingroup(interaction: discord.Interaction, user: str, group: int):
 
 @client.tree.command()
 @discord.app_commands.checks.cooldown(2, 60, key=lambda i: i.user.id)
-async def getclothingtexture(interaction: discord.Interaction, clothing_id: int):
+async def clothingtexture(interaction: discord.Interaction, clothing_id: int):
     """Get the texture file of a clothing item"""
     await interaction.response.defer(ephemeral=False)
     embed = discord.Embed(color=0xFF0000)
@@ -475,7 +476,7 @@ async def getclothingtexture(interaction: discord.Interaction, clothing_id: int)
 
 @client.tree.command()
 @discord.app_commands.checks.cooldown(2, 60, key=lambda i: i.user.id)
-async def getitemdetails(interaction: discord.Interaction, item: int):
+async def itemdetails(interaction: discord.Interaction, item: int):
     """Get advanced details about a catalog item"""
     await interaction.response.defer(ephemeral=False)
     embed = discord.Embed(color=0xFF0000)
@@ -506,7 +507,7 @@ async def getitemdetails(interaction: discord.Interaction, item: int):
 
 @client.tree.command()
 @discord.app_commands.checks.cooldown(2, 60, key=lambda i: i.user.id)
-async def getmembership(interaction: discord.Interaction, user: str):
+async def membership(interaction: discord.Interaction, user: str):
     """Checks whether a user has premium and if they had Builders Club"""
     await interaction.response.defer(ephemeral=False)
     embed = discord.Embed(color=0xFF0000)
@@ -528,7 +529,7 @@ async def getmembership(interaction: discord.Interaction, user: str):
         # We're gettin' shcwifty in here with these f-string expressions
         newline = '\n'
         embed.title = f"{user_id[1]}'s memberships:"
-        embed.description = f"{(emojiTable.get('premium') + ' `Premium`' + newline) if data[0] else ''}{(emojiTable.get('bc') + ' `Builders Club`' + newline) if data[1] else ''}{(emojiTable.get('tbc') + '`Turbo Builders Club`' + newline) if data[2] else ''}{(emojiTable.get('obc') + ' `Outrageous Builders Club`' + newline) if data[3] else ''}{(user_id[1] + ' has no memberships.') if noTiers else ''}"
+        embed.description = f"{(emojiTable.get('premium') + ' `Premium`' + newline) if data[0] else ''}{(emojiTable.get('bc') + ' `Builders Club`' + newline) if data[1] else ''}{(emojiTable.get('tbc') + '`Turbo Builders Club`' + newline) if data[2] else ''}{(emojiTable.get('obc') + ' `Outrageous Builders Club`' + newline) if data[3] else ''}{(str(user_id[1]) + ' has no memberships.') if noTiers else ''}"
         embed.colour = 0x00FF00
         await interaction.followup.send(embed=embed)
     except Exception as e: await handle_error(e, interaction, "getmembership", "User")
@@ -580,3 +581,36 @@ async def checkusername(interaction: discord.Interaction, username: str):
         else: embed.description = f"Username not available.\n**Reason:** {usernameInfo[1]}"
         await interaction.followup.send(embed=embed)
     except Exception as e: await handle_error(e, interaction, "username", "Username")
+
+@client.tree.command()
+@discord.app_commands.checks.cooldown(3, 60, key=lambda i: i.user.id)
+async def robloxbadges(interaction: discord.Interaction, user: str):
+    """Check what Roblox badges a player has"""
+    await interaction.response.defer(ephemeral=False)
+    embed = discord.Embed(color=0xFF0000)
+    if not (await validate_user(interaction, embed)): return
+    try:
+        try: 
+            user_id = [int(user), None] if user.isdigit() else (await RoModules.convert_to_id(user))[:2]
+            if user_id[1] is None: user_id[1] = (await RoModules.convert_to_username(user_id[0]))[0]
+        except Exception as e:
+            if await handle_error(e, interaction, "robloxbadges", "User"): return
+        if not (await validate_user(interaction, embed, user_id[0])): return
+        try: badges = await RoModules.roblox_badges(user_id[0])
+        except Exception as e:
+            if await handle_error(e, interaction, "robloxbadges", "User"): return
+        if len(badges[0]) <= 0:
+            embed.description = "This user has no Roblox badges."
+            await interaction.followup.send(embed=embed)
+            return
+        descriptor = ""
+        for badge in badges[0]:
+            badge_name = badges[1].get(badge)
+            if badge_name: descriptor += f"{emojiTable.get(str(badge_name).lower())} `{badge_name}`\n"
+        if descriptor == "":  descriptor = "This user has no Roblox badges."
+        embed.set_thumbnail(url=await RoModules.get_player_headshot(user_id[0], "420x420"))
+        embed.colour = 0x00FF00
+        embed.title = f"{user_id[1]}'s Roblox Badges:"
+        embed.description = descriptor
+        await interaction.followup.send(embed=embed)
+    except Exception as e: await handle_error(e, interaction, "robloxbadges", "User")

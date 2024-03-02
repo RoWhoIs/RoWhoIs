@@ -2,7 +2,7 @@
 RoWhoIs modules library. If a roquest is likely to be reused multiple times throughought the main program, it is likely to be here.
 """
 import asyncio
-from typing import Any, Union, Tuple, List, Dict
+from typing import Any, Union, Tuple, List, Dict, Optional
 from server import Roquest
 from utils import ErrorDict
 
@@ -162,11 +162,11 @@ async def validate_username(username: str) -> tuple[int, str]:
     await general_error_handler(data[0])
     return data[1]['code'], data[1]['message']
 
-async def get_limiteds(user: int, roliData) -> tuple[bool, int, int, List[Dict[int, int]]]:
+async def get_limiteds(user: int, rolidata) -> tuple[bool, int, int, List[Dict[int, int]]]:
     """Retrieves the RAP and value of a player"""
     privateInventory, totalRap, totalValue, items, cursor = True, 0, 0, [], ""
     while True:
-        rap = await Roquest.Roquest("GET", "inventory",f"v1/users/{user}/assets/collectibles?limit=100&sortOrder=Asc&cursor={cursor}")
+        rap = await Roquest.Roquest("GET", "inventory", f"v1/users/{user}/assets/collectibles?limit=100&sortOrder=Asc&cursor={cursor}")
         if rap[0] == 403:
             privateInventory = True
             break
@@ -176,9 +176,9 @@ async def get_limiteds(user: int, roliData) -> tuple[bool, int, int, List[Dict[i
         if not data: break
         for item in data:
             assetId = str(item.get("assetId", 0))
-            if assetId in roliData['items']:
+            if assetId in rolidata['items']:
                 items.append(assetId)
-                itemValue = roliData['items'][assetId][4]
+                itemValue = rolidata['items'][assetId][4]
                 if itemValue is not None: totalValue += itemValue
             rap_value = item.get("recentAveragePrice", 0)
             if rap_value is not None: totalRap += rap_value
@@ -186,7 +186,7 @@ async def get_limiteds(user: int, roliData) -> tuple[bool, int, int, List[Dict[i
         if not cursor: break
     return privateInventory, totalRap, totalValue, items
 
-async def get_item(item:int):
+async def get_item(item: int):
     """Retrieves an item and returns its data"""
     data = await Roquest.Roquest("GET", "economy", f"v2/assets/{item}/details")
     await general_error_handler(data[0])
@@ -204,13 +204,22 @@ async def owns_item(user: int, item: int) -> tuple[bool, int, str, List[Dict[int
         return True, totalOwned, itemName, uaidList
     else: return False, 0, "", []
 
-async def owns_badge(user:int, badge:int) -> tuple[bool, str]:
+async def owns_badge(user: int, badge: int) -> tuple[bool, str]:
     """Retrieve whether a player owns a badge and returns the award date if True"""
     data = await Roquest.Roquest("GET", "badges", f"v1/users/{user}/badges/awarded-dates?badgeIds={badge}")
     await general_error_handler(data[0])
     if data[1]["data"] and any("type" for _ in data[1]["data"][0]):
         return True, data[1]["data"][0]["awardedDate"]
     else: return False, 0
+
+async def roblox_badges(user: int) -> tuple[List[int], Dict[int, str]]:
+    """Retrieves a player's Roblox badges, returns a list of badge ids and a badge name lookup table."""
+    badgeTable = {1: "Administrator", 2: "Friendship", 3: "Combat Initiation", 4: "Warrior", 5: "Bloxxer", 6: "Homestead", 7: "Bricksmith", 8: "Inviter", 12: "Veteran", 14: "Ambassador", 17: "Official Model Maker", 18: "Welcome To The Club"}
+    data = await Roquest.Roquest("GET", "accountinformation", f"v1/users/{user}/roblox-badges")
+    await general_error_handler(data[0])
+    badges = []
+    for badge in data[1]: badges.append(badge['id'])
+    return badges, badgeTable
 
 async def nil_pointer() -> int: 
     """Returns nil data"""
