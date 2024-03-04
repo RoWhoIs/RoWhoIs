@@ -18,6 +18,7 @@ def sync_logging(errorlevel: str, errorcontent: str) -> None:
 try:
     tag = subprocess.check_output(['git', 'tag', '--contains', 'HEAD']).strip()
     version = tag.decode('utf-8') if tag else None
+    if version is None: raise subprocess.CalledProcessError(1, "git tag --contains HEAD")
 except subprocess.CalledProcessError:
     try: # Fallback, rely on short hash
         short_commit_id = subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD']).strip()

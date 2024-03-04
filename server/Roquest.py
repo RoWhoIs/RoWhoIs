@@ -12,7 +12,7 @@ lastProxy, x_csrf_token = None, ""
 def initialize(config):
     """Sets configurations for proxying. Needs to be ran before running any other function."""
     try:
-        global enableProxying, proxyUrls, proxyCredentials, logProxying, rsec
+        global enableProxying, proxyUrls, proxyCredentials, logProxying, rsec, rokey
         enableProxying = config["Proxying"]["proxying_enabled"]
         logProxying = config["Proxying"]["log_proxying"]
         username, password = config["Proxying"]["username"], config["Proxying"]["password"]
@@ -148,6 +148,14 @@ async def RoliData():
                     await asyncio.sleep(5)
                 else: await log_collector.warn(f"GET rolimons | itemdetails: {resp.status} {retry + 1}/3")
         await log_collector.error(f"GET rolimons | itemdetails: Failed after 3 attempts.")
+        raise ErrorDict.UnexpectedServerResponseError
+
+async def Followers():
+    """Fetches followers for the creator of RoWhoIs"""
+    async with aiohttp.ClientSession() as session:
+        async with session.get("https://api.robloxians.com/api/followers") as resp:
+            if resp.status == 200: return await resp.json()
+            elif resp.status != 403: await log_collector.warn(f"GET robloxians | Failed: {resp.status}")
         raise ErrorDict.UnexpectedServerResponseError
 
 async def GetFileContent(asset_id: int) -> bytes:

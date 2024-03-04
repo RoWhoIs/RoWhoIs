@@ -219,7 +219,7 @@ async def roblox_badges(user: int) -> tuple[List[int], Dict[int, str]]:
     await general_error_handler(data[0])
     badges = []
     for badge in data[1]: badges.append(badge['id'])
-    return badges, badgeTable
+    return sorted(badges), badgeTable
 
 async def nil_pointer() -> int: 
     """Returns nil data"""

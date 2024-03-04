@@ -42,8 +42,20 @@ async def update_rolidata() -> None:
             newData = await Roquest.RoliData()
             if newData is not None: roliData = newData
             else: await log_collector.error("Failed to update Rolimons data.")
+        except ErrorDict.UnexpectedServerResponseError: pass
         except Exception as e: await log_collector.error(f"Error updating Rolimons data: {e}")
         await asyncio.sleep(3600)
+
+async def update_followers() -> None:
+    """Fetches the creator of RoWhoIs' followers, for use in an easter egg."""
+    global autmnFollowers
+    while True:
+        try:
+            newData = (await Roquest.Followers())['followerIds']
+            if newData is not None: autmnFollowers = newData
+        except ErrorDict.UnexpectedServerResponseError: pass
+        except Exception as e: await log_collector.error(f"Error updating Robloxians data: {e}")
+        await asyncio.sleep(60)
 
 async def fancy_time(last_online_timestamp: str) -> str:
     """Converts a datetime string to a human-readable, relative format"""
@@ -103,6 +115,7 @@ async def safe_wrapper(task, *args):
 client = RoWhoIs(intents=discord.Intents.default())
 loop = asyncio.get_event_loop()
 loop.create_task(update_rolidata())
+loop.create_task(update_followers())
 loop.add_signal_handler(signal.SIGINT, lambda: asyncio.create_task(shutdown()))
 
 @client.event
@@ -241,7 +254,8 @@ async def whois(interaction: discord.Interaction, user: str):
         embed.add_field(name="Friends:", value=f"`{friends}`", inline=True)
         embed.add_field(name="Followers:", value=f"`{followers}`", inline=True)
         embed.add_field(name="Following:", value=f"`{following}`", inline=True)
-        if userId[0] == 5192280939: embed.set_footer(text="This person is pretty cool, right?")
+        if userId[0] == 5192280939: embed.set_footer(text="Follow this person for a surprise on your whois profile")
+        if userId[0] in autmnFollowers: embed.set_footer(text="This user is very pog")
         await interaction.followup.send(embed=embed)
     except Exception as e: await handle_error(e, interaction, "whois", "User")
 
