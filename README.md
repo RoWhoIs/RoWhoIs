@@ -175,3 +175,13 @@ The only _feasible_ thing for RoWhoIs to cache is clothing textures. RoWhoIs onl
 - Clothing textures never change
 - It is the only use-case where downloading an asset is required
   - All other image operations use embed links, meaning it's more efficient to use those
+
+## Sharding
+
+RoWhoIs operates under shards. There may be a performance drawback during initialization, but it's a necessary evil to ensure the bot can operate in a large number of guilds.
+
+While if some instances of RoWhoIs don't operate in more than 2,500+ guilds (the required amount to begin sharding), it's still a good idea to have sharding in place for future-proofing or larger instances.
+
+In the log outputs, each user-invoked call will have a shard ID. This is the shard that the user's guild is located on. An example output of this is `[SH1]`, meaning that that request was performed on shard 1.
+
+This level of fine-grain logging allows for further performance optimizations in the future.

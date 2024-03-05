@@ -2,7 +2,7 @@ import asyncio, subprocess, datetime, json, os
 
 if not os.path.exists("utils/logger.py"):
     print("Missing utils/logger.py! RoWhoIs will not be able to initialize.")
-    exit(-1)
+    exit(1)
 from utils.logger import AsyncLogCollector
 
 for folder in ["logs", "cache", "cache/clothing"]:
@@ -16,16 +16,21 @@ def sync_logging(errorlevel: str, errorcontent: str) -> None:
     asyncio.new_event_loop().run_until_complete(log_functions[errorlevel](errorcontent))
 
 try:
-    short_commit_id = subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD']).strip()
-    shortHash = short_commit_id.decode('utf-8')
-except subprocess.CalledProcessError: shortHash = 0 # Assume not part of a git workspace
+    tag = subprocess.check_output(['git', 'tag', '--contains', 'HEAD']).strip()
+    version = tag.decode('utf-8') if tag else None
+    if version is None: raise subprocess.CalledProcessError(1, "git tag --contains HEAD")
+except subprocess.CalledProcessError:
+    try: # Fallback, rely on short hash
+        short_commit_id = subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD']).strip()
+        version = short_commit_id.decode('utf-8')
+    except subprocess.CalledProcessError: version = "0"  # Assume not part of a git workspace
 
-sync_logging("info", f"Initializing RoWhoIs on version {shortHash}...")
+sync_logging("info", f"Initializing RoWhoIs on version {version}...")
 
 for file in ["server/Roquest.py", "server/RoWhoIs.py", "config.json", "utils/ErrorDict.py"]:
     if not os.path.exists(file):
         sync_logging("fatal", f"Missing {file}! RoWhoIs will not be able to initialize.")
-        exit(-1)
+        exit(1)
 
 with open('config.json', 'r') as configfile:
     config = json.load(configfile)
@@ -38,14 +43,14 @@ try:
     else: sync_logging("warn", "Currently running in testing mode.")
 except KeyError:
     sync_logging("fatal", "Failed to retrieve production type. RoWhoIs will not be able to initialize.")
-    exit(-1)
+    exit(1)
 try:
     from server import Roquest, RoWhoIs
     Roquest.initialize(config)
-    RoWhoIs.run(productionMode, shortHash, config)
+    RoWhoIs.run(productionMode, version, config)
 except RuntimeError: pass  # Occurs when exited before fully initialized
 except ErrorDict.MissingRequiredConfigs: sync_logging("fatal", f"Missing or malformed configuration options detected!")
 except Exception as e: sync_logging("fatal", f"A fatal error occurred during runtime: {e}")
 
 os.rename("logs/main.log", f"logs/server-{datetime.datetime.now().strftime('%Y-%m-%d-%H%M%S')}.log")
-exit(1)
+exit(0)
