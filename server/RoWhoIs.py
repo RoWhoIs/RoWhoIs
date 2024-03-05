@@ -126,12 +126,18 @@ async def on_ready():
 
 @client.event
 async def on_shard_connect(shard_id):
+    await client.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="over Robloxia"), shard_id=shard_id)
     await log_collector.info(f"Connected. Now operating under {len(client.shards)} shard{'s.' if len(client.shards) >= 2 else '.'}", shard_id=shard_id)
     return
 
 @client.event
+async def on_shard_resumed(shard_id):
+    await log_collector.info(f"Resumed. Now operating under {len(client.shards)} shard{'s.' if len(client.shards) >= 2 else '.'}", shard_id=shard_id)
+    return
+
+@client.event
 async def on_shard_disconnect(shard_id):
-    await log_collector.warn(f"Disconnected. Now operating under {len(client.shards)} shard{'s.' if len(client.shards) >= 2 else '.'}", shard_id=shard_id)
+    await log_collector.info(f"Disconnected. Now operating under {len(client.shards)} shard{'s.' if len(client.shards) >= 2 else '.'}", shard_id=shard_id)
     return
 
 @client.event
