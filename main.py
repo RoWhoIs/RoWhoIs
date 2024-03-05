@@ -2,7 +2,7 @@ import asyncio, subprocess, datetime, json, os
 
 if not os.path.exists("utils/logger.py"):
     print("Missing utils/logger.py! RoWhoIs will not be able to initialize.")
-    exit(-1)
+    exit(1)
 from utils.logger import AsyncLogCollector
 
 for folder in ["logs", "cache", "cache/clothing"]:
@@ -30,7 +30,7 @@ sync_logging("info", f"Initializing RoWhoIs on version {version}...")
 for file in ["server/Roquest.py", "server/RoWhoIs.py", "config.json", "utils/ErrorDict.py"]:
     if not os.path.exists(file):
         sync_logging("fatal", f"Missing {file}! RoWhoIs will not be able to initialize.")
-        exit(-1)
+        exit(1)
 
 with open('config.json', 'r') as configfile:
     config = json.load(configfile)
@@ -43,7 +43,7 @@ try:
     else: sync_logging("warn", "Currently running in testing mode.")
 except KeyError:
     sync_logging("fatal", "Failed to retrieve production type. RoWhoIs will not be able to initialize.")
-    exit(-1)
+    exit(1)
 try:
     from server import Roquest, RoWhoIs
     Roquest.initialize(config)
@@ -53,4 +53,4 @@ except ErrorDict.MissingRequiredConfigs: sync_logging("fatal", f"Missing or malf
 except Exception as e: sync_logging("fatal", f"A fatal error occurred during runtime: {e}")
 
 os.rename("logs/main.log", f"logs/server-{datetime.datetime.now().strftime('%Y-%m-%d-%H%M%S')}.log")
-exit(1)
+exit(0)
