@@ -19,11 +19,15 @@ def run(productionmode: bool, version: str, config) -> None:
         else: loop.run_until_complete(client.start(config['Authentication']['production']))
     except KeyError: raise ErrorDict.MissingRequiredConfigs
 
+class ShardAnalytics:
+    def __init__(self, shard_count: int, init_shown: bool): self.shard_count, self.init_shown = shard_count, init_shown
+
+shardAnalytics = ShardAnalytics(0, False)
 log_collector = logger.AsyncLogCollector("logs/main.log")
 
 class RoWhoIs(discord.AutoShardedClient):
     def __init__(self, *, intents: discord.Intents):
-        super().__init__(intents=intents)
+        super().__init__(intents=intents, shard_count=2)
         self.tree = discord.app_commands.CommandTree(self)
     async def setup_hook(self): await self.tree.sync(guild=None)
 
@@ -121,23 +125,33 @@ loop.add_signal_handler(signal.SIGINT, lambda: asyncio.create_task(shutdown()))
 
 @client.event
 async def on_ready():
-    await log_collector.info(f"RoWhoIs initialized! Logged in as {client.user} (ID: {client.user.id}) under {client.shard_count} shard{'s.' if client.shard_count >= 2 else ''}")
-    await client.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="over Robloxia"))
+    global shardAnalytics
+    if not shardAnalytics.init_shown: await log_collector.info(f"RoWhoIs initialized! Logged in as {client.user} (ID: {client.user.id}) under {client.shard_count} shard{'s.' if client.shard_count >= 2 else ''}")
+    shardAnalytics.init_shown, shardAnalytics.shard_count = True, client.shard_count
 
 @client.event
 async def on_shard_connect(shard_id):
+    global shardAnalytics
     await client.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="over Robloxia"), shard_id=shard_id)
-    await log_collector.info(f"Connected. Now operating under {len(client.shards)} shard{'s.' if len(client.shards) >= 2 else '.'}", shard_id=shard_id)
+    if shardAnalytics.shard_count != len(client.shards):
+        await log_collector.info(f"Connected. Now operating under {len(client.shards)} shard{'s.' if len(client.shards) >= 2 else '.'}", shard_id=shard_id)
+        shardAnalytics.shard_count = len(client.shards)
+    else: await log_collector.info(f"Connected.", shard_id=shard_id)
     return
 
 @client.event
 async def on_shard_resumed(shard_id):
-    await log_collector.info(f"Resumed. Now operating under {len(client.shards)} shard{'s.' if len(client.shards) >= 2 else '.'}", shard_id=shard_id)
+    if shardAnalytics.shard_count != len(client.shards): await log_collector.info(f"Resumed. Now operating under {len(client.shards)} shard{'s.' if len(client.shards) >= 2 else '.'}", shard_id=shard_id)
+    else: await log_collector.info(f"Resumed.", shard_id=shard_id)
     return
 
 @client.event
 async def on_shard_disconnect(shard_id):
-    await log_collector.info(f"Disconnected. Now operating under {len(client.shards)} shard{'s.' if len(client.shards) >= 2 else '.'}", shard_id=shard_id)
+    global shardAnalytics
+    if shardAnalytics.shard_count != len(client.shard_count):
+        await log_collector.info(f"Disconnected. Now operating under {len(client.shards)} shard{'s.' if len(client.shards) >= 2 else '.'}", shard_id=shard_id)
+        shardAnalytics.shard_count = len(client.shards)
+    else: await log_collector.info(f"Disconnected.", shard_id=shard_id)
     return
 
 @client.event
