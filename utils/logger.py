@@ -12,7 +12,7 @@ class AsyncLogCollector:
         self.filename = filename
         self.log_format = "%(timestamp)s [%(level)s] %(message)s"
         self.log_queue = asyncio.Queue()
-        self.log_levels = {'DEBUG': '\033[90mDEBUG\033[0m', 'INFO': '\033[32mINFO\033[0m', 'WARN': '\033[33mWARN\033[0m', 'ERROR': '\033[31mERROR\033[0m', 'FATAL': '\033[31;1mFATAL\033[0m'}
+        self.log_levels = {'DEBUG': '\033[90mDEBUG\033[0m', 'INFO': '\033[32mINFO\033[0m', 'WARN': '\033[33mWARN\033[0m', 'ERROR': '\033[31mERROR\033[0m', 'FATAL': '\033[31;1mFATAL\033[0m', 'CRITICAL': '\033[31;1;4mCRIT\033[0m'}
     async def log(self, level, message, shard_id: int = None):
         timestamp = self.get_colored_timestamp()
         if shard_id is None: print(self.log_format % {'timestamp': timestamp, 'level': self.log_levels.get(level, level), 'message': message})
@@ -25,5 +25,6 @@ class AsyncLogCollector:
     async def warn(self, message, shard_id: int = None): await self.log('WARN', message, shard_id)
     async def error(self, message, shard_id: int = None): await self.log('ERROR', message, shard_id)
     async def fatal(self, message, shard_id: int = None): await self.log('FATAL', message, shard_id)
+    async def critical(self, message, shard_id: int = None): await self.log('CRITICAL', message, shard_id)
     def get_colored_timestamp(self): return '\033[90m' + datetime.now().strftime('%Y-%m-%d %H:%M:%S') + '\033[0m'
     def get_timestamp(self): return datetime.now().strftime('%Y-%m-%d %H:%M:%S')
