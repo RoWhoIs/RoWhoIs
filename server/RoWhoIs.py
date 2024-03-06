@@ -19,6 +19,10 @@ def run(productionmode: bool, version: str, config) -> None:
         else: loop.run_until_complete(client.start(config['Authentication']['production']))
     except KeyError: raise ErrorDict.MissingRequiredConfigs
 
+class ShardAnalytics:
+    def __init__(self, shard_count: int, init_shown: bool): self.shard_count, self.init_shown = shard_count, init_shown
+
+shardAnalytics = ShardAnalytics(0, False)
 log_collector = logger.AsyncLogCollector("logs/main.log")
 
 class RoWhoIs(discord.AutoShardedClient):
@@ -49,12 +53,15 @@ async def update_rolidata() -> None:
 async def update_followers() -> None:
     """Fetches the creator of RoWhoIs' followers, for use in an easter egg."""
     global autmnFollowers
+    autmnFollowers = [] # Prevents 429 init errors
     while True:
         try:
             newData = (await Roquest.Followers())['followerIds']
             if newData is not None: autmnFollowers = newData
         except ErrorDict.UnexpectedServerResponseError: pass
-        except Exception as e: await log_collector.error(f"Error updating Robloxians data: {e}")
+        except Exception as e: 
+            await log_collector.error(f"Error updating Robloxians data: {e}")
+            pass
         await asyncio.sleep(60)
 
 async def fancy_time(last_online_timestamp: str) -> str:
@@ -121,17 +128,33 @@ loop.add_signal_handler(signal.SIGINT, lambda: asyncio.create_task(shutdown()))
 
 @client.event
 async def on_ready():
-    await log_collector.info(f"RoWhoIs initialized! Logged in as {client.user} (ID: {client.user.id}) under {client.shard_count} shard{'s.' if client.shard_count >= 2 else ''}")
-    await client.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="over Robloxia"))
+    global shardAnalytics
+    if not shardAnalytics.init_shown: await log_collector.info(f"RoWhoIs initialized! Logged in as {client.user} (ID: {client.user.id}) under {client.shard_count} shard{'s.' if client.shard_count >= 2 else ''}")
+    shardAnalytics.init_shown, shardAnalytics.shard_count = True, client.shard_count
 
 @client.event
 async def on_shard_connect(shard_id):
-    await log_collector.info(f"Connected. Now operating under {len(client.shards)} shard{'s.' if len(client.shards) >= 2 else '.'}", shard_id=shard_id)
+    global shardAnalytics
+    await client.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="over Robloxia"), shard_id=shard_id)
+    if shardAnalytics.shard_count != len(client.shards):
+        await log_collector.info(f"Connected. Now operating under {len(client.shards)} shard{'s.' if len(client.shards) >= 2 else '.'}", shard_id=shard_id)
+        shardAnalytics.shard_count = len(client.shards)
+    else: await log_collector.info(f"Connected.", shard_id=shard_id)
+    return
+
+@client.event
+async def on_shard_resumed(shard_id):
+    if shardAnalytics.shard_count != len(client.shards): await log_collector.info(f"Resumed. Now operating under {len(client.shards)} shard{'s.' if len(client.shards) >= 2 else '.'}", shard_id=shard_id)
+    else: await log_collector.info(f"Resumed.", shard_id=shard_id)
     return
 
 @client.event
 async def on_shard_disconnect(shard_id):
-    await log_collector.warn(f"Disconnected. Now operating under {len(client.shards)} shard{'s.' if len(client.shards) >= 2 else '.'}", shard_id=shard_id)
+    global shardAnalytics
+    if shardAnalytics.shard_count != len(client.shard_count):
+        await log_collector.info(f"Disconnected. Now operating under {len(client.shards)} shard{'s.' if len(client.shards) >= 2 else '.'}", shard_id=shard_id)
+        shardAnalytics.shard_count = len(client.shards)
+    else: await log_collector.info(f"Disconnected.", shard_id=shard_id)
     return
 
 @client.event
@@ -148,9 +171,10 @@ async def on_guild_join(guild):
 
 @client.tree.error
 async def on_app_command_error(interaction: discord.Interaction, error: discord.app_commands.AppCommandError):
-    if isinstance(error, discord.app_commands.CommandOnCooldown): await interaction.response.send_message(f"Your enthusiasm is greatly appreciated, but please slow down! Try again in {round(error.retry_after)} seconds.", ephemeral=True)
+    if isinstance(error, discord.app_commands.CommandInvokeError): await log_collector.critical(f"Interaction invoke error: {error} invoked by {interaction.user.id}")
+    elif isinstance(error, discord.app_commands.CommandOnCooldown): await interaction.response.send_message(f"Your enthusiasm is greatly appreciated, but please slow down! Try again in {round(error.retry_after)} seconds.", ephemeral=True)
     else:
-        await log_collector.fatal(f"Unexpected error occured during core command function: {error}")
+        await log_collector.critical(f"Unexpected error occured during core command function: {error} invoekd by {interaction.user.id}")
         await interaction.followup.send(f"Whoops! Looks like we encountered an unexpected error. We've reported this to our dev team and we'll fix it shortly!", ephemeral=True)
 
 @client.tree.command()
@@ -240,10 +264,6 @@ async def whois(interaction: discord.Interaction, user: str):
         embed.set_thumbnail(url=userThumbnail)
         if banned or userId[0] == 1: veriftype, previousUsernames = None, []
         lastOnlineFormatted, joinedTimestamp = await asyncio.gather(fancy_time(unformattedLastOnline), fancy_time(created))
-        privateInventory = True
-        if not banned and userId[0] != 1:
-            try: privateInventory, totalRap, totalValue, _ = await RoModules.get_limiteds(userId[0], roliData, interaction.guild.shard_id)
-            except Exception: privateInventory, totalRap, totalValue = False, "Failed to fetch", "Failed to fetch"
         if name == displayname: embed.title = f"{name} {emojiTable.get('staff') if userId[0] in staffIds else emojiTable.get('verified') if verified else ''}"
         else: embed.title = f"{name} ({displayname}) {emojiTable.get('staff') if userId[0] in staffIds else emojiTable.get('verified') if verified else ''}"
         embed.colour = 0x00ff00
@@ -257,17 +277,26 @@ async def whois(interaction: discord.Interaction, user: str):
         if description: embed.add_field(name="Description:", value=f"`{description}`", inline=False)
         embed.add_field(name="Joined:", value=f"`{joinedTimestamp}`", inline=True)
         embed.add_field(name="Last Online:", value=f"`{lastOnlineFormatted}`", inline=True)
-        if not privateInventory:
-            embed.add_field(name="Total RAP:", value=f"`{totalRap}`", inline=True)
-            embed.add_field(name="Total Value:", value=f"`{totalValue}`", inline=True)
-        if not banned: embed.add_field(name="Privated Inventory:", value=f"`{privateInventory}`", inline=True)
         embed.add_field(name="Groups:", value=f"`{groups}`", inline=True)
         embed.add_field(name="Friends:", value=f"`{friends}`", inline=True)
         embed.add_field(name="Followers:", value=f"`{followers}`", inline=True)
         embed.add_field(name="Following:", value=f"`{following}`", inline=True)
         if userId[0] == 5192280939: embed.set_footer(text="Follow this person for a surprise on your whois profile")
-        if userId[0] in autmnFollowers: embed.set_footer(text="This user is very pog")
-        await interaction.followup.send(embed=embed)
+        if userId[0] in autmnFollowers: embed.set_footer(text="This user is certifiably pog")
+        privateInventory, isEdited = True, False
+        if not banned and userId[0] != 1:
+            isEdited = True
+            embed.description = "***Currently calculating more statistics...***"
+            messageId = (await interaction.followup.send(embed=embed)).id
+            try: privateInventory, totalRap, totalValue, _ = await RoModules.get_limiteds(userId[0], roliData, interaction.guild.shard_id) # VERY slow when user has a lot of limiteds
+            except Exception: privateInventory, totalRap, totalValue = False, "Failed to fetch", "Failed to fetch"
+        if not privateInventory:
+            embed.add_field(name="Total RAP:", value=f"`{totalRap}`", inline=True)
+            embed.add_field(name="Total Value:", value=f"`{totalValue}`", inline=True)
+        if not banned: embed.add_field(name="Privated Inventory:", value=f"`{privateInventory}`", inline=True)
+        embed.description = None
+        if isEdited: await interaction.followup.edit_message(messageId, embed=embed)
+        else: await interaction.followup.send(embed=embed)
     except Exception as e: await handle_error(e, interaction, "whois", interaction.guild.shard_id, "User")
 
 @client.tree.command()
