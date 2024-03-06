@@ -27,7 +27,7 @@ log_collector = logger.AsyncLogCollector("logs/main.log")
 
 class RoWhoIs(discord.AutoShardedClient):
     def __init__(self, *, intents: discord.Intents):
-        super().__init__(intents=intents, shard_count=2)
+        super().__init__(intents=intents)
         self.tree = discord.app_commands.CommandTree(self)
     async def setup_hook(self): await self.tree.sync(guild=None)
 
