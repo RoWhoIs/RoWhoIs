@@ -318,6 +318,7 @@ async def ownsitem(interaction: discord.Interaction, user: str, item_id: int):
             if await handle_error(e, interaction, "ownsitem", interaction.guild.shard_id, "Item"): return
         if data[0] is None:
             if data[2] == "The specified user does not exist!": embed.description = "User does not exist or has been banned."
+            elif data[2] == "The specified Asset does not exist!": embed.description = "Item does not exist."
             else: embed.description = f"Failed to retrieve data: {data[2]}"
             await interaction.followup.send(embed=embed)
             return

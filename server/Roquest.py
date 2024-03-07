@@ -106,9 +106,9 @@ async def Roquest(method: str, node: str, endpoint: str, shard_id: int = None, f
     """Performs API calls to Roblox, returns status code and json response"""
     global proxyCredentials, lastProxy, x_csrf_token
     method = method.lower()
-    async with aiohttp.ClientSession(cookies={".roblosecurity": rsec}, headers={"x-csrf-token": x_csrf_token}) as main_session:
-        try:
-            for retry in range(3):
+    for retry in range(3):
+        async with aiohttp.ClientSession(cookies={".roblosecurity": rsec}, headers={"x-csrf-token": x_csrf_token}) as main_session:
+            try:
                 proxy = await proxy_picker(lastProxy, False) # Moved here so on retry, switch proxies
                 await log_collector.info(f"{method.upper()} {node} [{proxy if proxy is not None else 'non-proxied'}] | {endpoint}", shard_id=shard_id)
                 lastProxy = proxy
@@ -119,23 +119,20 @@ async def Roquest(method: str, node: str, endpoint: str, shard_id: int = None, f
                             await log_collector.warn(f"{method.upper()} {node} [{proxy if proxy is not None else 'non-proxied'}] | {endpoint}: {resp.status}", shard_id=shard_id)
                             return resp.status, await resp.json()
                         elif resp.status == 403:
-                            await log_collector.warn(f"{method.upper()} {node} [{proxy if proxy is not None else 'non-proxied'}] | {endpoint}: {resp.status} {('-' + str(retry + 1) + '/3') if failretry else ''}", shard_id=shard_id)
+                            await log_collector.warn(f"{method.upper()} {node} [{proxy if proxy is not None else 'non-proxied'}] | {endpoint}: {resp.status} {('- ' + str(retry + 1) + '/3') if failretry else ''}", shard_id=shard_id)
                             if not failretry: return resp.status, await resp.json()
-                            await asyncio.sleep(2)
-                        elif resp.status == 429:
-                            proxy = await proxy_picker(lastProxy, False)
-                            lastProxy = proxy
+                            await token_renewal()
+                        elif resp.status == 429: await asyncio.sleep(2) # Proxy changed per retry, so proxy_picker not needed here
                         else:
                             await log_collector.warn(f"{method.upper()} {node} [{proxy if proxy is not None else 'non-proxied'}] | {endpoint}: {resp.status}. Retrying... {retry + 1}/3", shard_id=shard_id)
-                        await asyncio.sleep(2)
                 except Exception as e:
                     proxy = await proxy_picker(proxy, True)
                     await log_collector.error(f"{method.upper()} {node} [{proxy if proxy is not None else 'non-proxied'}] | {endpoint}: {e if e != '' else 'Connection timed out.'}", shard_id=shard_id)
-            await log_collector.error(f"{method.upper()} {node} [{proxy if proxy is not None else 'non-proxied'}] | {endpoint}: Failed after 3 attempts.", shard_id=shard_id)
-            return resp.status, {"error": "Failed to retrieve data"}
-        except Exception as e:
-            await log_collector.error(f"{method.upper()} {node} [{proxy if proxy is not None else 'non-proxied'}] | {endpoint}: Severe error: {e}", shard_id=shard_id)
-            raise ErrorDict.UnexpectedServerResponseError
+            except Exception as e:
+                await log_collector.error(f"{method.upper()} {node} [{proxy if proxy is not None else 'non-proxied'}] | {endpoint}: Severe error: {e}", shard_id=shard_id)
+                raise ErrorDict.UnexpectedServerResponseError
+    await log_collector.error(f"{method.upper()} {node} [{proxy if proxy is not None else 'non-proxied'}] | {endpoint}: Failed after 3 attempts.", shard_id=shard_id)
+    return resp.status, {"error": "Failed to retrieve data"}
 
 async def RoliData():
     """Fetches Rolimons limited data"""
