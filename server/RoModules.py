@@ -159,7 +159,7 @@ async def get_group(group: int, shard_id: int) -> tuple[str, str, str, bool, lis
 
 async def validate_username(username: str, shard_id: int) -> tuple[int, str]:
     """Validate if a username is available"""
-    data = await Roquest.Roquest("POST", "auth", f"v2/usernames/validate", json={"username": username, "birthday": "2000-01-01T00:00:00.000Z", "context": 0}, shard_id=shard_id)
+    data = await Roquest.Roquest("POST", "auth", f"v2/usernames/validate", json={"username": username, "birthday": "2000-01-01T00:00:00.000Z", "context": 0}, shard_id=shard_id, failretry=True)
     await general_error_handler(data[0])
     return data[1]['code'], data[1]['message']
 
