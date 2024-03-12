@@ -3,6 +3,7 @@ import asyncio, discord, aiofiles, re, io, aiohttp, signal, datetime
 from utils import logger, ErrorDict
 from typing import Any
 
+# TODO: Seperate checks into smaller functions, maybe a shard management function? Also tidy up codebase / v1.2.7.1 patch?
 
 def run(productionmode: bool, version: str, config) -> None:
     """Runs the server."""
@@ -67,12 +68,11 @@ async def update_followers() -> None:
 async def fancy_time(last_online_timestamp: str) -> str:
     """Converts a datetime string to a human-readable, relative format"""
     try:
-        try: lastOnlineDatetime = datetime.datetime.strptime(last_online_timestamp, "%Y-%m-%dT%H:%M:%S.%fZ")
-        except ValueError:
-            try: lastOnlineDatetime = datetime.datetime.strptime(last_online_timestamp, "%Y-%m-%dT%H:%M:%SZ")
-            except ValueError:
-                data = str(last_online_timestamp)
-                lastOnlineDatetime = datetime.datetime.strptime(data[:-7] + 'Z', "%Y-%m-%dT%H:%M:%S.%fZ").replace(microsecond=int(data[-7:-1]))
+        match = re.match(r"(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(\.\d+)?Z", last_online_timestamp)
+        if match:
+            year, month, day, hour, minute, second, microsecond = match.groups()
+            lastOnlineDatetime = datetime.datetime(int(year), int(month), int(day), int(hour), int(minute), int(second), int(float(microsecond) * 1_000_000) if microsecond else 0)
+        else: return last_online_timestamp
         timeDifference = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None) - lastOnlineDatetime
         timeUnits = [("year", 12, timeDifference.days // 365), ("month", 1, timeDifference.days // 30),  ("week", 7, timeDifference.days // 7), ("day", 1, timeDifference.days), ("hour", 60, timeDifference.seconds // 3600), ("minute", 60, timeDifference.seconds // 60), ("second", 1, timeDifference.seconds)]
         for unit, _, value in timeUnits:
@@ -209,19 +209,19 @@ async def userid(interaction: discord.Interaction, username: str):
     try:
         embed = discord.Embed(color=0xFF0000)
         if not (await validate_user(interaction, embed)): return
-        try: user_id = await RoModules.convert_to_id(username, interaction.guild.shard_id)
+        try: user_id = await RoModules.convert_to_id(username, interaction.guild.shard_id if interaction.guild else None)
         except Exception as e: 
-            if await handle_error(e, interaction, "userid", interaction.guild.shard_id, "User"): return
+            if await handle_error(e, interaction, "userid", interaction.guild.shard_id if interaction.guild else None, "User"): return
         if not (await validate_user(interaction, embed, user_id[0])): return
         if user_id[1] == user_id[2]: embed.title = f"{user_id[1]} {emojiTable.get('staff') if user_id[0] in staffIds else emojiTable.get('verified') if user_id[3] else ''}"
         else: embed.title = f"{user_id[1]} ({user_id[2]}) {emojiTable.get('staff') if user_id[0] in staffIds else emojiTable.get('verified') if user_id[3] else ''}"
         embed.description = f"**User ID:** `{user_id[0]}`"
         embed.url = f"https://www.roblox.com/users/{user_id[0]}/profile"
-        user_thumbnail = await RoModules.get_player_headshot(user_id[0], "420x420", interaction.guild.shard_id)
+        user_thumbnail = await RoModules.get_player_headshot(user_id[0], "420x420", interaction.guild.shard_id if interaction.guild else None)
         if user_thumbnail: embed.set_thumbnail(url=user_thumbnail)
         embed.colour = 0x00FF00
         await interaction.followup.send(embed=embed)
-    except Exception as e: await handle_error(e, interaction, "userid", interaction.guild.shard_id, "User")
+    except Exception as e: await handle_error(e, interaction, "userid", interaction.guild.shard_id if interaction.guild else None, "User")
 
 @client.tree.command()
 @discord.app_commands.checks.cooldown(5, 60, key=lambda i: i.user.id)
@@ -231,18 +231,18 @@ async def username(interaction: discord.Interaction, userid: int):
     try:
         embed = discord.Embed(color=0xFF0000)
         if not (await validate_user(interaction, embed, userid)): return
-        try: username = await RoModules.convert_to_username(userid, interaction.guild.shard_id)
+        try: username = await RoModules.convert_to_username(userid, interaction.guild.shard_id if interaction.guild else None)
         except Exception as e:
-            if await handle_error(e, interaction, "username", interaction.guild.shard_id,  "User"): return
+            if await handle_error(e, interaction, "username", interaction.guild.shard_id if interaction.guild else None,  "User"): return
         if username[0] == username[1]: embed.title = f"{username[0]} {emojiTable.get('staff') if userid in staffIds else emojiTable.get('verified') if username[2] else ''}"
         else: embed.title = f"{username[0]} ({username[1]}) {emojiTable.get('staff') if userid in staffIds else emojiTable.get('verified') if username[2] else ''}"
         embed.description = f"**Username:** `{username[0]}`"
         embed.url = f"https://www.roblox.com/users/{userid}/profile"
-        user_thumbnail = await RoModules.get_player_headshot(userid, "420x420", interaction.guild.shard_id)
+        user_thumbnail = await RoModules.get_player_headshot(userid, "420x420", interaction.guild.shard_id if interaction.guild else None)
         if user_thumbnail: embed.set_thumbnail(url=user_thumbnail)
         embed.colour = 0x00FF00
         await interaction.followup.send(embed=embed)
-    except Exception as e: await handle_error(e, interaction, "username", interaction.guild.shard_id, "User")
+    except Exception as e: await handle_error(e, interaction, "username", interaction.guild.shard_id if interaction.guild else None, "User")
 
 @client.tree.command()
 @discord.app_commands.checks.cooldown(3, 60, key=lambda i: i.user.id)
@@ -252,13 +252,13 @@ async def whois(interaction: discord.Interaction, user: str):
     try:
         embed = discord.Embed(color=0xFF0000)
         if not (await validate_user(interaction, embed)): return
-        userId = [int(user), None] if user.isdigit() else (await RoModules.convert_to_id(user, interaction.guild.shard_id))[:2]
+        userId = [int(user), None] if user.isdigit() else (await RoModules.convert_to_id(user, interaction.guild.shard_id if interaction.guild else None))[:2]
         if not (await validate_user(interaction, embed, userId[0])): return
-        try: description, created, banned, name, displayname, verified = await RoModules.get_player_profile(userId[0], interaction.guild.shard_id)
+        try: description, created, banned, name, displayname, verified = await RoModules.get_player_profile(userId[0], interaction.guild.shard_id if interaction.guild else None)
         except Exception as e:
-            if await handle_error(e, interaction, "whois", interaction.guild.shard_id, "User"): return
-        if banned or userId[0] == 1: tasks = [RoModules.nil_pointer(), RoModules.nil_pointer(), safe_wrapper(RoModules.get_player_thumbnail, userId[0], "420x420", interaction.guild.shard_id), safe_wrapper(RoModules.last_online, userId[0], interaction.guild.shard_id), safe_wrapper(RoModules.get_groups, userId[0], interaction.guild.shard_id), safe_wrapper(RoModules.get_socials, userId[0], interaction.guild.shard_id)]
-        else: tasks = [safe_wrapper(RoModules.get_previous_usernames, userId[0], interaction.guild.shard_id), safe_wrapper(RoModules.check_verification, userId[0], interaction.guild.shard_id), safe_wrapper(RoModules.get_player_thumbnail, userId[0], "420x420", interaction.guild.shard_id), safe_wrapper(RoModules.last_online, userId[0], interaction.guild.shard_id), safe_wrapper(RoModules.get_groups, userId[0], interaction.guild.shard_id), safe_wrapper(RoModules.get_socials, userId[0], interaction.guild.shard_id)]
+            if await handle_error(e, interaction, "whois", interaction.guild.shard_id if interaction.guild else None, "User"): return
+        if banned or userId[0] == 1: tasks = [RoModules.nil_pointer(), RoModules.nil_pointer(), safe_wrapper(RoModules.get_player_thumbnail, userId[0], "420x420", interaction.guild.shard_id if interaction.guild else None), safe_wrapper(RoModules.last_online, userId[0], interaction.guild.shard_id if interaction.guild else None), safe_wrapper(RoModules.get_groups, userId[0], interaction.guild.shard_id if interaction.guild else None), safe_wrapper(RoModules.get_socials, userId[0], interaction.guild.shard_id if interaction.guild else None)]
+        else: tasks = [safe_wrapper(RoModules.get_previous_usernames, userId[0], interaction.guild.shard_id if interaction.guild else None), safe_wrapper(RoModules.check_verification, userId[0], interaction.guild.shard_id if interaction.guild else None), safe_wrapper(RoModules.get_player_thumbnail, userId[0], "420x420", interaction.guild.shard_id if interaction.guild else None), safe_wrapper(RoModules.last_online, userId[0], interaction.guild.shard_id if interaction.guild else None), safe_wrapper(RoModules.get_groups, userId[0], interaction.guild.shard_id if interaction.guild else None), safe_wrapper(RoModules.get_socials, userId[0], interaction.guild.shard_id if interaction.guild else None)]
         previousUsernames, veriftype, userThumbnail, unformattedLastOnline, groups, (friends, followers, following) = await asyncio.gather(*tasks) # If it shows an error in your IDE, it's lying, all values are unpacked
         groups = len(groups['data'])
         embed.set_thumbnail(url=userThumbnail)
@@ -288,7 +288,7 @@ async def whois(interaction: discord.Interaction, user: str):
             isEdited = True
             embed.description = "***Currently calculating more statistics...***"
             messageId = (await interaction.followup.send(embed=embed)).id
-            try: privateInventory, totalRap, totalValue, _ = await RoModules.get_limiteds(userId[0], roliData, interaction.guild.shard_id) # VERY slow when user has a lot of limiteds
+            try: privateInventory, totalRap, totalValue, _ = await RoModules.get_limiteds(userId[0], roliData, interaction.guild.shard_id if interaction.guild else None) # VERY slow when user has a lot of limiteds
             except Exception: privateInventory, totalRap, totalValue = False, "Failed to fetch", "Failed to fetch"
         if not privateInventory:
             embed.add_field(name="Total RAP:", value=f"`{totalRap}`", inline=True)
@@ -297,7 +297,7 @@ async def whois(interaction: discord.Interaction, user: str):
         embed.description = None
         if isEdited: await interaction.followup.edit_message(messageId, embed=embed)
         else: await interaction.followup.send(embed=embed)
-    except Exception as e: await handle_error(e, interaction, "whois", interaction.guild.shard_id, "User")
+    except Exception as e: await handle_error(e, interaction, "whois", interaction.guild.shard_id if interaction.guild else None, "User")
 
 @client.tree.command()
 @discord.app_commands.checks.cooldown(3, 60, key=lambda i: i.user.id)
@@ -308,14 +308,14 @@ async def ownsitem(interaction: discord.Interaction, user: str, item_id: int):
     if not (await validate_user(interaction, embed)): return
     try:
         try:
-            user_id = [int(user), None] if user.isdigit() else (await RoModules.convert_to_id(user, interaction.guild.shard_id))[:2]
+            user_id = [int(user), None] if user.isdigit() else (await RoModules.convert_to_id(user, interaction.guild.shard_id if interaction.guild else None))[:2]
             if not (await validate_user(interaction, embed, user_id[0])): return
-            if user_id[1] is None: user_id[1] = (await RoModules.convert_to_username(user_id[0], interaction.guild.shard_id))[0]
+            if user_id[1] is None: user_id[1] = (await RoModules.convert_to_username(user_id[0], interaction.guild.shard_id if interaction.guild else None))[0]
         except Exception as e:
-            if await handle_error(e, interaction, "ownsitem", interaction.guild.shard_id, "User"): return
-        try: data = await RoModules.owns_item(user_id[0], item_id, interaction.guild.shard_id)
+            if await handle_error(e, interaction, "ownsitem", interaction.guild.shard_id if interaction.guild else None, "User"): return
+        try: data = await RoModules.owns_item(user_id[0], item_id, interaction.guild.shard_id if interaction.guild else None)
         except Exception as e:
-            if await handle_error(e, interaction, "ownsitem", interaction.guild.shard_id, "Item"): return
+            if await handle_error(e, interaction, "ownsitem", interaction.guild.shard_id if interaction.guild else None, "Item"): return
         if data[0] is None:
             if data[2] == "The specified user does not exist!": embed.description = "User does not exist or has been banned."
             elif data[2] == "The specified Asset does not exist!": embed.description = "Item does not exist."
@@ -323,7 +323,7 @@ async def ownsitem(interaction: discord.Interaction, user: str, item_id: int):
             await interaction.followup.send(embed=embed)
             return
         if data[0]:
-            embed.set_thumbnail(url=await RoModules.get_item_thumbnail(item_id, "420x420", interaction.guild.shard_id))
+            embed.set_thumbnail(url=await RoModules.get_item_thumbnail(item_id, "420x420", interaction.guild.shard_id if interaction.guild else None))
             embed.colour = 0x00FF00
             embed.title = f"{user_id[1]} owns {data[1]} {data[2]}{'s' if data[1] > 1 else ''}!"
             uaids_to_display = data[3][:100]
@@ -334,7 +334,7 @@ async def ownsitem(interaction: discord.Interaction, user: str, item_id: int):
         else:
             embed.description = f"{user_id[1]} doesn't own this item!"
             await interaction.followup.send(embed=embed)
-    except Exception as e: await handle_error(e, interaction, "ownsitem", interaction.guild.shard_id, "Item")
+    except Exception as e: await handle_error(e, interaction, "ownsitem", interaction.guild.shard_id if interaction.guild else None, "Item")
 
 @client.tree.command()
 @discord.app_commands.checks.cooldown(3, 60, key=lambda i: i.user.id)
@@ -345,16 +345,16 @@ async def ownsbadge(interaction: discord.Interaction, user: str, badge: int):
     if not (await validate_user(interaction, embed)): return
     try:
         try:
-            user_id = [int(user), None] if user.isdigit() else (await RoModules.convert_to_id(user, interaction.guild.shard_id))[:2]
-            if user_id[1] is None: user_id[1] = (await RoModules.convert_to_username(user_id[0], interaction.guild.shard_id))[0]
+            user_id = [int(user), None] if user.isdigit() else (await RoModules.convert_to_id(user, interaction.guild.shard_id if interaction.guild else None))[:2]
+            if user_id[1] is None: user_id[1] = (await RoModules.convert_to_username(user_id[0], interaction.guild.shard_id if interaction.guild else None))[0]
         except Exception as e:
-            if await handle_error(e, interaction, "ownsbadge", interaction.guild.shard_id, "User"): return
+            if await handle_error(e, interaction, "ownsbadge", interaction.guild.shard_id if interaction.guild else None, "User"): return
         if not (await validate_user(interaction, embed, user_id[0])): return
-        try: ownsBadge = await RoModules.owns_badge(user_id[0], badge, interaction.guild.shard_id)
+        try: ownsBadge = await RoModules.owns_badge(user_id[0], badge, interaction.guild.shard_id if interaction.guild else None)
         except Exception as e: 
-            if await handle_error(e, interaction, "ownsbadge", interaction.guild.shard_id, "Badge"): return
+            if await handle_error(e, interaction, "ownsbadge", interaction.guild.shard_id if interaction.guild else None, "Badge"): return
         if ownsBadge[0]:
-            embed.set_thumbnail(url=await RoModules.get_badge_thumbnail(badge, interaction.guild.shard_id))
+            embed.set_thumbnail(url=await RoModules.get_badge_thumbnail(badge, interaction.guild.shard_id if interaction.guild else None))
             embed.colour = 0x00FF00
             embed.title = f"{user_id[1]} owns this badge!"
             embed.description = f"Badge was awarded `{await fancy_time(ownsBadge[1])}`"
@@ -362,7 +362,7 @@ async def ownsbadge(interaction: discord.Interaction, user: str, badge: int):
         else:
             embed.description = f"{user_id[1]} doesn't own the specified badge!"
             await interaction.followup.send(embed=embed)
-    except Exception as e: await handle_error(e, interaction, "ownsbadge", interaction.guild.shard_id, "Badge")
+    except Exception as e: await handle_error(e, interaction, "ownsbadge", interaction.guild.shard_id if interaction.guild else None, "Badge")
 
 @client.tree.command()
 @discord.app_commands.checks.cooldown(3, 60, key=lambda i: i.user.id)
@@ -374,9 +374,9 @@ async def limited(interaction: discord.Interaction, limited: str):
     try:
         try: limited_id, name, acronym, rap, value = await RoModules.get_rolidata_from_item(roliData, limited)
         except Exception as e:  
-            if await handle_error(e, interaction, "limited", interaction.guild.shard_id, "Limited"): return
+            if await handle_error(e, interaction, "limited", interaction.guild.shard_id if interaction.guild else None, "Limited"): return
         if limited_id != -1:
-            embed.set_thumbnail(url=await RoModules.get_item_thumbnail(limited_id, "420x420", interaction.guild.shard_id))
+            embed.set_thumbnail(url=await RoModules.get_item_thumbnail(limited_id, "420x420", interaction.guild.shard_id if interaction.guild else None))
             embed.colour = 0x00FF00
             embed.title = f"{name} ({acronym})" if acronym != "" else f"{name}"
             embed.url = f"https://www.roblox.com/catalog/{limited_id}/"
@@ -385,7 +385,7 @@ async def limited(interaction: discord.Interaction, limited: str):
         else:
             embed.description = f"Failed to find item! Make sure you spelled it correctly and used proper punctuation."
             await interaction.followup.send(embed=embed, ephemeral=True)
-    except Exception as e: await handle_error(e, interaction, "limited", interaction.guild.shard_id, "Limited")
+    except Exception as e: await handle_error(e, interaction, "limited", interaction.guild.shard_id if interaction.guild else Noned, "Limited")
 
 @client.tree.command()
 @discord.app_commands.checks.cooldown(5, 60, key=lambda i: i.user.id)
@@ -396,16 +396,16 @@ async def isfriendswith(interaction: discord.Interaction, user1: str, user2: str
     embed = discord.Embed(color=0xFF0000)
     if not (await validate_user(interaction, embed)): return
     try:
-        try: user_id1 = [int(user1), None] if user1.isdigit() else (await RoModules.convert_to_id(user1, interaction.guild.shard_id))[:2]
+        try: user_id1 = [int(user1), None] if user1.isdigit() else (await RoModules.convert_to_id(user1, interaction.guild.shard_id if interaction.guild else None))[:2]
         except Exception as e:
-            if await handle_error(e, interaction, "isfriendswith", interaction.guild.shard_id, "User"): return
+            if await handle_error(e, interaction, "isfriendswith", interaction.guild.shard_id if interaction.guild else None, "User"): return
         if user2.isdigit(): user2 = int(user2)
         if not (await validate_user(interaction, embed, user_id1[0])): return
-        try: userfriends = await RoModules.get_friends(user_id1[0], interaction.guild.shard_id)
+        try: userfriends = await RoModules.get_friends(user_id1[0], interaction.guild.shard_id if interaction.guild else None)
         except Exception as e: 
-            if await handle_error(e, interaction, "isfriendswith", interaction.guild.shard_id, "User"): return
+            if await handle_error(e, interaction, "isfriendswith", interaction.guild.shard_id if interaction.guild else None, "User"): return
         friended = False
-        if user_id1[1] is None: user_id1[1] = (await RoModules.convert_to_username(user_id1[0], interaction.guild.shard_id))[0]
+        if user_id1[1] is None: user_id1[1] = (await RoModules.convert_to_username(user_id1[0], interaction.guild.shard_id if interaction.guild else None))[0]
         for friends in userfriends['data']:
             friendName = str(friends['name']).lower() if not str(friends['name']).isdigit() else str(friends['name'])
             secondUser = str(user2).lower() if not str(user2).isdigit() else user2
@@ -427,7 +427,7 @@ async def isfriendswith(interaction: discord.Interaction, user1: str, user2: str
         else:
             embed.description = f"{user_id1[1]} does not have this user friended."
             await interaction.followup.send(embed=embed)
-    except Exception as e: await handle_error(e, interaction, "isfriendswith", interaction.guild.shard_id, "User")
+    except Exception as e: await handle_error(e, interaction, "isfriendswith", interaction.guild.shard_id if interaction.guild else None, "User")
 
 @client.tree.command()
 @discord.app_commands.checks.cooldown(5, 60, key=lambda i: i.user.id)
@@ -437,15 +437,15 @@ async def isingroup(interaction: discord.Interaction, user: str, group: int):
     embed = discord.Embed(color=0xFF0000)
     if not (await validate_user(interaction, embed)): return
     try:
-        try: user_id = [int(user), None] if user.isdigit() else (await RoModules.convert_to_id(user, interaction.guild.shard_id))[:2]
+        try: user_id = [int(user), None] if user.isdigit() else (await RoModules.convert_to_id(user, interaction.guild.shard_id if interaction.guild else None))[:2]
         except Exception as e: 
-            if await handle_error(e, interaction, "isingroup", interaction.guild.shard_id, "User"): return
+            if await handle_error(e, interaction, "isingroup", interaction.guild.shard_id if interaction.guild else None, "User"): return
         if not (await validate_user(interaction, embed, user_id[0])): return
         try: 
-            if user_id[1] is None: user_id[1] = (await RoModules.convert_to_username(user_id[0], interaction.guild.shard_id))[0]
+            if user_id[1] is None: user_id[1] = (await RoModules.convert_to_username(user_id[0], interaction.guild.shard_id if interaction.guild else None))[0]
         except Exception as e: 
-            if await handle_error(e, interaction, "isingroup", interaction.guild.shard_id, "User"): return
-        usergroups = await RoModules.get_groups(user_id[0], interaction.guild.shard_id)
+            if await handle_error(e, interaction, "isingroup", interaction.guild.shard_id if interaction.guild else None, "User"): return
+        usergroups = await RoModules.get_groups(user_id[0], interaction.guild.shard_id if interaction.guild else None)
         ingroup = False
         if usergroups in [-2, -1]:
             await interaction.followup.send("Whoops! An error occurred. Please try again later.", ephemeral=True)
@@ -459,7 +459,7 @@ async def isingroup(interaction: discord.Interaction, user: str, group: int):
                 break
             else: ingroup = False
         if ingroup:
-            embed.set_thumbnail(url=await RoModules.get_group_emblem(groupid, "420x420", interaction.guild.shard_id))
+            embed.set_thumbnail(url=await RoModules.get_group_emblem(groupid, "420x420", interaction.guild.shard_id if interaction.guild else None))
             embed.colour = 0x00FF00
             embed.title = f"{user_id[1]} is in group `{groupname}`!"
             embed.description = f"Role: `{grouprole}`"
@@ -468,7 +468,7 @@ async def isingroup(interaction: discord.Interaction, user: str, group: int):
         else:
             embed.description = f"{user_id[1]} is not in this group."
             await interaction.followup.send(embed=embed)
-    except Exception as e: await handle_error(e, interaction, "isingroup", interaction.guild.shard_id, "Group ID")
+    except Exception as e: await handle_error(e, interaction, "isingroup", interaction.guild.shard_id if interaction.guild else None, "Group ID")
 
 @client.tree.command()
 @discord.app_commands.checks.cooldown(2, 60, key=lambda i: i.user.id)
@@ -485,7 +485,7 @@ async def clothingtexture(interaction: discord.Interaction, clothing_id: int):
         try:
             async with aiofiles.open(f'cache/clothing/{clothing_id}.png', 'rb'): await send_image(clothing_id)
         except FileNotFoundError:
-            try: initAsset = await Roquest.GetFileContent(clothing_id, shard_id=interaction.guild.shard_id)
+            try: initAsset = await Roquest.GetFileContent(clothing_id, shard_id=interaction.guild.shard_id if interaction.guild else None)
             except ErrorDict.AssetNotAvailable:
                 embed.description = "Cannot fetch moderated assets."
                 await interaction.followup.send(embed=embed)
@@ -501,14 +501,14 @@ async def clothingtexture(interaction: discord.Interaction, clothing_id: int):
             match = re.search(r'<url>.*id=(\d+)</url>', initAssetContent)
             if match:
                 async with aiofiles.open(f'cache/clothing/{clothing_id}.png', 'wb') as cached_image:
-                    try: downloadedAsset = await Roquest.GetFileContent(match.group(1), shard_id=interaction.guild.shard_id)
+                    try: downloadedAsset = await Roquest.GetFileContent(match.group(1), shard_id=interaction.guild.shard_id if interaction.guild else None)
                     except ErrorDict.AssetNotAvailable:
                         embed.description = "Cannot fetch moderated assets."
                         await interaction.followup.send(embed=embed)
                         await cached_image.close()
                         return
                     except Exception as e:
-                        if await handle_error(e, interaction, "getclothingtexture", interaction.guild.shard_id, "Asset"):
+                        if await handle_error(e, interaction, "getclothingtexture", interaction.guild.shard_id if interaction.guild else None, "Asset"):
                             await cached_image.close()
                             return
                     if not downloadedAsset or len(downloadedAsset) < 512: # Not likely to trigger, prevents caching malformed images
@@ -526,7 +526,7 @@ async def clothingtexture(interaction: discord.Interaction, clothing_id: int):
     except UnicodeDecodeError:
         embed.description = "Invalid item type."
         await interaction.followup.send(embed=embed)
-    except Exception as e: await handle_error(e, interaction, "getclothingtexture", interaction.guild.shard_id, "Clothing ID")
+    except Exception as e: await handle_error(e, interaction, "getclothingtexture", interaction.guild.shard_id if interaction.guild else None, "Clothing ID")
 
 @client.tree.command()
 @discord.app_commands.checks.cooldown(2, 60, key=lambda i: i.user.id)
@@ -536,9 +536,9 @@ async def itemdetails(interaction: discord.Interaction, item: int):
     embed = discord.Embed(color=0xFF0000)
     if not (await validate_user(interaction, embed)): return
     try:
-        try: data = await RoModules.get_item(item, interaction.guild.shard_id)
+        try: data = await RoModules.get_item(item, interaction.guild.shard_id if interaction.guild else None)
         except Exception as e:
-            if await handle_error(e, interaction, "getitemdetails", interaction.guild.shard_id, "Item"): return
+            if await handle_error(e, interaction, "getitemdetails", interaction.guild.shard_id if interaction.guild else None, "Item"): return
         embed.url = f"https://www.roblox.com/catalog/{item}"
         if data["CollectibleItemId"] is not None: isCollectible = True
         else: isCollectible = False
@@ -554,10 +554,10 @@ async def itemdetails(interaction: discord.Interaction, item: int):
         if data["IsForSale"]:
             if data["Remaining"] is not None and data["Remaining"] != 0: embed.add_field(name="Remaining:", value=f"`{data['Remaining']}`", inline=True)
             if not (data["IsLimited"] or data["Remaining"] == 0 or isCollectible): embed.add_field(name="Price:", value=f"{emojiTable.get('robux')} `{data['PriceInRobux']}`", inline=True)
-        embed.set_thumbnail(url=await RoModules.get_item_thumbnail(item, "420x420", interaction.guild.shard_id))
+        embed.set_thumbnail(url=await RoModules.get_item_thumbnail(item, "420x420", interaction.guild.shard_id if interaction.guild else None))
         embed.colour = 0x00FF00
         await interaction.followup.send(embed=embed)
-    except Exception as e: await handle_error(e, interaction, "getitemdetails", interaction.guild.shard_id, "Item ID")
+    except Exception as e: await handle_error(e, interaction, "getitemdetails", interaction.guild.shard_id if interaction.guild else None, "Item ID")
 
 @client.tree.command()
 @discord.app_commands.checks.cooldown(2, 60, key=lambda i: i.user.id)
@@ -567,25 +567,25 @@ async def membership(interaction: discord.Interaction, user: str):
     embed = discord.Embed(color=0xFF0000)
     if not (await validate_user(interaction, embed)): return
     try:
-        try: user_id = [int(user), None] if user.isdigit() else (await RoModules.convert_to_id(user, interaction.guild.shard_id))[:2]
+        try: user_id = [int(user), None] if user.isdigit() else (await RoModules.convert_to_id(user, interaction.guild.shard_id if interaction.guild else None))[:2]
         except Exception as e:
-            if await handle_error(e, interaction, "getmembership", interaction.guild.shard_id, "User ID"): return
+            if await handle_error(e, interaction, "getmembership", interaction.guild.shard_id if interaction.guild else None, "User ID"): return
         if not (await validate_user(interaction, embed, user_id[0])): return
-        try: userProfile = await RoModules.get_player_profile(user_id[0], interaction.guild.shard_id)
+        try: userProfile = await RoModules.get_player_profile(user_id[0], interaction.guild.shard_id if interaction.guild else None)
         except Exception as e:
-            if await handle_error(e, interaction, "getmembership", interaction.guild.shard_id, "User"): return
+            if await handle_error(e, interaction, "getmembership", interaction.guild.shard_id if interaction.guild else None, "User"): return
         if user_id[1] is None: user_id[1] = (userProfile[3])
-        try: data = await RoModules.get_membership(user_id[0], interaction.guild.shard_id)
+        try: data = await RoModules.get_membership(user_id[0], interaction.guild.shard_id if interaction.guild else None)
         except Exception as e:
-            if await handle_error(e, interaction, "getmembership", interaction.guild.shard_id, "User"): return
+            if await handle_error(e, interaction, "getmembership", interaction.guild.shard_id if interaction.guild else None, "User"): return
         if all(not data[i] for i in range(1, 4)): noTiers = True
         else: noTiers = False
         newline = '\n'
         embed.title = f"{user_id[1]}'s memberships:"
-        embed.description = f"{(emojiTable.get('premium') + ' `Premium`' + newline) if data[0] else ''}{(emojiTable.get('bc') + ' `Builders Club`' + newline) if data[1] else ''}{(emojiTable.get('tbc') + '`Turbo Builders Club`' + newline) if data[2] else ''}{(emojiTable.get('obc') + ' `Outrageous Builders Club`' + newline) if data[3] else ''}{(str(user_id[1]) + ' has no memberships.') if noTiers else ''}"
+        embed.description = f"{(emojiTable.get('premium') + ' `Premium`' + newline) if data[0] else ''}{(emojiTable.get('bc') + ' `Builders Club`' + newline) if data[1] else ''}{(emojiTable.get('tbc') + '`Turbo Builders Club`' + newline) if data[2] else ''}{(emojiTable.get('obc') + ' `Outrageous Builders Club`' + newline) if data[3] else ''}{(str(user_id[1]) + ' has no memberships.') if noTiers and not data[0] else ''}"
         embed.colour = 0x00FF00
         await interaction.followup.send(embed=embed)
-    except Exception as e: await handle_error(e, interaction, "getmembership", interaction.guild.shard_id, "User")
+    except Exception as e: await handle_error(e, interaction, "getmembership", interaction.guild.shard_id if interaction.guild else None, "User")
 
 @client.tree.command()
 @discord.app_commands.checks.cooldown(3, 60, key=lambda i: i.user.id)
@@ -595,10 +595,10 @@ async def group(interaction: discord.Interaction, group: int):
     embed = discord.Embed(color=0xFF0000)
     if not (await validate_user(interaction, embed)): return
     try:
-        try: groupInfo = await RoModules.get_group(group, interaction.guild.shard_id)
+        try: groupInfo = await RoModules.get_group(group, interaction.guild.shard_id if interaction.guild else None)
         except Exception as e:
-            if await handle_error(e, interaction, "group", interaction.guild.shard_id, "Group"): return
-        groupThumbnail = await RoModules.get_group_emblem(group, "420x420", interaction.guild.shard_id)
+            if await handle_error(e, interaction, "group", interaction.guild.shard_id if interaction.guild else None, "Group"): return
+        groupThumbnail = await RoModules.get_group_emblem(group, "420x420", interaction.guild.shard_id if interaction.guild else None)
         if groupThumbnail: embed.set_thumbnail(url=groupThumbnail)
         embed.title = f"{groupInfo[0]}{(' ' + emojiTable.get('verified')) if groupInfo[3] else ''}"
         embed.add_field(name="Group ID:", value=f"`{group}`")
@@ -613,7 +613,7 @@ async def group(interaction: discord.Interaction, group: int):
         if groupInfo[1] != "": embed.add_field(name="Group Description:", value=f"`{groupInfo[1]}`", inline=False)
         embed.colour = 0x00FF00
         await interaction.followup.send(embed=embed)
-    except Exception as e: await handle_error(e, interaction, "group", interaction.guild.shard_id, "Group ID")
+    except Exception as e: await handle_error(e, interaction, "group", interaction.guild.shard_id if interaction.guild else None, "Group ID")
 
 @client.tree.command()
 @discord.app_commands.checks.cooldown(4, 60, key=lambda i: i.user.id)
@@ -623,16 +623,16 @@ async def checkusername(interaction: discord.Interaction, username: str):
     embed = discord.Embed(color=0xFF0000)
     if not (await validate_user(interaction, embed)): return
     try:
-        try: usernameInfo = await RoModules.validate_username(username, interaction.guild.shard_id)
+        try: usernameInfo = await RoModules.validate_username(username, interaction.guild.shard_id if interaction.guild else None)
         except Exception as e: 
-            if await handle_error(e, interaction, "username", interaction.guild.shard_id, "Username"): return
+            if await handle_error(e, interaction, "username", interaction.guild.shard_id if interaction.guild else None, "Username"): return
         if usernameInfo[0] == 0: 
             embed.colour = 0x00FF00
             embed.description = "Username is available!"
         elif usernameInfo[0] == 1: embed.description = "Username is taken."
         else: embed.description = f"Username not available.\n**Reason:** {usernameInfo[1]}"
         await interaction.followup.send(embed=embed)
-    except Exception as e: await handle_error(e, interaction, "username", interaction.guild.shard_id, "Username")
+    except Exception as e: await handle_error(e, interaction, "username", interaction.guild.shard_id if interaction.guild else None, "Username")
 
 @client.tree.command()
 @discord.app_commands.checks.cooldown(3, 60, key=lambda i: i.user.id)
@@ -643,14 +643,14 @@ async def robloxbadges(interaction: discord.Interaction, user: str):
     if not (await validate_user(interaction, embed)): return
     try:
         try: 
-            user_id = [int(user), None] if user.isdigit() else (await RoModules.convert_to_id(user, interaction.guild.shard_id))[:2]
-            if user_id[1] is None: user_id[1] = (await RoModules.convert_to_username(user_id[0], interaction.guild.shard_id))[0]
+            user_id = [int(user), None] if user.isdigit() else (await RoModules.convert_to_id(user, interaction.guild.shard_id if interaction.guild else None))[:2]
+            if user_id[1] is None: user_id[1] = (await RoModules.convert_to_username(user_id[0], interaction.guild.shard_id if interaction.guild else None))[0]
         except Exception as e:
-            if await handle_error(e, interaction, "robloxbadges", interaction.guild.shard_id, "User"): return
+            if await handle_error(e, interaction, "robloxbadges", interaction.guild.shard_id if interaction.guild else None, "User"): return
         if not (await validate_user(interaction, embed, user_id[0])): return
-        try: badges = await RoModules.roblox_badges(user_id[0], interaction.guild.shard_id)
+        try: badges = await RoModules.roblox_badges(user_id[0], interaction.guild.shard_id if interaction.guild else None)
         except Exception as e:
-            if await handle_error(e, interaction, "robloxbadges", interaction.guild.shard_id, "User"): return
+            if await handle_error(e, interaction, "robloxbadges", interaction.guild.shard_id if interaction.guild else None, "User"): return
         if len(badges[0]) <= 0:
             embed.description = "This user has no Roblox badges."
             await interaction.followup.send(embed=embed)
@@ -660,9 +660,9 @@ async def robloxbadges(interaction: discord.Interaction, user: str):
             badge_name = badges[1].get(badge)
             if badge_name: descriptor += f"{emojiTable.get(str(badge_name).lower())} `{badge_name}`\n"
         if descriptor == "":  descriptor = "This user has no Roblox badges."
-        embed.set_thumbnail(url=await RoModules.get_player_headshot(user_id[0], "420x420", interaction.guild.shard_id))
+        embed.set_thumbnail(url=await RoModules.get_player_headshot(user_id[0], "420x420", interaction.guild.shard_id if interaction.guild else None))
         embed.colour = 0x00FF00
         embed.title = f"{user_id[1]}'s Roblox Badges:"
         embed.description = descriptor
         await interaction.followup.send(embed=embed)
-    except Exception as e: await handle_error(e, interaction, "robloxbadges", interaction.guild.shard_id, "User")
+    except Exception as e: await handle_error(e, interaction, "robloxbadges", interaction.guild.shard_id if interaction.guild else None, "User")
