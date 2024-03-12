@@ -385,7 +385,7 @@ async def limited(interaction: discord.Interaction, limited: str):
         else:
             embed.description = f"Failed to find item! Make sure you spelled it correctly and used proper punctuation."
             await interaction.followup.send(embed=embed, ephemeral=True)
-    except Exception as e: await handle_error(e, interaction, "limited", interaction.guild.shard_id if interaction.guild else Noned, "Limited")
+    except Exception as e: await handle_error(e, interaction, "limited", interaction.guild.shard_id if interaction.guild else None, "Limited")
 
 @client.tree.command()
 @discord.app_commands.checks.cooldown(5, 60, key=lambda i: i.user.id)
