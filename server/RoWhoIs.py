@@ -51,6 +51,14 @@ async def update_rolidata() -> None:
         except Exception as e: await log_collector.error(f"Error updating Rolimons data: {e}")
         await asyncio.sleep(3600)
 
+async def heartbeat() -> None:
+    global heartBeat
+    """Used for determining if Roblox is online"""
+    while True:
+        try: heartBeat = await Roquest.heartbeat()
+        except Exception as e: await log_collector.error(f"Error in heartbeat: {e}")
+        await asyncio.sleep(60)
+
 async def update_followers() -> None:
     """Fetches the creator of RoWhoIs' followers, for use in an easter egg."""
     global autmnFollowers
@@ -86,7 +94,7 @@ async def fancy_time(last_online_timestamp: str) -> str:
         await log_collector.error(f"Error formatting time: {e} | Returning fallback data: {last_online_timestamp}")
         return last_online_timestamp
 
-async def validate_user(interaction: discord.Interaction, embed: discord.Embed, user_id: int = None) -> bool:
+async def validate_user(interaction: discord.Interaction, embed: discord.Embed, user_id: int = None, requires_connection: bool = True) -> bool:
     """Check a Discord or Roblox user ID against blocklists."""
     global optOut, userBlocklist
     if interaction.user.id in userBlocklist:
@@ -95,6 +103,7 @@ async def validate_user(interaction: discord.Interaction, embed: discord.Embed, 
     elif user_id and user_id in optOut:
         await log_collector.warn(f"Blocklist user {user_id} was requested by {interaction.user.id} and denied!")
         embed.description = "This user has requested to opt-out of RoWhoIs."
+    elif not heartBeat and requires_connection: embed.description = "Roblox is currently experiencing downtime. Please try again later."
     else: return True
     embed.title = None
     embed.colour = 0xFF0000
@@ -110,7 +119,7 @@ async def handle_error(error, interaction: discord.Interaction, command: str, sh
     else: 
         if isinstance(error, ErrorDict.InvalidAuthorizationError): await Roquest.token_renewal()
         embed.description = "Whoops! An unknown error occurred. Please try again later."
-        await log_collector.error(f"Error in the {command} command: {error}", shard_id=shard_id)
+        await log_collector.error(f"Error in the {command} command: {type(error)} | {error}", shard_id=shard_id)
     await interaction.followup.send(embed=embed, ephemeral=True)
     return True
 
@@ -124,6 +133,7 @@ client = RoWhoIs(intents=discord.Intents.default())
 loop = asyncio.get_event_loop()
 loop.create_task(update_rolidata())
 loop.create_task(update_followers())
+loop.create_task(heartbeat())
 loop.add_signal_handler(signal.SIGINT, lambda: asyncio.create_task(shutdown()))
 
 @client.event
@@ -184,7 +194,7 @@ async def help(interaction: discord.Interaction):
     """List all of the commands RoWhoIs supports & what they do"""
     await interaction.response.defer(ephemeral=False)
     embedVar = discord.Embed(title="RoWhoIs Commands", color=discord.Color.from_rgb(135, 136, 138))
-    if not (await validate_user(interaction, embedVar)): return
+    if not (await validate_user(interaction, embedVar, requires_connection=False)): return
     embedVar.add_field(name="whois {User}", value="Get detailed profile information from a User ID/Username.", inline=True)
     embedVar.add_field(name="clothingtexture {itemId}", value="Retrieves the texture file for a 2D clothing asset.", inline=True)
     embedVar.add_field(name="userid {Username}", value="Get a User ID based off a username.", inline=True)
@@ -377,7 +387,7 @@ async def limited(interaction: discord.Interaction, limited: str):
     await interaction.response.defer(ephemeral=False)
     shard = await shard_metrics(interaction)
     embed = discord.Embed(color=0xFF0000)
-    if not (await validate_user(interaction, embed)): return
+    if not (await validate_user(interaction, embed, requires_connection=False)): return
     try:
         try: limited_id, name, acronym, rap, value = await RoModules.get_rolidata_from_item(roliData, limited)
         except Exception as e:  

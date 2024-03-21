@@ -176,3 +176,10 @@ async def GetFileContent(asset_id: int, shard_id: int = None) -> bytes:
                     raise ErrorDict.UnexpectedServerResponseError
     finally: # Hold the connection hostage until we FINISH downloading THE FILE.
         if resp: await resp.release()
+
+async def heartbeat() -> bool:
+    """Determines if Roblox is OK by checking if the API is up, returns True if alive"""
+    async with aiohttp.ClientSession(cookies={".roblosecurity": rsec}) as main_session:
+        async with main_session.get("https://users.roblox.com/") as resp:
+            if resp.status == 200: return True
+    return False
