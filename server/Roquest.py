@@ -43,7 +43,7 @@ async def proxy_handler() -> None:
                     results = await asyncio.gather(*tasks)
                     proxyPool = [proxy_url for proxy_url, result in zip(proxyUrls, results) if result]
                     if len(proxyPool) <= 0 and logProxying: await log_collector.debug("No usable proxies found! Fallbacking to non-proxied.")
-                    elif logProxying: await log_collector.debug(f"Refreshed proxy pool. {len(proxyPool)} usable IPs.")
+                    elif logProxying: await log_collector.debug(f"Refreshed proxy pool. {len(proxyPool)} usable IP{'s' if len(proxyPool) >= 2 else ''}.")
             await asyncio.sleep(300)
     except Exception as e:
         await log_collector.error(f"proxy_handler encountered a severe error while refreshing proxy pool: {e}")
