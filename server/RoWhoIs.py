@@ -103,7 +103,9 @@ async def validate_user(interaction: discord.Interaction, embed: discord.Embed, 
     elif user_id and user_id in optOut:
         await log_collector.warn(f"Blocklist user {user_id} was requested by {interaction.user.id} and denied!")
         embed.description = "This user has requested to opt-out of RoWhoIs."
-    elif not heartBeat and requires_connection: embed.description = "Roblox is currently experiencing downtime. Please try again later."
+    elif not heartBeat and requires_connection:
+        await log_collector.info("heartBeat is False, deflecting a command properly...")
+        embed.description = "Roblox is currently experiencing downtime. Please try again later."
     else: return True
     embed.title = None
     embed.colour = 0xFF0000
@@ -139,9 +141,10 @@ loop.add_signal_handler(signal.SIGINT, lambda: asyncio.create_task(shutdown()))
 @client.event
 async def on_ready():
     global shardAnalytics
-    if not shardAnalytics.init_shown:
-        await log_collector.info(f"RoWhoIs initialized! Logged in as {client.user} (ID: {client.user.id}) under {client.shard_count} shard{'s.' if client.shard_count >= 2 else ''}")
+    if not shardAnalytics.init_shown: await log_collector.info(f"RoWhoIs initialized! Logged in as {client.user} (ID: {client.user.id}) under {client.shard_count} shard{'s.' if client.shard_count >= 2 else ''}")
     shardAnalytics.init_shown, shardAnalytics.shard_count = True, client.shard_count
+    print(await client.application.primary_sku_id)
+    print("Fetched")
 
 @client.event
 async def on_shard_connect(shard_id):
