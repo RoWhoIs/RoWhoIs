@@ -681,7 +681,8 @@ async def group(interaction: discord.Interaction, group: int, download: bool = F
         embed.colour = 0x00FF00
         if download:
             if not (await validate_user(interaction, embed, requires_entitlement=True)): return  # RoWhoIs+ check
-            csv = "id, name, owner, created, members, joinable, locked, shout, shout_author, shout_author_id, shout_verified, description\n" + f"{group}, {groupInfo[0]}, {groupInfo[4][0] if groupInfo[4] is not None else 'None'}, {await fancy_time(groupInfo[2])}, {groupInfo[6]}, {groupInfo[7]}, {groupInfo[8]}, {groupInfo[5][0] if groupInfo[5] is not None else 'None'}, {groupInfo[5][1] if groupInfo[5] is not None else 'None'}, {groupInfo[5][2] if groupInfo[5] is not None else 'None'}, {groupInfo[5][3] if groupInfo[5] is not None else 'None'}, {groupInfo[1].replace(',', '').replace('\n', '     ') if groupInfo[1] else 'None'}"
+            nlChar = "\n"
+            csv = "id, name, owner, created, members, joinable, locked, shout, shout_author, shout_author_id, shout_verified, description\n" + f"{group}, {groupInfo[0]}, {groupInfo[4][0] if groupInfo[4] is not None else 'None'}, {await fancy_time(groupInfo[2])}, {groupInfo[6]}, {groupInfo[7]}, {groupInfo[8]}, {groupInfo[5][0] if groupInfo[5] is not None else 'None'}, {groupInfo[5][1] if groupInfo[5] is not None else 'None'}, {groupInfo[5][2] if groupInfo[5] is not None else 'None'}, {groupInfo[5][3] if groupInfo[5] is not None else 'None'}, {groupInfo[1].replace(',', '').replace(nlChar, '     ') if groupInfo[1] else 'None'}"
             await interaction.followup.send(embed=embed, file=discord.File(io.BytesIO(csv.encode()),filename=f"rowhois-group-{group}.csv"))
         else: await interaction.followup.send(embed=embed)
     except Exception as e: await handle_error(e, interaction, "group", shard, "Group ID")
