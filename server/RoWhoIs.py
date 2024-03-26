@@ -1,6 +1,6 @@
 from server import Roquest, RoModules
 from utils import logger, ErrorDict
-import asyncio, discord, aiofiles, re, io, aiohttp, signal, datetime
+import asyncio, discord, aiofiles, re, io, aiohttp, signal, datetime, inspect
 from typing import Any, Optional
 
 def run(productionmode: bool, version: str, config) -> bool:
@@ -94,8 +94,8 @@ async def fancy_time(last_online_timestamp: str) -> str:
         await log_collector.error(f"Error formatting time: {e} | Returning fallback data: {last_online_timestamp}")
         return last_online_timestamp
 
-async def validate_user(interaction: discord.Interaction, embed: discord.Embed, user_id: int = None, requires_connection: bool = True) -> bool:
-    """Check a Discord or Roblox user ID against blocklists."""
+async def validate_user(interaction: discord.Interaction, embed: discord.Embed, user_id: int = None, requires_entitlement: bool = False, requires_connection: bool = True) -> bool:
+    """Validates if a user has sufficient access to a command. Used for blocklists and entitlement checks."""
     global optOut, userBlocklist
     if interaction.user.id in userBlocklist:
         await log_collector.warn(f"Blocklist user {interaction.user.id} attempted to call a command and was denied!")
@@ -106,6 +106,7 @@ async def validate_user(interaction: discord.Interaction, embed: discord.Embed, 
     elif not heartBeat and requires_connection:
         await log_collector.info("heartBeat is False, deflecting a command properly...")
         embed.description = "Roblox is currently experiencing downtime. Please try again later."
+    elif len(interaction.entitlements) >= 1 and productionMode and requires_entitlement: embed.description = "This feature requires RoWhoIs+!"
     else: return True
     embed.title = None
     embed.colour = 0xFF0000
@@ -130,6 +131,31 @@ async def safe_wrapper(task, *args):
     try: return await task(*args)
     except Exception as e: return e
 
+async def check_cooldown(interaction: discord.Interaction, intensity: str, cooldown_seconds: int = 60) -> bool:
+    """Custom cooldown handler for user commands because discord.py's implementation of it sucked - Lets hope there's not a memory leak here :)
+    True = On cooldown, False = Not on cooldown
+    """
+    global userCooldowns, staffIds
+    userId = interaction.user.id
+    commandName = inspect.stack()[1].function
+    premiumCoolDict = {"extreme": 5, "high": 6, "medium": 7, "low": 8}
+    stdCoolDict = {"extreme": 2, "high": 3, "medium": 4, "low": 5}
+    if len(interaction.entitlements) >= 1 and productionMode: maxCommands = premiumCoolDict.get(intensity)
+    else: maxCommands = stdCoolDict.get(intensity)
+    currentTime = datetime.datetime.now()
+    if userId not in userCooldowns: userCooldowns[userId] = {}
+    if commandName not in userCooldowns[userId]: userCooldowns[userId][commandName] = [currentTime]
+    else:
+        userCooldowns[userId][commandName].append(currentTime)
+        userCooldowns[userId][commandName] = [timestamp for timestamp in userCooldowns[userId][commandName] if currentTime - timestamp <= datetime.timedelta(seconds=cooldown_seconds)]
+    remainingSeconds = max(0, int(cooldown_seconds - (currentTime - min(userCooldowns[userId][commandName])).total_seconds()))
+    if remainingSeconds <= 0:
+        del userCooldowns[userId][commandName]
+        return False
+    if len(userCooldowns[userId][commandName]) <= maxCommands: return False
+    else:
+        await interaction.response.send_message(f"*Your enthusiasm is greatly appreciated, but please slow down! Try again in **{remainingSeconds}** seconds.*", ephemeral=True)
+        return True
 
 client = RoWhoIs(intents=discord.Intents.default())
 loop = asyncio.get_event_loop()
@@ -137,14 +163,13 @@ loop.create_task(update_rolidata())
 loop.create_task(update_followers())
 loop.create_task(heartbeat())
 loop.add_signal_handler(signal.SIGINT, lambda: asyncio.create_task(shutdown()))
+userCooldowns = {}
 
 @client.event
 async def on_ready():
     global shardAnalytics
     if not shardAnalytics.init_shown: await log_collector.info(f"RoWhoIs initialized! Logged in as {client.user} (ID: {client.user.id}) under {client.shard_count} shard{'s.' if client.shard_count >= 2 else ''}")
     shardAnalytics.init_shown, shardAnalytics.shard_count = True, client.shard_count
-    print(await client.application.primary_sku_id)
-    print("Fetched")
 
 @client.event
 async def on_shard_connect(shard_id):
@@ -185,16 +210,15 @@ async def on_guild_join(guild):
 
 @client.tree.error
 async def on_app_command_error(interaction: discord.Interaction, error: discord.app_commands.AppCommandError):
-    if isinstance(error, discord.app_commands.CommandInvokeError): await log_collector.critical(f"Interaction invoke error: {error} invoked by {interaction.user.id}")
-    elif isinstance(error, discord.app_commands.CommandOnCooldown): await interaction.response.send_message(f"Your enthusiasm is greatly appreciated, but please slow down! Try again in {round(error.retry_after)} seconds.", ephemeral=True)
+    if isinstance(error, discord.app_commands.CommandInvokeError): await log_collector.critical(f"Interaction invoke error:{type(error)}, {error} invoked by {interaction.user.id}")
     else:
-        await log_collector.critical(f"Unexpected error occured during core command function: {error} invoekd by {interaction.user.id}")
+        await log_collector.critical(f"Unexpected error occured during core command function: {type(error)}, {error} invoked by {interaction.user.id}")
         await interaction.followup.send(f"Whoops! Looks like we encountered an unexpected error. We've reported this to our dev team and we'll fix it shortly!", ephemeral=True)
 
 @client.tree.command()
-@discord.app_commands.checks.cooldown(3, 60, key=lambda i: i.user.id)
 async def help(interaction: discord.Interaction):
     """List all of the commands RoWhoIs supports & what they do"""
+    if await check_cooldown(interaction, "low"): return
     await interaction.response.defer(ephemeral=False)
     embedVar = discord.Embed(title="RoWhoIs Commands", color=discord.Color.from_rgb(135, 136, 138))
     if not (await validate_user(interaction, embedVar, requires_connection=False)): return
@@ -206,19 +230,20 @@ async def help(interaction: discord.Interaction):
     embedVar.add_field(name="ownsbadge {User}, {badgeId}", value="Retrieve whether a user owns a badge or not. Works with players who have a private inventory.", inline=True)
     embedVar.add_field(name="isfriendswith {User1}, {User2}", value="Check if two players are friended.", inline=True)
     embedVar.add_field(name="group {groupId}", value="Get detailed group information from a Group ID.", inline=True)
+    embedVar.add_field(name="groupclothing {group}, {pagination} " + f"{emojiTable.get('subscription')}", value="Retrieve clothing textures from a group", inline=True)
     embedVar.add_field(name="isingroup {user}, {group}", value="Check if a player is in the specified group.", inline=True)
     embedVar.add_field(name="limited {limited name}/{limited acronym}", value="Returns a limited ID, the rap, and value of the specified limited.", inline=True)
     embedVar.add_field(name="itemdetails {item}", value="Returns details about a catalog item.", inline=True)
     embedVar.add_field(name="membership {User}", value="Check if a player has Premium or has had Builders Club.", inline=True)
     embedVar.add_field(name="checkusername {username}", value="Check if a username is available", inline=True)
     embedVar.add_field(name="robloxbadges {user}", value="Shows what Roblox badges a player has", inline=True)
-    embedVar.set_footer(text=f"Version {shortHash} | Made with <3 by autumnfication")
+    embedVar.set_footer(text=f"Version {shortHash} | Made with <3 by autumnfication {'| Get RoWhoIs+ to use ' + emojiTable.get('subscription') + ' commands' if len(interaction.entitlements) == 0 and productionMode else '| You have access to RoWhoIs+ features'}")
     await interaction.followup.send(embed=embedVar)
 
 @client.tree.command()
-@discord.app_commands.checks.cooldown(5, 60, key=lambda i: i.user.id)
-async def userid(interaction: discord.Interaction, username: str):
+async def userid(interaction: discord.Interaction, username: str, download: bool = False):
     """Get a User ID from a username"""
+    if await check_cooldown(interaction, "low"): return
     await interaction.response.defer(ephemeral=False)
     shard = await shard_metrics(interaction)
     try:
@@ -235,13 +260,17 @@ async def userid(interaction: discord.Interaction, username: str):
         user_thumbnail = await RoModules.get_player_headshot(user_id[0], "420x420", shard)
         if user_thumbnail: embed.set_thumbnail(url=user_thumbnail)
         embed.colour = 0x00FF00
-        await interaction.followup.send(embed=embed)
+        if download:
+            if not (await validate_user(interaction, embed, requires_entitlement=True)): return
+            csv = "username, id\n" + "\n".join([f"{user_id[1]}, {user_id[0]}"])
+            await interaction.followup.send(embed=embed, file=discord.File(io.BytesIO(csv.encode()), filename=f"rowhois-userid-{user_id[0]}.csv"))
+        else: await interaction.followup.send(embed=embed)
     except Exception as e: await handle_error(e, interaction, "userid", shard, "User")
 
 @client.tree.command()
-@discord.app_commands.checks.cooldown(5, 60, key=lambda i: i.user.id)
-async def username(interaction: discord.Interaction, userid: int):
+async def username(interaction: discord.Interaction, userid: int, download: bool = False):
     """Get a username from a User ID"""
+    if await check_cooldown(interaction, "low"): return
     await interaction.response.defer(ephemeral=False)
     shard = await shard_metrics(interaction)
     try:
@@ -257,13 +286,17 @@ async def username(interaction: discord.Interaction, userid: int):
         user_thumbnail = await RoModules.get_player_headshot(userid, "420x420", shard)
         if user_thumbnail: embed.set_thumbnail(url=user_thumbnail)
         embed.colour = 0x00FF00
-        await interaction.followup.send(embed=embed)
+        if download:
+            if not (await validate_user(interaction, embed, requires_entitlement=True)): return
+            csv = "username, id\n" + "\n".join([f"{username[1]}, {username[0]}"])
+            await interaction.followup.send(embed=embed, file=discord.File(io.BytesIO(csv.encode()), filename=f"rowhois-userid-{user_id[0]}.csv"))
+        else: await interaction.followup.send(embed=embed)
     except Exception as e: await handle_error(e, interaction, "username", shard, "User")
 
 @client.tree.command()
-@discord.app_commands.checks.cooldown(3, 60, key=lambda i: i.user.id)
-async def whois(interaction: discord.Interaction, user: str):
+async def whois(interaction: discord.Interaction, user: str, download: bool = False):
     """Get detailed profile information from a User ID/Username"""
+    if await check_cooldown(interaction, "high"): return
     await interaction.response.defer(ephemeral=False)
     shard = await shard_metrics(interaction)
     try:
@@ -301,25 +334,30 @@ async def whois(interaction: discord.Interaction, user: str):
         if userId[0] == 5192280939: embed.set_footer(text="Follow this person for a surprise on your whois profile")
         if userId[0] in autmnFollowers: embed.set_footer(text="This user is certifiably pog")
         privateInventory, isEdited = True, False
+        if previousUsernames: whoData = "id, username, nickname, verified, rowhois_staff, account_status, joined, last_online, verified_email, groups, friends, followers, following, previous_usernames, description\n" + ''.join([f"{userId[0]}, {userId[1]}, {displayname}, {userId[0] in staffIds}, {'Terminated' if banned else 'Okay' if not banned else 'None'}, {created}, {unformattedLastOnline}, {'None' if veriftype == -1 else 'None' if veriftype == 0 else 'Hat' if veriftype == 1 else 'Sign' if veriftype == 2 else 'Unverified' if veriftype == 3 else 'Both' if veriftype == 4 else 'None'}, {groups}, {friends}, {followers}, {following}, {name}, {description.replace(',', '').replace('\n', '     ')  if description else 'None'}\n" for name in previousUsernames])
+        else: whoData = f"id, username, nickname, verified, rowhois_staff, account_status, joined, last_online, verified_email, groups, friends, followers, following, previous_usernames, description\n{userId[0]}, {userId[1]}, {displayname}, {verified}, {userId[0] in staffIds}, {'Terminated' if banned else 'Okay' if not banned else 'None'}, {created}, {unformattedLastOnline}, {'None' if veriftype == -1 else 'None' if veriftype == 0 else 'Hat' if veriftype == 1 else 'Sign' if veriftype == 2 else 'Unverified' if veriftype == 3 else 'Both' if veriftype == 4 else 'None'}, {groups}, {friends}, {followers}, {following}, None, {description.replace(',', '').replace('\n', '     ') if description else 'None'}\n"
+        whoData = (discord.File(io.BytesIO(whoData.encode()), filename=f"rowhois-rowhois-{userId[0]}.txt"))
         if not banned and userId[0] != 1:
             isEdited = True
             embed.description = "***Currently calculating more statistics...***"
-            messageId = (await interaction.followup.send(embed=embed)).id
-            try: privateInventory, totalRap, totalValue, _ = await RoModules.get_limiteds(userId[0], roliData, shard) # VERY slow when user has a lot of limiteds
+            if download: messageId = (await interaction.followup.send(embed=embed, file=whoData)).id
+            else: messageId = (await interaction.followup.send(embed=embed)).id
+            try: privateInventory, totalRap, totalValue, limiteds = await RoModules.get_limiteds(userId[0], roliData, shard) # VERY slow when user has a lot of limiteds
             except Exception: privateInventory, totalRap, totalValue = False, "Failed to fetch", "Failed to fetch"
         if not privateInventory:
             embed.add_field(name="Total RAP:", value=f"`{totalRap}`", inline=True)
             embed.add_field(name="Total Value:", value=f"`{totalValue}`", inline=True)
         if not banned: embed.add_field(name="Privated Inventory:", value=f"`{privateInventory}`", inline=True)
         embed.description = None
-        if isEdited: await interaction.followup.edit_message(messageId, embed=embed)
+        if download and not isEdited: await interaction.followup.send(embed=embed, file=whoData)
+        elif isEdited: await interaction.followup.edit_message(messageId, embed=embed)
         else: await interaction.followup.send(embed=embed)
     except Exception as e: await handle_error(e, interaction, "whois", shard, "User")
 
 @client.tree.command()
-@discord.app_commands.checks.cooldown(3, 60, key=lambda i: i.user.id)
-async def ownsitem(interaction: discord.Interaction, user: str, item_id: int):
+async def ownsitem(interaction: discord.Interaction, user: str, item_id: int, download: bool = False):
     """Check if a player owns a specific item"""
+    if await check_cooldown(interaction, "medium"): return
     await interaction.response.defer(ephemeral=False)
     shard = await shard_metrics(interaction)
     embed = discord.Embed(color=0xFF0000)
@@ -348,16 +386,19 @@ async def ownsitem(interaction: discord.Interaction, user: str, item_id: int):
             embed.description = "**UAIDs:**\n" + ', '.join([f"`{uaid}`" for uaid in map(str, uaids_to_display)])
             remaining_count = max(0, data[1] - 100)
             if remaining_count > 0: embed.description += f", and {remaining_count} more."
-            await interaction.followup.send(embed=embed)
-        else:
-            embed.description = f"{user_id[1]} doesn't own this item!"
-            await interaction.followup.send(embed=embed)
+        else: embed.description = f"{user_id[1]} doesn't own this item!"
+        if download:
+            if not (await validate_user(interaction, embed, requires_entitlement=True)): return  # RoWhoIs+ check
+            if data[0]: csv = "username, id, item, owned, uaid\n" + "\n".join([f"{user_id[1]}, {user_id[0]}, {item_id}, {bool(data[0])}, {uaid}" for uaid in data[3]])
+            else: csv = f"username, id, item, owned, uaid\n{user_id[1]}, {user_id[0]}, {item_id}, {bool(data[0])}, None"
+            await interaction.followup.send(embed=embed, file=discord.File(io.BytesIO(csv.encode()), filename=f"rowhois-ownsitem-{user_id[0]}.csv"))
+        else: await interaction.followup.send(embed=embed)
     except Exception as e: await handle_error(e, interaction, "ownsitem", shard, "Item")
 
 @client.tree.command()
-@discord.app_commands.checks.cooldown(3, 60, key=lambda i: i.user.id)
-async def ownsbadge(interaction: discord.Interaction, user: str, badge: int):
+async def ownsbadge(interaction: discord.Interaction, user: str, badge: int, download: bool = False):
     """Check if a player owns a specified badge and return it's award date"""
+    if await check_cooldown(interaction, "low"): return
     await interaction.response.defer(ephemeral=False)
     shard = await shard_metrics(interaction)
     embed = discord.Embed(color=0xFF0000)
@@ -377,41 +418,44 @@ async def ownsbadge(interaction: discord.Interaction, user: str, badge: int):
             embed.colour = 0x00FF00
             embed.title = f"{user_id[1]} owns this badge!"
             embed.description = f"Badge was awarded `{await fancy_time(ownsBadge[1])}`"
-            await interaction.followup.send(embed=embed)
-        else:
-            embed.description = f"{user_id[1]} doesn't own the specified badge!"
-            await interaction.followup.send(embed=embed)
+        else: embed.description = f"{user_id[1]} doesn't own the specified badge!"
+        if download:
+            if not (await validate_user(interaction, embed, requires_entitlement=True)): return  # RoWhoIs+ check
+            if ownsBadge[0]: csv = "username, id, badge, owned, awarded\n" + "\n".join([f"{user_id[1]}, {user_id[0]}, {badge}, {ownsBadge[0]}, {ownsBadge[1]}"])
+            else: csv = f"username, id, badge, owned, awarded\n{user_id[1]}, {user_id[0]}, {badge}, {ownsBadge[0]}, None"
+            await interaction.followup.send(embed=embed, file=discord.File(io.BytesIO(csv.encode()), filename=f"rowhois-ownsbadge-{user_id[0]}.csv"))
+        else: await interaction.followup.send(embed=embed)
     except Exception as e: await handle_error(e, interaction, "ownsbadge", shard, "Badge")
 
 @client.tree.command()
-@discord.app_commands.checks.cooldown(3, 60, key=lambda i: i.user.id)
-async def limited(interaction: discord.Interaction, limited: str):
+async def limited(interaction: discord.Interaction, limited: str, download: bool = False):
     """Returns a limited ID, the rap, and value of a specified limited"""
+    if await check_cooldown(interaction, "high"): return
     await interaction.response.defer(ephemeral=False)
     shard = await shard_metrics(interaction)
     embed = discord.Embed(color=0xFF0000)
     if not (await validate_user(interaction, embed, requires_connection=False)): return
     try:
         try: limited_id, name, acronym, rap, value = await RoModules.get_rolidata_from_item(roliData, limited)
-        except Exception as e:  
+        except Exception as e:
             if await handle_error(e, interaction, "limited", shard, "Limited"): return
-        if limited_id != -1:
-            embed.set_thumbnail(url=await RoModules.get_item_thumbnail(limited_id, "420x420", shard))
-            embed.colour = 0x00FF00
-            embed.title = f"{name} ({acronym})" if acronym != "" else f"{name}"
-            embed.url = f"https://www.roblox.com/catalog/{limited_id}/"
-            embed.description = f"ID: `{limited_id}`\nRAP: `{rap}`\nValue: `{value}`"
-            await interaction.followup.send(embed=embed)
-        else:
-            embed.description = f"Failed to find item! Make sure you spelled it correctly and used proper punctuation."
-            await interaction.followup.send(embed=embed, ephemeral=True)
+        embed.set_thumbnail(url=await RoModules.get_item_thumbnail(limited_id, "420x420", shard))
+        embed.colour = 0x00FF00
+        embed.title = f"{name} ({acronym})" if acronym != "" else f"{name}"
+        embed.url = f"https://www.roblox.com/catalog/{limited_id}/"
+        embed.description = f"ID: `{limited_id}`\nRAP: `{rap}`\nValue: `{value}`"
+        if download:
+            if not (await validate_user(interaction, embed, requires_entitlement=True)): return  # RoWhoIs+ check
+            csv = "id, name, acronym, rap, value\n" + "\n".join([f"{limited_id}, {name.replace(',', '')}, {acronym.replace(',', '')}, {rap}, {value}"])
+            await interaction.followup.send(embed=embed, file=discord.File(io.BytesIO(csv.encode()), filename=f"rowhois-limited-{limited_id if limited_id is not None else 'search'}.csv"))
+        else: await interaction.followup.send(embed=embed)
     except Exception as e: await handle_error(e, interaction, "limited", shard, "Limited")
 
 @client.tree.command()
-@discord.app_commands.checks.cooldown(5, 60, key=lambda i: i.user.id)
 async def isfriendswith(interaction: discord.Interaction, user1: str, user2: str):
     """Check whether a user is friended to another user"""
     # Technically we only have to check through one player as it's a mutual relationship
+    if await check_cooldown(interaction, "low"): return
     await interaction.response.defer(ephemeral=False)
     shard = await shard_metrics(interaction)
     embed = discord.Embed(color=0xFF0000)
@@ -451,9 +495,9 @@ async def isfriendswith(interaction: discord.Interaction, user1: str, user2: str
     except Exception as e: await handle_error(e, interaction, "isfriendswith", shard, "User")
 
 @client.tree.command()
-@discord.app_commands.checks.cooldown(5, 60, key=lambda i: i.user.id)
 async def isingroup(interaction: discord.Interaction, user: str, group: int):
     """Check whether a user is in a group or not"""
+    if await check_cooldown(interaction, "low"): return
     await interaction.response.defer(ephemeral=False)
     shard = await shard_metrics(interaction)
     embed = discord.Embed(color=0xFF0000)
@@ -467,11 +511,10 @@ async def isingroup(interaction: discord.Interaction, user: str, group: int):
             if user_id[1] is None: user_id[1] = (await RoModules.convert_to_username(user_id[0], shard))[0]
         except Exception as e: 
             if await handle_error(e, interaction, "isingroup", shard, "User"): return
-        usergroups = await RoModules.get_groups(user_id[0], shard)
+        try: usergroups = await RoModules.get_groups(user_id[0], shard)
+        except Exception as e:
+            if await handle_error(e, interaction, "isingroup", shard, "Group"): return
         ingroup = False
-        if usergroups in [-2, -1]:
-            await interaction.followup.send("Whoops! An error occurred. Please try again later.", ephemeral=True)
-            return
         for groups in usergroups['data']:
             if groups['group']['id'] == group:
                 ingroup = True
@@ -485,17 +528,14 @@ async def isingroup(interaction: discord.Interaction, user: str, group: int):
             embed.colour = 0x00FF00
             embed.title = f"{user_id[1]} is in group `{groupname}`!"
             embed.description = f"Role: `{grouprole}`"
-            await interaction.followup.send(embed=embed)
-            return
-        else:
-            embed.description = f"{user_id[1]} is not in this group."
-            await interaction.followup.send(embed=embed)
+        else: embed.description = f"{user_id[1]} is not in this group."
+        await interaction.followup.send(embed=embed)
     except Exception as e: await handle_error(e, interaction, "isingroup", shard, "Group ID")
 
 @client.tree.command()
-@discord.app_commands.checks.cooldown(2, 60, key=lambda i: i.user.id)
 async def clothingtexture(interaction: discord.Interaction, clothing_id: int):
     """Get the texture file of a clothing item"""
+    if await check_cooldown(interaction, "extreme"): return
     await interaction.response.defer(ephemeral=False)
     shard = await shard_metrics(interaction)
     embed = discord.Embed(color=0xFF0000)
@@ -552,9 +592,9 @@ async def clothingtexture(interaction: discord.Interaction, clothing_id: int):
     except Exception as e: await handle_error(e, interaction, "getclothingtexture", shard, "Clothing ID")
 
 @client.tree.command()
-@discord.app_commands.checks.cooldown(2, 60, key=lambda i: i.user.id)
-async def itemdetails(interaction: discord.Interaction, item: int):
+async def itemdetails(interaction: discord.Interaction, item: int, download: bool = False):
     """Get advanced details about a catalog item"""
+    if await check_cooldown(interaction, "high"): return
     await interaction.response.defer(ephemeral=False)
     shard = await shard_metrics(interaction)
     embed = discord.Embed(color=0xFF0000)
@@ -584,9 +624,9 @@ async def itemdetails(interaction: discord.Interaction, item: int):
     except Exception as e: await handle_error(e, interaction, "getitemdetails", shard, "Item ID")
 
 @client.tree.command()
-@discord.app_commands.checks.cooldown(2, 60, key=lambda i: i.user.id)
 async def membership(interaction: discord.Interaction, user: str):
     """Checks whether a user has premium and if they had Builders Club"""
+    if await check_cooldown(interaction, "high"): return
     await interaction.response.defer(ephemeral=False)
     shard = await shard_metrics(interaction)
     embed = discord.Embed(color=0xFF0000)
@@ -613,9 +653,9 @@ async def membership(interaction: discord.Interaction, user: str):
     except Exception as e: await handle_error(e, interaction, "getmembership", shard, "User")
 
 @client.tree.command()
-@discord.app_commands.checks.cooldown(3, 60, key=lambda i: i.user.id)
-async def group(interaction: discord.Interaction, group: int):
+async def group(interaction: discord.Interaction, group: int, download: bool = False):
     """Get detailed group information from a Group ID"""
+    if await check_cooldown(interaction, "medium"): return
     await interaction.response.defer(ephemeral=False)
     shard = await shard_metrics(interaction)
     embed = discord.Embed(color=0xFF0000)
@@ -638,33 +678,41 @@ async def group(interaction: discord.Interaction, group: int):
             if groupInfo[5][0] != "": embed.add_field(name="Shout:", value=f"`{groupInfo[5][0]}` -- `{groupInfo[5][1]}` (`{groupInfo[5][2]}`) {('' + emojiTable.get('verified')) if groupInfo[5][3] else ''}", inline=False)
         if groupInfo[1] != "": embed.add_field(name="Group Description:", value=f"`{groupInfo[1]}`", inline=False)
         embed.colour = 0x00FF00
-        await interaction.followup.send(embed=embed)
+        if download:
+            if not (await validate_user(interaction, embed, requires_entitlement=True)): return  # RoWhoIs+ check
+            csv = "id, name, owner, created, members, joinable, locked, shout, shout_author, shout_author_id, shout_verified, description\n" + f"{group}, {groupInfo[0]}, {groupInfo[4][0] if groupInfo[4] is not None else 'None'}, {await fancy_time(groupInfo[2])}, {groupInfo[6]}, {groupInfo[7]}, {groupInfo[8]}, {groupInfo[5][0] if groupInfo[5] is not None else 'None'}, {groupInfo[5][1] if groupInfo[5] is not None else 'None'}, {groupInfo[5][2] if groupInfo[5] is not None else 'None'}, {groupInfo[5][3] if groupInfo[5] is not None else 'None'}, {groupInfo[1].replace(',', '').replace('\n', '     ') if groupInfo[1] else 'None'}"
+            await interaction.followup.send(embed=embed, file=discord.File(io.BytesIO(csv.encode()),filename=f"rowhois-group-{group}.csv"))
+        else: await interaction.followup.send(embed=embed)
     except Exception as e: await handle_error(e, interaction, "group", shard, "Group ID")
 
 @client.tree.command()
-@discord.app_commands.checks.cooldown(4, 60, key=lambda i: i.user.id)
-async def checkusername(interaction: discord.Interaction, username: str):
+async def checkusername(interaction: discord.Interaction, username: str, download: bool = False):
     """Check if a username is available"""
+    if await check_cooldown(interaction, "medium"): return
     await interaction.response.defer(ephemeral=False)
     shard = await shard_metrics(interaction)
     embed = discord.Embed(color=0xFF0000)
     if not (await validate_user(interaction, embed)): return
     try:
         try: usernameInfo = await RoModules.validate_username(username, shard)
-        except Exception as e: 
+        except Exception as e:
             if await handle_error(e, interaction, "username", shard, "Username"): return
-        if usernameInfo[0] == 0: 
+        if usernameInfo[0] == 0:
             embed.colour = 0x00FF00
             embed.description = "Username is available!"
         elif usernameInfo[0] == 1: embed.description = "Username is taken."
         else: embed.description = f"Username not available.\n**Reason:** {usernameInfo[1]}"
-        await interaction.followup.send(embed=embed)
+        if download:
+            if not (await validate_user(interaction, embed, requires_entitlement=True)): return  # RoWhoIs+ check
+            csv = "username, available\n" + "\n".join([f"{username.replace(',', '')}, {usernameInfo[0]}"])
+            await interaction.followup.send(embed=embed, file=discord.File(io.BytesIO(csv.encode()), filename=f"rowhois-checkusername.csv"))
+        else: await interaction.followup.send(embed=embed)
     except Exception as e: await handle_error(e, interaction, "username", shard, "Username")
 
 @client.tree.command()
-@discord.app_commands.checks.cooldown(3, 60, key=lambda i: i.user.id)
 async def robloxbadges(interaction: discord.Interaction, user: str):
     """Check what Roblox badges a player has"""
+    if await check_cooldown(interaction, "high"): return
     await interaction.response.defer(ephemeral=False)
     shard = await shard_metrics(interaction)
     embed = discord.Embed(color=0xFF0000)

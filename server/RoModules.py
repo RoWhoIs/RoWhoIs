@@ -201,7 +201,7 @@ async def owns_item(user: int, item: int, shard_id: int) -> tuple[bool, int, str
     if itemData[1]["data"] and any("type" in item for item in itemData[1]["data"]):
         itemName = itemData[1]['data'][0]['name']
         totalOwned = len(itemData[1]['data'])
-        uaidList = [item["instanceId"] for item in itemData[1]["data"][:50]]
+        uaidList = [item["instanceId"] for item in itemData[1]["data"]]
         return True, totalOwned, itemName, uaidList
     else: return False, 0, "", []
 

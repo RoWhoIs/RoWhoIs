@@ -40,7 +40,7 @@ def push_status(enabling: bool, webhook_token: str) -> None:
     """Pushes to the webhook the initialization status of RoWhoIs"""
     try:
         async def push(enabling: bool, webhook_token: str) -> None:
-            async with aiohttp.ClientSession() as session: await session.request("POST", webhook_token, json={"username": "RoWhoIs status", "avatar_url": "https://www.robloxians.com/resources/rwi-pfp.png", "embeds": [{"title": "RoWhoIs Status", "color": 65293 if enabling else 0xFF0000, "description": f"RoWhoIs is now {'online' if enabling else 'offline'}!"}]})
+            async with aiohttp.ClientSession() as session: await session.request("POST", webhook_token, json={"username": "RoWhoIs Status", "avatar_url": "https://www.robloxians.com/resources/rwi-pfp.png", "embeds": [{"title": "RoWhoIs Status", "color": 65293 if enabling else 0xFF0000, "description": f"RoWhoIs is now {'online' if enabling else 'offline'}!"}]})
         asyncio.new_event_loop().run_until_complete(push(enabling, webhook_token))
     except Exception as e: sync_logging("error", f"Failed to push to status webhook: {e}")
 

@@ -90,31 +90,32 @@ All configuration options for this are optional. To disable any specific emoji, 
 
 To obtain these emojis, simply put a backslash behind the emoji in Discord then send it. An example output of this is: `<:verified:1186711315679563886>`
 
-| Emoji                | Use case                                                                          |
-|:---------------------|:----------------------------------------------------------------------------------|
-| verified             | Used for players who have the "verified" status on their profile.                 |
-| staff                | Used on the profile of RoWhoIs operators.                                         |
-| donor                | Currently unused, placed on the profile of users who donate to RoWhoIs.           |
-| limited              | Applied to a limited item.                                                        |
-| limitedu             | Applied to a limited-unique item.                                                 |
-| robux                | Used for symbolizing the virtual currency.                                        |
-| collectible          | Used for user-generated limiteds.                                                 |
-| bc                   | Used for players who had Builders Club, a predecessor to Premium 450.             |
-| tbc                  | Used for players who had Turbo Builders Club, a predecessor to Premium 1000.      |
-| obc                  | Used for players who had Outrageous Builders Club, a predecessor to Premium 2200. |
-| premium              | Used for players who have the Premium subscription.                               |
-| administrator        | Part of the `robloxbadges` command.                                               |
-| ambassador           | Part of the `robloxbadges` command.                                               |
-| bloxxer              | Part of the `robloxbadges` command.                                               |
-| bricksmith           | Part of the `robloxbadges` command.                                               |
-| combat initiation    | Part of the `robloxbadges` command.                                               |
-| homestead            | Part of the `robloxbadges` command.                                               |
-| inviter              | Part of the `robloxbadges` command.                                               |
-| official model maker | Part of the `robloxbadges` command.                                               |
-| veteran              | Part of the `robloxbadges` command.                                               |
-| warrior              | Part of the `robloxbadges` command.                                               |
-| welcome to the club  | Part of the `robloxbadges` command.                                               |
-| friendship           | Part of the `robloxbadges` command.                                               |
+| Emoji                | Use case                                                                                         |
+|:---------------------|:-------------------------------------------------------------------------------------------------|
+| verified             | Used for players who have the "verified" status on their profile.                                |
+| staff                | Used on the profile of RoWhoIs operators.                                                        |
+| subscription         | Used for RoWhoIs+, the subscription tier for RoWhoIs                                             |
+| donor                | Currently unused, placed on the profile of users who donate to RoWhoIs through GitHub or Bitcoin |
+| limited              | Applied to a limited item.                                                                       |
+| limitedu             | Applied to a limited-unique item.                                                                |
+| robux                | Used for symbolizing the virtual currency.                                                       |
+| collectible          | Used for user-generated limiteds.                                                                |
+| bc                   | Used for players who had Builders Club, a predecessor to Premium 450.                            |
+| tbc                  | Used for players who had Turbo Builders Club, a predecessor to Premium 1000.                     |
+| obc                  | Used for players who had Outrageous Builders Club, a predecessor to Premium 2200.                |
+| premium              | Used for players who have the Premium subscription.                                              |
+| administrator        | Part of the `robloxbadges` command.                                                              |
+| ambassador           | Part of the `robloxbadges` command.                                                              |
+| bloxxer              | Part of the `robloxbadges` command.                                                              |
+| bricksmith           | Part of the `robloxbadges` command.                                                              |
+| combat initiation    | Part of the `robloxbadges` command.                                                              |
+| homestead            | Part of the `robloxbadges` command.                                                              |
+| inviter              | Part of the `robloxbadges` command.                                                              |
+| official model maker | Part of the `robloxbadges` command.                                                              |
+| veteran              | Part of the `robloxbadges` command.                                                              |
+| warrior              | Part of the `robloxbadges` command.                                                              |
+| welcome to the club  | Part of the `robloxbadges` command.                                                              |
+| friendship           | Part of the `robloxbadges` command.                                                              |
 
 ## Proxying
 
@@ -185,3 +186,11 @@ While if some instances of RoWhoIs don't operate in more than 2,500+ guilds (the
 In the log outputs, each user-invoked call will have a shard ID. This is the shard that the user's guild is located on. An example output of this is `[SH1]`, meaning that that request was performed on shard 1.
 
 This level of fine-grain logging allows for further performance optimizations in the future.
+
+## SKUs
+
+Because RoWhoIs has paid commands, testing to ensure these paid features work is critical. When RoWhoIs is not in `productionMode`, it will override any entitlement checks.
+
+To simplify things, as RoWhoIs will only ever have one paid tier, the SKU system is very simple. RoWhoIs checks the entitlements of the interaction, and if they are greater than 0 (meaning they have purchased an SKU), it will grant them access to the paid features.
+
+Paid features include lowered cooldown rates, more filetype downloads, and access to additional commands.
