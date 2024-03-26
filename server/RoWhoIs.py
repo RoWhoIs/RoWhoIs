@@ -289,7 +289,7 @@ async def username(interaction: discord.Interaction, userid: int, download: bool
         if download:
             if not (await validate_user(interaction, embed, requires_entitlement=True)): return
             csv = "username, id\n" + "\n".join([f"{username[1]}, {username[0]}"])
-            await interaction.followup.send(embed=embed, file=discord.File(io.BytesIO(csv.encode()), filename=f"rowhois-userid-{user_id[0]}.csv"))
+            await interaction.followup.send(embed=embed, file=discord.File(io.BytesIO(csv.encode()), filename=f"rowhois-userid-{username[0]}.csv"))
         else: await interaction.followup.send(embed=embed)
     except Exception as e: await handle_error(e, interaction, "username", shard, "User")
 
