@@ -399,22 +399,28 @@ async def ownsbadge(interaction: discord.Interaction, user: str, badge: int, dow
 @client.tree.command()
 async def limited(interaction: discord.Interaction, limited: str, download: bool = False):
     """Returns a limited ID, the rap, and value of a specified limited"""
-    if await check_cooldown(interaction, "high"): return
+    if await check_cooldown(interaction, "medium"): return
     embed = discord.Embed(color=0xFF0000)
     if not (await validate_user(interaction, embed, userid, requires_entitlement=download)): return
     await interaction.response.defer(ephemeral=False)
     shard = await gUtils.shard_metrics(interaction)
     try:
-        try: limited_id, name, acronym, rap, value = await RoModules.get_rolidata_from_item(roliData, limited)
+        try: limited_id, name, acronym, rap, value, demand, trend, projected, rare = await RoModules.get_rolidata_from_item(roliData, limited)
         except Exception as e:
             if await handle_error(e, interaction, "limited", shard, "Limited"): return
         embed.set_thumbnail(url=await RoModules.get_item_thumbnail(limited_id, "420x420", shard))
         embed.colour = 0x00FF00
         embed.title = f"{name} ({acronym})" if acronym != "" else f"{name}"
         embed.url = f"https://www.roblox.com/catalog/{limited_id}/"
-        embed.description = f"ID: `{limited_id}`\nRAP: `{rap}`\nValue: `{value}`"
+        embed.add_field(name="Limited ID:", value=f"`{limited_id}`", inline=True)
+        embed.add_field(name="RAP:", value=f"`{rap}`", inline=True)
+        embed.add_field(name="Value:", value=f"`{value}`", inline=True)
+        embed.add_field(name="Demand:", value=f"`{demand}`", inline=True)
+        embed.add_field(name="Trend:", value=f"`{trend}`", inline=True)
+        embed.add_field(name="Projected:", value=f"`{projected}`", inline=True)
+        embed.add_field(name="Rare:", value=f"`{rare}`", inline=True)
         if download:
-            csv = "id, name, acronym, rap, value\n" + "\n".join([f"{limited_id}, {name.replace(',', '')}, {acronym.replace(',', '')}, {rap}, {value}"])
+            csv = "id, name, acronym, rap, value, demand, trend, projected, rare\n" + "\n".join([f"{limited_id}, {name.replace(',', '')}, {acronym.replace(',', '') if acronym else 'None'}, {rap}, {value}, {demand}, {trend}, {projected}, {rare}"])
             await interaction.followup.send(embed=embed, file=discord.File(io.BytesIO(csv.encode()), filename=f"rowhois-limited-{limited_id if limited_id is not None else 'search'}.csv"))
         else: await interaction.followup.send(embed=embed)
     except Exception as e: await handle_error(e, interaction, "limited", shard, "Limited")
@@ -544,7 +550,11 @@ async def itemdetails(interaction: discord.Interaction, item: int, download: boo
             if not (data["IsLimited"] or data["Remaining"] == 0 or isCollectible): embed.add_field(name="Price:", value=f"{emojiTable.get('robux')} `{data['PriceInRobux']}`", inline=True)
         embed.set_thumbnail(url=await RoModules.get_item_thumbnail(item, "420x420", shard))
         embed.colour = 0x00FF00
-        await interaction.followup.send(embed=embed)
+        if download:
+            nlChar = "\n"
+            csv = "id, name, creator_name, creator_id, verified, created, updated, is_limited, is_limited_unique, is_collectible, quantity, lowest_price, remaining, price, description\n" + f"{item}, {data['Name'].replace(',', '')}, {data['Creator']['Name']}, {data['Creator']['CreatorTargetId']}, {data['Creator']['HasVerifiedBadge']}, {data['Created']}, {data['Updated']}, {data['IsLimited']}, {data['IsLimitedUnique']}, {isCollectible}, {data['CollectiblesItemDetails']['TotalQuantity'] if isCollectible else 'None'}, {data['CollectiblesItemDetails']['CollectibleLowestResalePrice'] if isCollectible else 'None'}, {data['Remaining'] if data['Remaining'] is not None else 'None'}, {data['PriceInRobux'] if not (data['IsLimited'] or data['Remaining'] == 0 or isCollectible) else 'None'}, {data['Description'].replace(',', '').replace(nlChar, '    ') if data['Description'] != '' else 'None'}"
+            await interaction.followup.send(embed=embed, file=discord.File(io.BytesIO(csv.encode()), filename=f"rowhois-itemdetails-{item}.csv"))
+        else: await interaction.followup.send(embed=embed)
     except Exception as e: await handle_error(e, interaction, "getitemdetails", shard, "Item ID")
 
 @client.tree.command()
@@ -594,7 +604,7 @@ async def group(interaction: discord.Interaction, group: int, download: bool = F
         embed.add_field(name="Group ID:", value=f"`{group}`")
         embed.add_field(name="Status:", value=f"`{'Locked' if groupInfo[8] else 'Okay'}`", inline=True)
         embed.add_field(name="Created:", value=f"`{await gUtils.fancy_time(groupInfo[2])}`", inline=True)
-        if groupInfo[4] is not None: embed.add_field(name="Owner:", value=f"`{groupInfo[4][0]}` (`{groupInfo[4][1]}`) {(' ' + emojiTable.get('verified')) if groupInfo[4][2] else ''}", inline=True)
+        if all(groupInfo[4]) is not False: embed.add_field(name="Owner:", value=f"`{groupInfo[4][0]}` (`{groupInfo[4][1]}`) {(' ' + emojiTable.get('verified')) if groupInfo[4][2] else ''}", inline=True)
         else: embed.add_field(name="Owner:", value=f"Nobody!", inline=True)
         embed.add_field(name="Members:", value=f"`{groupInfo[6]}`", inline=True)
         embed.add_field(name="Joinable:", value=f"`{'False' if groupInfo[8] else 'True' if groupInfo[7] else 'False'}`", inline=True)
@@ -604,7 +614,7 @@ async def group(interaction: discord.Interaction, group: int, download: bool = F
         embed.colour = 0x00FF00
         if download:
             nlChar = "\n"
-            csv = "id, name, owner, created, members, joinable, locked, shout, shout_author, shout_author_id, shout_verified, description\n" + f"{group}, {groupInfo[0]}, {groupInfo[4][0] if groupInfo[4] is not None else 'None'}, {await gUtils.fancy_time(groupInfo[2])}, {groupInfo[6]}, {groupInfo[7]}, {groupInfo[8]}, {groupInfo[5][0] if groupInfo[5] is not None else 'None'}, {groupInfo[5][1] if groupInfo[5] is not None else 'None'}, {groupInfo[5][2] if groupInfo[5] is not None else 'None'}, {groupInfo[5][3] if groupInfo[5] is not None else 'None'}, {groupInfo[1].replace(',', '').replace(nlChar, '     ') if groupInfo[1] else 'None'}"
+            csv = "id, name, owner, created, members, joinable, locked, shout, shout_author, shout_author_id, shout_verified, description\n" + f"{group}, {groupInfo[0]}, {groupInfo[4][0] if groupInfo[4] is not None else 'None'}, {groupInfo[2]}, {groupInfo[6]}, {groupInfo[7]}, {groupInfo[8]}, {groupInfo[5][0] if groupInfo[5] is not None else 'None'}, {groupInfo[5][1] if groupInfo[5] is not None else 'None'}, {groupInfo[5][2] if groupInfo[5] is not None else 'None'}, {groupInfo[5][3] if groupInfo[5] is not None else 'None'}, {groupInfo[1].replace(',', '').replace(nlChar, '     ') if groupInfo[1] else 'None'}"
             await interaction.followup.send(embed=embed, file=discord.File(io.BytesIO(csv.encode()), filename=f"rowhois-group-{group}.csv"))
         else: await interaction.followup.send(embed=embed)
     except Exception as e: await handle_error(e, interaction, "group", shard, "Group ID")
