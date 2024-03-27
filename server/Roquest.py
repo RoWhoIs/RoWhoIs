@@ -43,7 +43,7 @@ async def proxy_handler() -> None:
                     results = await asyncio.gather(*tasks)
                     proxyPool = [proxy_url for proxy_url, result in zip(proxyUrls, results) if result]
                     if len(proxyPool) <= 0 and logProxying: await log_collector.debug("No usable proxies found! Fallbacking to non-proxied.")
-                    elif logProxying: await log_collector.debug(f"Refreshed proxy pool. {len(proxyPool)} usable IPs.")
+                    elif logProxying: await log_collector.debug(f"Refreshed proxy pool. {len(proxyPool)} usable IP{'s' if len(proxyPool) >= 2 else ''}.")
             await asyncio.sleep(300)
     except Exception as e:
         await log_collector.error(f"proxy_handler encountered a severe error while refreshing proxy pool: {e}")
@@ -123,15 +123,15 @@ async def Roquest(method: str, node: str, endpoint: str, shard_id: int = None, f
                             if not failretry: return resp.status, await resp.json()
                             await token_renewal()
                         elif resp.status == 429: await asyncio.sleep(2) # Proxy changed per retry, so proxy_picker not needed here
-                        else:
-                            await log_collector.warn(f"{method.upper()} {node} [{proxy if proxy is not None else 'non-proxied'}] | {endpoint}: {resp.status}. Retrying... {retry + 1}/3", shard_id=shard_id)
+                        else: await log_collector.warn(f"{method.upper()} {node} [{proxy if proxy is not None else 'non-proxied'}] | {endpoint}: {resp.status}. Retrying... {retry + 1}/3", shard_id=shard_id)
+                        if not failretry: break
                 except Exception as e:
                     proxy = await proxy_picker(proxy, True)
                     await log_collector.error(f"{method.upper()} {node} [{proxy if proxy is not None else 'non-proxied'}] | {endpoint}: {e if e != '' else 'Connection timed out.'}", shard_id=shard_id)
             except Exception as e:
                 await log_collector.error(f"{method.upper()} {node} [{proxy if proxy is not None else 'non-proxied'}] | {endpoint}: Severe error: {e}", shard_id=shard_id)
                 raise ErrorDict.UnexpectedServerResponseError
-    await log_collector.error(f"{method.upper()} {node} [{proxy if proxy is not None else 'non-proxied'}] | {endpoint}: Failed after 3 attempts.", shard_id=shard_id)
+    await log_collector.error(f"{method.upper()} {node} [{proxy if proxy is not None else 'non-proxied'}] | {endpoint}: Failed after {retry + 1} attempt{'s' if retry >= 1 else ''}.", shard_id=shard_id)
     return resp.status, {"error": "Failed to retrieve data"}
 
 async def RoliData():
@@ -176,3 +176,10 @@ async def GetFileContent(asset_id: int, shard_id: int = None) -> bytes:
                     raise ErrorDict.UnexpectedServerResponseError
     finally: # Hold the connection hostage until we FINISH downloading THE FILE.
         if resp: await resp.release()
+
+async def heartbeat() -> bool:
+    """Determines if Roblox is OK by checking if the API is up, returns True if alive"""
+    async with aiohttp.ClientSession(cookies={".roblosecurity": rsec}) as main_session:
+        async with main_session.get("https://users.roblox.com/") as resp:
+            if resp.status == 200: return True
+    return False

@@ -1,4 +1,4 @@
-import asyncio, subprocess, datetime, json, os
+import asyncio, subprocess, datetime, json, os, aiohttp, traceback
 
 if not os.path.exists("utils/logger.py"):
     print("Missing utils/logger.py! RoWhoIs will not be able to initialize.")
@@ -36,21 +36,35 @@ with open('config.json', 'r') as configfile:
     config = json.load(configfile)
     configfile.close()
 
+def push_status(enabling: bool, webhook_token: str) -> None:
+    """Pushes to the webhook the initialization status of RoWhoIs"""
+    try:
+        async def push(enabling: bool, webhook_token: str) -> None:
+            async with aiohttp.ClientSession() as session: await session.request("POST", webhook_token, json={"username": "RoWhoIs Status", "avatar_url": "https://www.robloxians.com/resources/rwi-pfp.png", "embeds": [{"title": "RoWhoIs Status", "color": 65293 if enabling else 0xFF0000, "description": f"RoWhoIs is now {'online' if enabling else 'offline'}!"}]})
+        asyncio.new_event_loop().run_until_complete(push(enabling, webhook_token))
+    except Exception as e: sync_logging("error", f"Failed to push to status webhook: {e}")
+
 try:
     from utils import ErrorDict
     productionMode = config['RoWhoIs']['production_mode']
+    webhookToken = config['Authentication']['webhook']
     if productionMode: sync_logging("warn", "Currently running in production mode.")
     else: sync_logging("warn", "Currently running in testing mode.")
 except KeyError:
     sync_logging("fatal", "Failed to retrieve production type. RoWhoIs will not be able to initialize.")
     exit(1)
-try:
-    from server import Roquest, RoWhoIs
-    Roquest.initialize(config)
-    RoWhoIs.run(productionMode, version, config)
-except RuntimeError: pass  # Occurs when exited before fully initialized
-except ErrorDict.MissingRequiredConfigs: sync_logging("fatal", f"Missing or malformed configuration options detected!")
-except Exception as e: sync_logging("fatal", f"A fatal error occurred during runtime: {e}")
+for i in range(5): # Rerun server in event of a crash
+    try:
+        from server import Roquest, RoWhoIs
+        if productionMode: push_status(True, webhookToken)
+        Roquest.initialize(config)
+        if RoWhoIs.run(productionMode, version, config) is True: break
+    except RuntimeError: pass  # Occurs when exited before fully initialized
+    except ErrorDict.MissingRequiredConfigs: sync_logging("fatal", f"Missing or malformed configuration options detected!")
+    except Exception as e:
+        sync_logging("fatal", f"A fatal error occurred during runtime: {type(e)} | STACKTRACE: {''.join(traceback.format_exception(etype=type(e), value=e, tb=e.__traceback__))}")
+        if i < 4: sync_logging("warn", f"Server crash detected. Restarting server...")
 
+if productionMode: push_status(False, webhookToken)
 os.rename("logs/main.log", f"logs/server-{datetime.datetime.now().strftime('%Y-%m-%d-%H%M%S')}.log")
 exit(0)
