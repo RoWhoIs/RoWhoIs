@@ -145,7 +145,8 @@ It's a general best practice to make sure the proxy is located within a close re
 RoWhoIs containerizes operation types by file. This eases development and makes the codebase easier to manage.
 
 `main.py` is used for initializing `RoWhoIs.py`, the main server. From there, `RoWhoIs.py` generally uses `RoModules.py`, a file containing modules for performing different API calls, to carry out command fulfillment. `RoModules.py` uses `Roquest.py`.
-`Roquest.py` is where all requests to APIs are handled, including proxying. `ErrorDict.py` is used as an error dictionary. If ever something were to go wrong with RoWhoIs, it'll be an error object defined by that. Finally, `logger.py` is the utility from [AsyncLogger](https://github.com/aut-mn/AsyncLogger) used to asynchronously log everything.
+`Roquest.py` is where all requests to APIs are handled, including proxying. `ErrorDict.py` is used as an error dictionary. If ever something were to go wrong with RoWhoIs, it'll be an error object defined by that. Next, `logger.py`, is the utility from [AsyncLogger](https://github.com/aut-mn/AsyncLogger) used to asynchronously log everything.
+Finally, `gUtils.py` is a utility file containing general functions that are used throughout the codebase. Any function that requires global variables or is used as a run_forever task should not be placed in this file.
 
 Logs that are live are written to main.log, and sessions that are gracefully closed have log files named `server-YYYY-MM-DD-HHmmSS.log`
 
@@ -162,6 +163,7 @@ Logs that are live are written to main.log, and sessions that are gracefully clo
 │   └── RoWhoIs.py
 ├── utils
 │   └── ErrorDict.py
+│   └── gUtils.py
 │   └── logger.py
 ├── config.json
 └── main.py

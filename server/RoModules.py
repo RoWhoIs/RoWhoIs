@@ -2,7 +2,7 @@
 RoWhoIs modules library. If a roquest is likely to be reused multiple times throughought the main program, it is likely to be here.
 """
 # The general rule of thumb is that if it's a background task, not caused by user interaction, or doesn't require roquesting, it doesn't require a shard_id
-import asyncio
+import asyncio, aiofiles, re, io
 from typing import Union, List, Dict
 from server import Roquest
 from utils import ErrorDict
@@ -220,6 +220,37 @@ async def roblox_badges(user: int, shard_id: int) -> tuple[List[int], Dict[int, 
     badges = []
     for badge in data[1]: badges.append(badge['id'])
     return sorted(badges), badgeTable
+
+async def get_creator_assets(creator: int, asset_type: int, page: int, shard_id: int) -> tuple[int, List[Dict[str, Union[str, int]]]]:
+    """Retrieves a group's assets
+    Returns the assets, and the number of successful pages it iterated through"""
+    nextPageCursor = None
+    assetIds = []
+    for i in range(page):
+        data = await Roquest.Roquest("GET", "catalog", f"v1/search/items?category=All&creatorTargetId={creator}&creatorType=Group&cursor=&limit=10&sortOrder=Desc&sortType=Updated&assetType={asset_type}&cursor={nextPageCursor if nextPageCursor is not None else ''}", shard_id=shard_id)
+        if data[0] == 500: raise ErrorDict.DoesNotExistError # lol
+        await general_error_handler(data[0])
+        nextPageCursor = data[1].get('nextPageCursor')
+        if not nextPageCursor: break
+    for asset in data[1]['data']: assetIds.append(asset['id'])
+    return assetIds, i + 1
+
+async def fetch_clothing_asset(asset_id: int, shard_id: int) -> int: # Unsafe by design
+    """Fetches the clothing asset's texture file"""
+    try: # Check cache first
+        async with aiofiles.open(f'cache/clothing/{asset_id}.png', 'rb'): return asset_id
+    except FileNotFoundError:
+        initAsset = await Roquest.GetFileContent(asset_id, shard_id=shard_id)
+        initAssetContent = io.BytesIO(initAsset)
+        initAssetContent = initAssetContent.read().decode()
+        match = re.search(r'<url>.*id=(\d+)</url>', initAssetContent)
+        if not match: raise ErrorDict.DoesNotExistError
+        async with aiofiles.open(f'cache/clothing/{asset_id}.png', 'wb') as cached_image:
+            downloadedAsset = await Roquest.GetFileContent(match.group(1), shard_id=shard_id)
+            if not downloadedAsset or len(downloadedAsset) < 512: raise ErrorDict.UndocumentedError
+            await cached_image.write(downloadedAsset)
+    await cached_image.close()
+    return asset_id
 
 async def nil_pointer() -> int: 
     """Returns nil data"""
