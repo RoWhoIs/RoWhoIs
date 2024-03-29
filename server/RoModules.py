@@ -240,20 +240,22 @@ async def get_creator_assets(creator: int, asset_type: int, page: int, shard_id:
 
 async def fetch_clothing_asset(asset_id: int, shard_id: int) -> int: # Unsafe by design
     """Fetches the clothing asset's texture file"""
-    try: # Check cache first
-        async with aiofiles.open(f'cache/clothing/{asset_id}.png', 'rb'): return asset_id
-    except FileNotFoundError:
-        initAsset = await Roquest.GetFileContent(asset_id, shard_id=shard_id)
-        initAssetContent = io.BytesIO(initAsset)
-        initAssetContent = initAssetContent.read().decode()
-        match = re.search(r'<url>.*id=(\d+)</url>', initAssetContent)
-        if not match: raise ErrorDict.DoesNotExistError
-        async with aiofiles.open(f'cache/clothing/{asset_id}.png', 'wb') as cached_image:
-            downloadedAsset = await Roquest.GetFileContent(match.group(1), shard_id=shard_id)
-            if not downloadedAsset or len(downloadedAsset) < 512: raise ErrorDict.UndocumentedError
-            await cached_image.write(downloadedAsset)
-    await cached_image.close()
-    return asset_id
+    try:
+        try: # Check cache first
+            async with aiofiles.open(f'cache/clothing/{asset_id}.png', 'rb'): return asset_id
+        except FileNotFoundError:
+            initAsset = await Roquest.GetFileContent(asset_id, shard_id=shard_id)
+            initAssetContent = io.BytesIO(initAsset)
+            initAssetContent = initAssetContent.read().decode()
+            match = re.search(r'<url>.*id=(\d+)</url>', initAssetContent)
+            if not match: raise ErrorDict.DoesNotExistError
+            async with aiofiles.open(f'cache/clothing/{asset_id}.png', 'wb') as cached_image:
+                downloadedAsset = await Roquest.GetFileContent(match.group(1), shard_id=shard_id)
+                if not downloadedAsset or len(downloadedAsset) < 512: raise ErrorDict.UndocumentedError
+                await cached_image.write(downloadedAsset)
+        await cached_image.close()
+        return asset_id
+    except UnicodeDecodeError: raise ErrorDict.MismatchedDataError
 
 async def nil_pointer() -> int: 
     """Returns nil data"""

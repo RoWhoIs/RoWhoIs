@@ -23,6 +23,7 @@ An advanced Roblox lookup Discord bot utility.
 |     userid      | `Username`         |                                                                                                                                                       Returns the User ID from a username. |
 |    username     | `User ID`          |                                                                                                                                                       Returns the username from a User ID. |
 |  robloxbadges   | `User`             |                                                                                                                                         Returns a list of the Roblox badges a player owns. |
+|  groupclothing  | `Group ID`, `Page` |                                                                                                   Fetches bulk clothing assets from a group. This command is restricted to a subscription. |
 
 ## Dependencies
 

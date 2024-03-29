@@ -27,7 +27,7 @@ except subprocess.CalledProcessError:
 
 sync_logging("info", f"Initializing RoWhoIs on version {version}...")
 
-for file in ["server/Roquest.py", "server/RoWhoIs.py", "config.json", "utils/ErrorDict.py"]:
+for file in ["server/Roquest.py", "server/RoWhoIs.py", "config.json", "utils/ErrorDict.py", "utils/gUtils.py"]:
     if not os.path.exists(file):
         sync_logging("fatal", f"Missing {file}! RoWhoIs will not be able to initialize.")
         exit(1)

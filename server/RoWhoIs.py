@@ -75,7 +75,7 @@ async def validate_user(interaction: discord.Interaction, embed: discord.Embed, 
     elif not heartBeat and requires_connection:
         await log_collector.info("heartBeat is False, deflecting a command properly...")
         embed.description = "Roblox is currently experiencing downtime. Please try again later."
-    elif len(interaction.entitlements) >= 1 and productionMode and requires_entitlement:
+    elif len(interaction.entitlements) == 0 and productionMode and requires_entitlement:
         await interaction.response.require_premium()
         return False
     else: return True
@@ -209,7 +209,7 @@ async def help(interaction: discord.Interaction):
     embedVar.add_field(name="membership", value="Check if a player has Premium or has had Builders Club.", inline=True)
     embedVar.add_field(name="checkusername", value="Check if a username is available", inline=True)
     embedVar.add_field(name="robloxbadges", value="Shows what Roblox badges a player has", inline=True)
-    embedVar.set_footer(text=f"Version {shortHash} | Made with <3 by autumnfication {'| Get RoWhoIs+ to use ' + emojiTable.get('subscription') + ' commands' if len(interaction.entitlements) == 0 and productionMode else '| You have access to RoWhoIs+ features'}")
+    embedVar.set_footer(text=f"Version {shortHash} | Made with <3 by autumnfication {'| Get RoWhoIs+ to use + features' if len(interaction.entitlements) == 0 and productionMode else '| You have access to RoWhoIs+ features'}")
     await interaction.followup.send(embed=embedVar)
 
 @client.tree.command()
