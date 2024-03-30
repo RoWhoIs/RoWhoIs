@@ -180,6 +180,11 @@ The only _feasible_ thing for RoWhoIs to cache is clothing textures. RoWhoIs onl
 - It is the only use-case where downloading an asset is required
   - All other image operations use embed links, meaning it's more efficient to use those
 
+## Moderation
+
+RoWhoIs has a built-in moderation system. This system is used to prevent abuse of the bot and to ensure that the bot is used in a safe and responsible manner. The moderation system is split into three parts: opt-out users/assets, and banned users.
+These are all stored in `config.json` under the `RoWhoIs` key and loaded during initialization.
+
 ## Sharding
 
 RoWhoIs operates under shards. There may be a performance drawback during initialization, but it's a necessary evil to ensure the bot can operate in a large number of guilds.

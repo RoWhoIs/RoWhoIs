@@ -6,11 +6,11 @@ from typing import Any, Optional
 def run(productionmode: bool, version: str, config) -> bool:
     """Runs the server"""
     try:
-        global productionMode, staffIds, optOut, userBlocklist, shortHash, emojiTable, botToken
+        global productionMode, staffIds, optOut, userBlocklist, shortHash, emojiTable, botToken, assetBlocklist
         emojiTable = {key: config['Emojis'][key] for key in config['Emojis']}
         botToken = {"topgg": config['Authentication']['topgg'], "dbl": config['Authentication']['dbl']}
         shortHash, productionMode = version, productionmode
-        staffIds, optOut, userBlocklist = config['RoWhoIs']['admin_ids'], config['RoWhoIs']['opt_out'], config['RoWhoIs']['banned_users']
+        staffIds, optOut, userBlocklist, assetBlocklist = config['RoWhoIs']['admin_ids'], config['RoWhoIs']['opt_out'], config['RoWhoIs']['banned_users'], config['RoWhoIs']['banned_assets']
         if not productionMode: loop.run_until_complete(client.start(config['Authentication']['testing']))
         else: loop.run_until_complete(client.start(config['Authentication']['production']))
         return True
@@ -511,6 +511,10 @@ async def clothingtexture(interaction: discord.Interaction, clothing_id: int):
     if await check_cooldown(interaction, "extreme"): return
     embed = discord.Embed(color=0xFF0000)
     if not (await validate_user(interaction, embed)): return
+    if clothing_id in assetBlocklist:
+        embed.description = "The asset creator has requested for this asset to be removed from RoWhoIs."
+        await interaction.response.send_message(embed=embed)
+        return
     await interaction.response.defer(ephemeral=False)
     shard = await gUtils.shard_metrics(interaction)
     try:
@@ -701,7 +705,7 @@ async def groupclothing(interaction: discord.Interaction, group: int, page: int 
             except Exception as e:
                 if await handle_error(e, interaction, "groupclothing", shard, "Group ID"): return
             for asset in clothing:
-                if isinstance(asset, int): files.append(discord.File(f'cache/clothing/{asset}.png', filename=f"rowhois-groupclothing-{asset}.png"))
+                if isinstance(asset, int) and asset not in assetBlocklist: files.append(discord.File(f'cache/clothing/{asset}.png', filename=f"rowhois-groupclothing-{asset}.png"))
             if not clothing:
                 embed.description = "No clothing assets were found."
                 await interaction.followup.send(embed=embed)

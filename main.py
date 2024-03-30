@@ -53,10 +53,10 @@ try:
 except KeyError:
     sync_logging("fatal", "Failed to retrieve production type. RoWhoIs will not be able to initialize.")
     exit(1)
+if productionMode: push_status(True, webhookToken)
 for i in range(5): # Rerun server in event of a crash
     try:
         from server import Roquest, RoWhoIs
-        if productionMode: push_status(True, webhookToken)
         Roquest.initialize(config)
         if RoWhoIs.run(productionMode, version, config) is True: break
     except RuntimeError: pass  # Occurs when exited before fully initialized
