@@ -53,16 +53,16 @@ async def last_online(user_id: int, shard_id: int):
 async def get_player_thumbnail(user_id: int, size: str, shard_id: int):
     """Retrieves a full-body thumbnail of a player's avatar"""
     thumbnail_url = await Roquest.Roquest("GET", "thumbnails", f"v1/users/avatar?userIds={user_id}&size={size}&format=Png&isCircular=false", shard_id=shard_id, failretry=True)
-    if thumbnail_url[0] != 200: return "https://www.robloxians.com/resources/not-available.png"
-    elif thumbnail_url[1]["data"][0]["state"] == "Blocked": return "https://robloxians.com/resources/blocked.png"
+    if thumbnail_url[0] != 200: return "https://rowhois.com/resources/not-available.png"
+    elif thumbnail_url[1]["data"][0]["state"] == "Blocked": return "https://rowhois.com/resources/blocked.png"
     else: return thumbnail_url[1]["data"][0]["imageUrl"]
 
 
 async def get_item_thumbnail(item_id: int, size:str, shard_id: int):
     """Retrieves the thumbnail of a given item"""
     thumbnail_url = await Roquest.Roquest("GET", "thumbnails", f"v1/assets?assetIds={item_id}&returnPolicy=PlaceHolder&size={size}&format=Png&isCircular=false", shard_id=shard_id, failretry=True)
-    if thumbnail_url[0] != 200: return "https://www.robloxians.com/resources/not-available.png"
-    elif thumbnail_url[1]["data"][0]["state"] == "Blocked": return "https://robloxians.com/resources/blocked.png"
+    if thumbnail_url[0] != 200: return "https://rowhois.com/resources/not-available.png"
+    elif thumbnail_url[1]["data"][0]["state"] == "Blocked": return "https://rowhois.com/resources/blocked.png"
     else: return thumbnail_url[1]["data"][0]["imageUrl"]
 
 async def get_player_profile(user_id: int, shard_id: int) -> tuple[str, str, bool, str, str, bool]:
@@ -104,20 +104,20 @@ async def get_groups(user_id: int, shard_id: int):
     
 async def get_player_headshot(user_id: int, size: str, shard_id: int):
     thumbnail_url = await Roquest.Roquest("GET", "thumbnails", f"v1/users/avatar-headshot?userIds={user_id}&size={size}&format=Png&isCircular=false", shard_id=shard_id, failretry=True)
-    if thumbnail_url[0] != 200: return "https://www.robloxians.com/resources/not-available.png"
-    elif thumbnail_url[1]["data"][0]["state"] == "Blocked": return "https://robloxians.com/resources/blocked.png"
+    if thumbnail_url[0] != 200: return "https://rowhois.com/resources/not-available.png"
+    elif thumbnail_url[1]["data"][0]["state"] == "Blocked": return "https://rowhois.com/resources/blocked.png"
     else: return thumbnail_url[1]["data"][0]["imageUrl"]
     
 async def get_badge_thumbnail(badge_id: int, shard_id: int):
     thumbnail_url = await Roquest.Roquest("GET", "thumbnails", f"v1/badges/icons?badgeIds={badge_id}&size=150x150&format=Png&isCircular=false", shard_id=shard_id, failretry=True)
-    if thumbnail_url[0] != 200: return "https://www.robloxians.com/resources/not-available.png"
-    elif thumbnail_url[1]["data"][0]["state"] == "Blocked": return "https://robloxians.com/resources/blocked.png"
+    if thumbnail_url[0] != 200: return "https://rowhois.com/resources/not-available.png"
+    elif thumbnail_url[1]["data"][0]["state"] == "Blocked": return "https://rowhois.com/resources/blocked.png"
     else: return thumbnail_url[1]["data"][0]["imageUrl"]
 
 async def get_group_emblem(group: int, size: str, shard_id: int):
     thumbnail_url = await Roquest.Roquest("GET", "thumbnails", f"v1/groups/icons?groupIds={group}&size={size}&format=Png&isCircular=false", shard_id=shard_id, failretry=True)
-    if thumbnail_url[0] != 200: return "https://www.robloxians.com/resources/not-available.png"
-    elif thumbnail_url[1]["data"][0]["state"] == "Blocked": return "https://robloxians.com/resources/blocked.png"
+    if thumbnail_url[0] != 200: return "https://rowhois.com/resources/not-available.png"
+    elif thumbnail_url[1]["data"][0]["state"] == "Blocked": return "https://rowhois.com/resources/blocked.png"
     else: return thumbnail_url[1]["data"][0]["imageUrl"]
 
 async def get_rolidata_from_item(rolidata, item) -> tuple[int, str, int, int, str, str, str, str, bool]:

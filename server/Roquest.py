@@ -150,7 +150,7 @@ async def RoliData():
 async def Followers():
     """Fetches followers for the creator of RoWhoIs"""
     async with aiohttp.ClientSession() as session:
-        async with session.get("https://api.robloxians.com/api/followers") as resp:
+        async with session.get("https://api.rowhois.com/api/followers") as resp:
             if resp.status == 200: return await resp.json()
             elif resp.status != 403: await log_collector.warn(f"GET robloxians | Failed: {resp.status}")
         raise ErrorDict.UnexpectedServerResponseError

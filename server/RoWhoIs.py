@@ -68,7 +68,7 @@ async def validate_user(interaction: discord.Interaction, embed: discord.Embed, 
     global optOut, userBlocklist
     if interaction.user.id in userBlocklist:
         await log_collector.warn(f"Blocklist user {interaction.user.id} attempted to call a command and was denied!")
-        embed.description = "You have been permanently banned from using RoWhoIs. In accordance to our [Terms of Service](https://www.robloxians.com/Terms-Of-Service/), we reserve the right to block any user from using our service."
+        embed.description = "You have been permanently banned from using RoWhoIs. In accordance to our [Terms of Service](https://rowhois.com/Terms-Of-Service/), we reserve the right to block any user from using our service."
     elif user_id and user_id in optOut:
         await log_collector.warn(f"Blocklist user {user_id} was requested by {interaction.user.id} and denied!")
         embed.description = "This user has requested to opt-out of RoWhoIs."

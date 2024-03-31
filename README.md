@@ -2,7 +2,7 @@
 
 An advanced Roblox lookup Discord bot utility.
 
-![Demo of the whois command](https://www.robloxians.com/resources/demo-whois-small.gif)
+![Demo of the whois command](https://rowhois.com/resources/demo-whois-small.gif)
 
 ## Commands
 
