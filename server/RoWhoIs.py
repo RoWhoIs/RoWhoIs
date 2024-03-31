@@ -203,6 +203,7 @@ async def help(interaction: discord.Interaction):
     embedVar.add_field(name="isfriendswith", value="Check if two players are friended.", inline=True)
     embedVar.add_field(name="group", value="Get detailed group information from a Group ID.", inline=True)
     embedVar.add_field(name="groupclothing " + f"{emojiTable.get('subscription')}", value="Retrieve clothing textures from a group", inline=True)
+    embedVar.add_field(name="userclothing " + f"{emojiTable.get('subscription')}", value="Retrieve clothing textures from a user", inline=True)
     embedVar.add_field(name="isingroup", value="Check if a player is in the specified group.", inline=True)
     embedVar.add_field(name="limited", value="Returns a limited ID, the rap, and value of the specified limited.", inline=True)
     embedVar.add_field(name="itemdetails", value="Returns details about a catalog item.", inline=True)
@@ -307,7 +308,7 @@ async def whois(interaction: discord.Interaction, user: str, download: bool = Fa
         nlChar = "\n"
         if previousUsernames: whoData = "id, username, nickname, verified, rowhois_staff, account_status, joined, last_online, verified_email, groups, friends, followers, following, previous_usernames, description\n" + ''.join([f"{userId[0]}, {userId[1]}, {displayname}, {userId[0] in staffIds}, {'Terminated' if banned else 'Okay' if not banned else 'None'}, {created}, {unformattedLastOnline}, {'None' if veriftype == -1 else 'None' if veriftype == 0 else 'Hat' if veriftype == 1 else 'Sign' if veriftype == 2 else 'Unverified' if veriftype == 3 else 'Both' if veriftype == 4 else 'None'}, {groups}, {friends}, {followers}, {following}, {name}, {description.replace(',', '').replace(nlChar, '     ')  if description else 'None'}{nlChar}" for name in previousUsernames])
         else: whoData = f"id, username, nickname, verified, rowhois_staff, account_status, joined, last_online, verified_email, groups, friends, followers, following, previous_usernames, description\n{userId[0]}, {userId[1]}, {displayname}, {verified}, {userId[0] in staffIds}, {'Terminated' if banned else 'Okay' if not banned else 'None'}, {created}, {unformattedLastOnline}, {'None' if veriftype == -1 else 'None' if veriftype == 0 else 'Hat' if veriftype == 1 else 'Sign' if veriftype == 2 else 'Unverified' if veriftype == 3 else 'Both' if veriftype == 4 else 'None'}, {groups}, {friends}, {followers}, {following}, None, {description.replace(',', '').replace(nlChar, '     ') if description else 'None'}\n"
-        whoData = (discord.File(io.BytesIO(whoData.encode()), filename=f"rowhois-rowhois-{userId[0]}.txt"))
+        whoData = (discord.File(io.BytesIO(whoData.encode()), filename=f"rowhois-rowhois-{userId[0]}.csv"))
         if not banned and userId[0] != 1:
             isEdited = True
             embed.description = "***Currently calculating more statistics...***"
@@ -690,7 +691,7 @@ async def groupclothing(interaction: discord.Interaction, group: int, page: int 
     shard = await gUtils.shard_metrics(interaction)
     try:
         try:
-            groupAssets, pagination = await RoModules.get_creator_assets(group, 3, page, shard)
+            groupAssets, pagination = await RoModules.get_creator_assets(group, "Group", 3, page, shard)
             if pagination != page:
                 embed.description = "Invalid page number."
                 await interaction.followup.send(embed=embed)
@@ -714,3 +715,40 @@ async def groupclothing(interaction: discord.Interaction, group: int, page: int 
         except Exception as e:
             if await handle_error(e, interaction, "groupclothing", shard, "Group ID"): return
     except Exception as e: await handle_error(e, interaction, "groupclothing", shard, "Group ID")
+
+@client.tree.command()
+async def userclothing(interaction: discord.Interaction, user: str, page: int = 1):
+    """Retrieve clothing texture files from a user"""
+    if await check_cooldown(interaction, "extreme"): return
+    embed = discord.Embed(color=0xFF0000)
+    if not (await validate_user(interaction, embed, requires_entitlement=True)): return
+    await interaction.response.defer(ephemeral=False)
+    shard = await gUtils.shard_metrics(interaction)
+    try:
+        user = [int(user), None] if user.isdigit() else (await RoModules.convert_to_id(user, shard))[:2]
+        if user[1] is None: user[1] = (await RoModules.convert_to_username(user[0], shard))[0]
+    except Exception as e:
+        if await handle_error(e, interaction, "userclothing", shard, "User"): return
+    try:
+        userAssets, pagination = await RoModules.get_creator_assets(user[0], "User", 3, page, shard)
+        if pagination != page:
+            embed.description = "Invalid page number."
+            await interaction.followup.send(embed=embed)
+            return
+        if not userAssets:
+            embed.description = "This user has no clothing assets."
+            await interaction.followup.send(embed=embed)
+            return
+        tasks, files = [], []
+        for asset in userAssets: tasks.append(gUtils.safe_wrapper(RoModules.fetch_clothing_asset, asset, shard))
+        try: clothing = await asyncio.gather(*tasks)
+        except Exception as e:
+            if await handle_error(e, interaction, "userclothing", shard, "User"): return
+        for asset in clothing:
+            if isinstance(asset, int) and asset not in assetBlocklist: files.append(discord.File(f'cache/clothing/{asset}.png', filename=f"rowhois-userclothing-{asset}.png"))
+        if not clothing:
+            embed.description = "No clothing assets were found."
+            await interaction.followup.send(embed=embed)
+            return
+        await interaction.followup.send("", files=files)
+    except Exception as e: await handle_error(e, interaction, "userclothing", shard, "User")

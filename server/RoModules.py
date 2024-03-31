@@ -224,13 +224,13 @@ async def roblox_badges(user: int, shard_id: int) -> tuple[List[int], Dict[int, 
     for badge in data[1]: badges.append(badge['id'])
     return sorted(badges), badgeTable
 
-async def get_creator_assets(creator: int, asset_type: int, page: int, shard_id: int) -> tuple[int, List[Dict[str, Union[str, int]]]]:
+async def get_creator_assets(creator: int, creator_type: str, asset_type: int, page: int, shard_id: int) -> tuple[int, List[Dict[str, Union[str, int]]]]:
     """Retrieves a group's assets
     Returns the assets, and the number of successful pages it iterated through"""
     nextPageCursor = None
     assetIds = []
     for i in range(page):
-        data = await Roquest.Roquest("GET", "catalog", f"v1/search/items?category=All&creatorTargetId={creator}&creatorType=Group&cursor=&limit=10&sortOrder=Desc&sortType=Updated&assetType={asset_type}&cursor={nextPageCursor if nextPageCursor is not None else ''}", shard_id=shard_id)
+        data = await Roquest.Roquest("GET", "catalog", f"v1/search/items?category=All&creatorTargetId={creator}&creatorType={creator_type}&cursor=&limit=10&sortOrder=Desc&sortType=Updated&assetType={asset_type}&cursor={nextPageCursor if nextPageCursor is not None else ''}", shard_id=shard_id)
         if data[0] == 500: raise ErrorDict.DoesNotExistError # lol
         await general_error_handler(data[0])
         nextPageCursor = data[1].get('nextPageCursor')
