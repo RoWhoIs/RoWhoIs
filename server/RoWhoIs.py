@@ -300,9 +300,9 @@ async def whois(interaction: discord.Interaction, user: str, download: bool = Fa
             formattedUsernames = ', '.join([f"`{username}`" for username in previousUsernames[:10]]) + (f", and {len(previousUsernames) - 10} more" if len(previousUsernames) > 10 else '')
             embed.add_field(name=f"Previous Usernames ({len(previousUsernames)}):", value=formattedUsernames, inline=False)
         if veriftype is not None: embed.add_field(name="Verified Email:", value="`N/A (*Nil*)`" if veriftype == -1 else "`N/A (*-1*)`" if veriftype == 0 else "`Verified, hat present`" if veriftype == 1 else "`Verified, sign present`" if veriftype == 2 else "`Unverified`" if veriftype == 3 else "`Verified, sign & hat present`" if veriftype == 4 else "`N/A`", inline=True)
-        if description: embed.add_field(name="Description:", value=f"`{description}`", inline=False)
-        embed.add_field(name="Joined:", value=f"`{joinedTimestamp}`", inline=True)
-        embed.add_field(name="Last Online:", value=f"`{lastOnlineFormatted}`", inline=True)
+        if description: embed.add_field(name="Description:", value=f"```{description}```", inline=False)
+        embed.add_field(name="Joined:", value=f"{joinedTimestamp}", inline=True)
+        embed.add_field(name="Last Online:", value=f"{lastOnlineFormatted}", inline=True)
         embed.add_field(name="Groups:", value=f"`{groups}`", inline=True)
         embed.add_field(name="Friends:", value=f"`{friends}`", inline=True)
         embed.add_field(name="Followers:", value=f"`{followers}`", inline=True)
@@ -393,7 +393,7 @@ async def ownsbadge(interaction: discord.Interaction, user: str, badge: int, dow
             embed.set_thumbnail(url=await RoModules.get_badge_thumbnail(badge, shard))
             embed.colour = 0x00FF00
             embed.title = f"{user_id[1]} owns this badge!"
-            embed.description = f"Badge was awarded `{await gUtils.fancy_time(ownsBadge[1])}`"
+            embed.description = f"Badge was awarded {await gUtils.fancy_time(ownsBadge[1])}"
         else: embed.description = f"{user_id[1]} doesn't own the specified badge!"
         if download:
             if ownsBadge[0]: csv = "username, id, badge, owned, awarded\n" + "\n".join([f"{user_id[1]}, {user_id[0]}, {badge}, {ownsBadge[0]}, {ownsBadge[1]}"])
@@ -552,9 +552,9 @@ async def itemdetails(interaction: discord.Interaction, item: int, download: boo
         else: isCollectible = False
         embed.title = f"{emojiTable.get('limited') if data['IsLimited'] else emojiTable.get('limitedu') if data['IsLimitedUnique'] else emojiTable.get('collectible') if isCollectible else ''} {data['Name']}"
         embed.add_field(name="Creator:", value=f"`{data['Creator']['Name']}` (`{data['Creator']['CreatorTargetId']}`) {emojiTable.get('staff') if userid in staffIds else emojiTable.get('verified') if data['Creator']['HasVerifiedBadge'] else ''}")
-        if data['Description'] != "": embed.add_field(name="Description:", value=f"`{data['Description']}`", inline=False)
-        embed.add_field(name="Created:", value=f"`{(await gUtils.fancy_time(data['Created']))}`", inline=True)
-        embed.add_field(name="Updated:", value=f"`{(await gUtils.fancy_time(data['Updated']))}`", inline=True)
+        if data['Description'] != "": embed.add_field(name="Description:", value=f"```{data['Description']}```", inline=False)
+        embed.add_field(name="Created:", value=f"{(await gUtils.fancy_time(data['Created']))}", inline=True)
+        embed.add_field(name="Updated:", value=f"{(await gUtils.fancy_time(data['Updated']))}", inline=True)
         if isCollectible:
             embed.add_field(name="Quantity:", value=f"`{data['CollectiblesItemDetails']['TotalQuantity']}`", inline=True)
             if data['CollectiblesItemDetails']['CollectibleLowestResalePrice'] is not None and data['IsForSale']: embed.add_field(name="Lowest Price:", value=f"{emojiTable.get('robux')} `{data['CollectiblesItemDetails']['CollectibleLowestResalePrice']}`", inline=True)
@@ -617,14 +617,14 @@ async def group(interaction: discord.Interaction, group: int, download: bool = F
         embed.title = f"{groupInfo[0]}{(' ' + emojiTable.get('verified')) if groupInfo[3] else ''}"
         embed.add_field(name="Group ID:", value=f"`{group}`")
         embed.add_field(name="Status:", value=f"`{'Locked' if groupInfo[8] else 'Okay'}`", inline=True)
-        embed.add_field(name="Created:", value=f"`{await gUtils.fancy_time(groupInfo[2])}`", inline=True)
+        embed.add_field(name="Created:", value=f"{await gUtils.fancy_time(groupInfo[2])}", inline=True)
         if all(groupInfo[4]) is not False: embed.add_field(name="Owner:", value=f"`{groupInfo[4][0]}` (`{groupInfo[4][1]}`) {(' ' + emojiTable.get('verified')) if groupInfo[4][2] else ''}", inline=True)
         else: embed.add_field(name="Owner:", value=f"Nobody!", inline=True)
         embed.add_field(name="Members:", value=f"`{groupInfo[6]}`", inline=True)
         embed.add_field(name="Joinable:", value=f"`{'False' if groupInfo[8] else 'True' if groupInfo[7] else 'False'}`", inline=True)
         if groupInfo[5] is not None:
             if groupInfo[5][0] != "": embed.add_field(name="Shout:", value=f"`{groupInfo[5][0]}` -- `{groupInfo[5][1]}` (`{groupInfo[5][2]}`) {('' + emojiTable.get('verified')) if groupInfo[5][3] else ''}", inline=False)
-        if groupInfo[1] != "": embed.add_field(name="Group Description:", value=f"`{groupInfo[1]}`", inline=False)
+        if groupInfo[1] != "": embed.add_field(name="Group Description:", value=f"```{groupInfo[1]}```", inline=False)
         embed.colour = 0x00FF00
         if download:
             nlChar = "\n"
