@@ -525,6 +525,10 @@ async def clothingtexture(interaction: discord.Interaction, clothing_id: int):
     shard = await gUtils.shard_metrics(interaction)
     try:
         try: clothing_id = await RoModules.fetch_clothing_asset(clothing_id, shard)
+        except ErrorDict.AssetNotAvailable:
+            embed.description = "Cannot fetch moderated assets."
+            await interaction.followup.send(embed=embed)
+            return
         except Exception as e:
             if await handle_error(e, interaction, "getclothingtexture", shard, "Clothing ID"): return
         uploaded_image = discord.File(f'cache/clothing/{clothing_id}.png', filename=f"rowhois-{clothing_id}.png")
