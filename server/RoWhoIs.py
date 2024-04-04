@@ -59,7 +59,7 @@ async def update_followers() -> None:
             if newData is not None: autmnFollowers = newData
         except ErrorDict.UnexpectedServerResponseError: pass
         except Exception as e: 
-            await log_collector.error(f"Error updating Robloxians data: {e}")
+            await log_collector.error(f"Error updating RoWhoIs data: {e}")
             pass
         await asyncio.sleep(60)
 
@@ -104,13 +104,18 @@ async def check_cooldown(interaction: discord.Interaction, intensity: str, coold
     """
     global userCooldowns
     try:
+        currentTime = datetime.datetime.now()
+        for userId in list(userCooldowns.keys()):
+            for command in list(userCooldowns[userId].keys()):
+                userCooldowns[userId][command] = [timestamp for timestamp in userCooldowns[userId][command] if currentTime - timestamp <= datetime.timedelta(seconds=cooldown_seconds)]
+                if not userCooldowns[userId][command]: del userCooldowns[userId][command]
+            if not userCooldowns[userId]: del userCooldowns[userId]
         userId = interaction.user.id
         commandName = inspect.stack()[1].function
         premiumCoolDict = {"extreme": 5, "high": 6, "medium": 7, "low": 8}
         stdCoolDict = {"extreme": 2, "high": 3, "medium": 4, "low": 5}
         if len(interaction.entitlements) >= 1 and productionMode or not productionMode: maxCommands = premiumCoolDict.get(intensity)
         else: maxCommands = stdCoolDict.get(intensity)
-        currentTime = datetime.datetime.now()
         if userId not in userCooldowns: userCooldowns[userId] = {}
         if commandName not in userCooldowns[userId]: userCooldowns[userId][commandName] = []
         recentTimestamps = [timestamp for timestamp in userCooldowns[userId][commandName] if currentTime - timestamp <= datetime.timedelta(seconds=cooldown_seconds)]
