@@ -147,14 +147,6 @@ async def RoliData():
         await log_collector.error(f"GET rolimons | itemdetails: Failed after 3 attempts.")
         raise ErrorDict.UnexpectedServerResponseError
 
-async def Followers():
-    """Fetches followers for the creator of RoWhoIs"""
-    async with aiohttp.ClientSession() as session:
-        async with session.get("https://rowhois.com/api/followers") as resp:
-            if resp.status == 200: return await resp.json()
-            elif resp.status != 403: await log_collector.warn(f"GET rowhois | Failed: {resp.status}")
-        raise ErrorDict.UnexpectedServerResponseError
-
 async def GetFileContent(asset_id: int, shard_id: int = None) -> bytes:
     """Retrieves large non-json assets"""
     global proxyCredentials, lastProxy, x_csrf_token

@@ -5,7 +5,7 @@ RoWhoIs modules library. If a roquest is likely to be reused multiple times thro
 import asyncio, aiofiles, re, io
 from typing import Union, List, Dict
 from server import Roquest
-from utils import ErrorDict
+from utils import ErrorDict, gUtils
 
 async def general_error_handler(data: int, expectedresponsecode: int = 200) -> None:
     """Will throw an error when data doesn't match requirements"""
@@ -227,13 +227,21 @@ async def roblox_badges(user: int, shard_id: int) -> tuple[List[int], Dict[int, 
 async def get_creator_assets(creator: int, creator_type: str, asset_type: int, page: int, shard_id: int) -> tuple[int, List[Dict[str, Union[str, int]]]]:
     """Retrieves a group's assets
     Returns the assets, and the number of successful pages it iterated through"""
-    nextPageCursor = None
-    assetIds = []
+    nextPageCursor, assetIds, cached_pages = None, [], 0
+    if page < 1: return [], 0
     for i in range(page):
-        data = await Roquest.Roquest("GET", "catalog", f"v1/search/items?category=All&creatorTargetId={creator}&creatorType={creator_type}&cursor=&limit=10&sortOrder=Desc&sortType=Updated&assetType={asset_type}&cursor={nextPageCursor if nextPageCursor is not None else ''}", shard_id=shard_id)
+        if i != 0:
+            cached_cursor = await gUtils.cache_cursor(None, creator_type, creator, pagination=i)
+            if not cached_cursor: break
+            cached_pages += 1
+            nextPageCursor = cached_cursor
+    if cached_pages == page: cached_pages -= 1
+    for i in range(cached_pages, page):
+        data = await Roquest.Roquest("GET", "catalog", f"v1/search/items?category=All&creatorTargetId={creator}&creatorType={creator_type}&cursor={nextPageCursor if nextPageCursor is not None else ''}&limit=10&sortOrder=Desc&sortType=Updated&assetType={asset_type}", failretry=True, shard_id=shard_id)
         if data[0] == 500: raise ErrorDict.DoesNotExistError # lol
         await general_error_handler(data[0])
         nextPageCursor = data[1].get('nextPageCursor')
+        if nextPageCursor: await gUtils.cache_cursor(nextPageCursor, creator_type, creator, write=True, pagination=i + 1)
         if not nextPageCursor: break
     for asset in data[1]['data']: assetIds.append(asset['id'])
     return assetIds, i + 1

@@ -1,16 +1,18 @@
 from server import Roquest, RoModules
 from utils import logger, ErrorDict, gUtils
 import asyncio, discord, io, aiohttp, signal, datetime, inspect
+from pathlib import Path
 from typing import Any, Optional
 
 def run(productionmode: bool, version: str, config) -> bool:
     """Runs the server"""
     try:
-        global productionMode, staffIds, optOut, userBlocklist, shortHash, emojiTable, botToken, assetBlocklist
+        global productionMode, staffIds, optOut, userBlocklist, shortHash, emojiTable, botToken, assetBlocklist, whoIsDonors
         emojiTable = {key: config['Emojis'][key] for key in config['Emojis']}
         botToken = {"topgg": config['Authentication']['topgg'], "dbl": config['Authentication']['dbl']}
         shortHash, productionMode = version, productionmode
-        staffIds, optOut, userBlocklist, assetBlocklist = config['RoWhoIs']['admin_ids'], config['RoWhoIs']['opt_out'], config['RoWhoIs']['banned_users'], config['RoWhoIs']['banned_assets']
+        staffIds, optOut, userBlocklist, assetBlocklist, whoIsDonors = config['RoWhoIs']['admin_ids'], config['RoWhoIs']['opt_out'], config['RoWhoIs']['banned_users'], config['RoWhoIs']['banned_assets'], config['RoWhoIs']['donors']
+        client.uptime = datetime.datetime.utcnow()
         if not productionMode: loop.run_until_complete(client.start(config['Authentication']['testing']))
         else: loop.run_until_complete(client.start(config['Authentication']['production']))
         return True
@@ -31,11 +33,13 @@ async def shutdown() -> None:
 
 async def update_rolidata() -> None:
     """Fetches Rolimons limited data"""
-    global roliData
+    global roliData, lastRoliUpdate
     while True:
         try:
             newData = await Roquest.RoliData()
-            if newData is not None: roliData = newData
+            if newData is not None:
+                lastRoliUpdate = datetime.datetime.utcnow()
+                roliData = newData
             else: await log_collector.error("Failed to update Rolimons data.")
         except ErrorDict.UnexpectedServerResponseError: pass
         except Exception as e: await log_collector.error(f"Error updating Rolimons data: {e}")
@@ -47,20 +51,6 @@ async def heartbeat() -> None:
     while True:
         try: heartBeat = await Roquest.heartbeat()
         except Exception as e: await log_collector.error(f"Error in heartbeat: {e}")
-        await asyncio.sleep(60)
-
-async def update_followers() -> None:
-    """Fetches the creator of RoWhoIs' followers, for use in an easter egg."""
-    global autmnFollowers
-    autmnFollowers = [] # Prevents 429 init errors
-    while True:
-        try:
-            newData = (await Roquest.Followers())['followerIds']
-            if newData is not None: autmnFollowers = newData
-        except ErrorDict.UnexpectedServerResponseError: pass
-        except Exception as e: 
-            await log_collector.error(f"Error updating RoWhoIs data: {e}")
-            pass
         await asyncio.sleep(60)
 
 async def validate_user(interaction: discord.Interaction, embed: discord.Embed, user_id: int = None, requires_entitlement: bool = False, requires_connection: bool = True) -> bool:
@@ -137,7 +127,6 @@ log_collector = logger.AsyncLogCollector("logs/main.log")
 client = RoWhoIs(intents=discord.Intents.default())
 loop = asyncio.get_event_loop()
 loop.create_task(update_rolidata())
-loop.create_task(update_followers())
 loop.create_task(heartbeat())
 loop.add_signal_handler(signal.SIGINT, lambda: asyncio.create_task(shutdown()))
 userCooldowns = {}
@@ -191,12 +180,11 @@ async def on_app_command_error(interaction: discord.Interaction, error: discord.
     else:
         await log_collector.critical(f"Unexpected error occured during core command function: {type(error)}, {error} invoked by {interaction.user.id}")
         await interaction.followup.send(f"Whoops! Looks like we encountered an unexpected error. We've reported this to our dev team and we'll fix it shortly!", ephemeral=True)
-
 @client.tree.command()
 async def help(interaction: discord.Interaction):
     """List all of the commands RoWhoIs supports & what they do"""
     if await check_cooldown(interaction, "low"): return
-    embedVar = discord.Embed(title="RoWhoIs Commands", color=discord.Color.from_rgb(135, 136, 138))
+    embedVar = discord.Embed(title="RoWhoIs Commands", color=3451360)
     if not (await validate_user(interaction, embedVar, requires_connection=False)): return
     await interaction.response.defer(ephemeral=False)
     embedVar.add_field(name="whois", value="Get detailed profile information from a User ID/Username.", inline=True)
@@ -215,8 +203,39 @@ async def help(interaction: discord.Interaction):
     embedVar.add_field(name="membership", value="Check if a player has Premium or has had Builders Club.", inline=True)
     embedVar.add_field(name="checkusername", value="Check if a username is available", inline=True)
     embedVar.add_field(name="robloxbadges", value="Shows what Roblox badges a player has", inline=True)
-    embedVar.set_footer(text=f"Version {shortHash} | Made with <3 by autumnfication {'| Get RoWhoIs+ to use + features' if len(interaction.entitlements) == 0 and productionMode else '| You have access to RoWhoIs+ features'}")
+    embedVar.add_field(name="about", value="Shows a bit about RoWhoIs and advanced statistics", inline=True)
+    embedVar.set_footer(text=f"{'Get RoWhoIs+ to use ' + emojiTable.get('subscription') + ' commands' if len(interaction.entitlements) == 0 and productionMode else 'You have access to RoWhoIs+ features'}")
     await interaction.followup.send(embed=embedVar)
+
+@client.tree.command()
+async def about(interaction: discord.Interaction):
+    """Shows detailed information about RoWhoIs"""
+    if await check_cooldown(interaction, "low"): return
+    embed = discord.Embed(color=3451360)
+    if not (await validate_user(interaction, embed)): return
+    await interaction.response.defer(ephemeral=False)
+    shard = await gUtils.shard_metrics(interaction)
+    try:
+        embed.title = "About RoWhoIs"
+        embed.set_thumbnail(url="https://rowhois.com/rwi-pfp-anim.gif")
+        embed.set_author(name="Made with <3 by aut.m (249681221066424321)", icon_url="https://rowhois.com/profile_picture.jpeg")
+        embed.description = "RoWhoIs provides advanced information about Roblox users, groups, and assets. It is designed to be fast, reliable, and easy to use."
+        embed.add_field(name="Version", value=f"`{shortHash}`", inline=True)
+        uptime = datetime.datetime.utcnow() - client.uptime
+        days, remainder = divmod(uptime.total_seconds(), 86400)
+        hours, remainder = divmod(remainder, 3600)
+        minutes, _ = divmod(remainder, 60)
+        embed.add_field(name="Uptime", value=f"`{int(days)} day{'s' if int(days) != 1 else ''}, {int(hours)} hour{'s' if int(hours) != 1 else ''}, {int(minutes)} minute{'s' if int(minutes) != 1 else ''}`", inline=True)
+        embed.add_field(name="Roblox Connection", value=f"{':green_circle: `Online' if heartBeat else ':red_circle: `Offline'}`", inline=True)
+        embed.add_field(name="Last Rolimons Update", value=f"{await gUtils.legacy_fancy_time(lastRoliUpdate)}", inline=True)
+        embed.add_field(name="Servers", value=f"{len(client.guilds)}", inline=True)
+        embed.add_field(name="Users", value=f"{sum(guild.member_count if guild.member_count is not None else 0 for guild in client.guilds)}", inline=True)
+        embed.add_field(name="Shards", value=f"`{client.shard_count}`", inline=True)
+        embed.add_field(name="Shard ID", value=f"`{shard}`", inline=True)
+        embed.add_field(name="Cache Size", value=f"`{round(sum(f.stat().st_size for f in Path('cache/').glob('**/*') if f.is_file()) / 1048576, 1)} MB`", inline=True)
+        embed.add_field(name="RoWhoIs+", value=f"`{'Not Subscribed :(`' if len(interaction.entitlements) == 0 and productionMode else 'Subscribed` ' + emojiTable.get('subscription')}", inline=True)
+        await interaction.followup.send(embed=embed)
+    except Exception as e: await handle_error(e, interaction, "userid", shard, "User")
 
 @client.tree.command()
 async def userid(interaction: discord.Interaction, username: str, download: bool = False):
@@ -290,8 +309,8 @@ async def whois(interaction: discord.Interaction, user: str, download: bool = Fa
         embed.set_thumbnail(url=userThumbnail)
         if banned or userId[0] == 1: veriftype, previousUsernames = None, []
         lastOnlineFormatted, joinedTimestamp = await asyncio.gather(gUtils.fancy_time(unformattedLastOnline), gUtils.fancy_time(created))
-        if name == displayname: embed.title = f"{name} {emojiTable.get('staff') if userId[0] in staffIds else emojiTable.get('verified') if verified else ''}"
-        else: embed.title = f"{name} ({displayname}) {emojiTable.get('staff') if userId[0] in staffIds else emojiTable.get('verified') if verified else ''}"
+        if name == displayname: embed.title = f"{name} {emojiTable.get('staff') if userId[0] in staffIds else emojiTable.get('verified') if verified else ''} "
+        else: embed.title = f"{name} ({displayname}) {emojiTable.get('staff') if userId[0] in staffIds else emojiTable.get('verified') if verified else ''} {emojiTable.get('donor') if userId[0] in whoIsDonors else ''}"
         embed.colour = 0x00ff00
         embed.url = f"https://www.roblox.com/users/{userId[0]}/profile" if not banned else None
         embed.add_field(name="User ID:", value=f"`{userId[0]}`", inline=True)
@@ -307,10 +326,7 @@ async def whois(interaction: discord.Interaction, user: str, download: bool = Fa
         embed.add_field(name="Friends:", value=f"`{friends}`", inline=True)
         embed.add_field(name="Followers:", value=f"`{followers}`", inline=True)
         embed.add_field(name="Following:", value=f"`{following}`", inline=True)
-        if userId[0] == 5192280939: embed.set_footer(text="Follow this person for a surprise on your whois profile")
-        if userId[0] in autmnFollowers: embed.set_footer(text="This user is certifiably pog")
-        privateInventory, isEdited = True, False
-        nlChar = "\n"
+        privateInventory, isEdited, nlChar = True, False, "\n"
         if previousUsernames: whoData = "id, username, nickname, verified, rowhois_staff, account_status, joined, last_online, verified_email, groups, friends, followers, following, previous_usernames, description\n" + ''.join([f"{userId[0]}, {userId[1]}, {displayname}, {userId[0] in staffIds}, {'Terminated' if banned else 'Okay' if not banned else 'None'}, {created}, {unformattedLastOnline}, {'None' if veriftype == -1 else 'None' if veriftype == 0 else 'Hat' if veriftype == 1 else 'Sign' if veriftype == 2 else 'Unverified' if veriftype == 3 else 'Both' if veriftype == 4 else 'None'}, {groups}, {friends}, {followers}, {following}, {name}, {description.replace(',', '').replace(nlChar, '     ')  if description else 'None'}{nlChar}" for name in previousUsernames])
         else: whoData = f"id, username, nickname, verified, rowhois_staff, account_status, joined, last_online, verified_email, groups, friends, followers, following, previous_usernames, description\n{userId[0]}, {userId[1]}, {displayname}, {verified}, {userId[0] in staffIds}, {'Terminated' if banned else 'Okay' if not banned else 'None'}, {created}, {unformattedLastOnline}, {'None' if veriftype == -1 else 'None' if veriftype == 0 else 'Hat' if veriftype == 1 else 'Sign' if veriftype == 2 else 'Unverified' if veriftype == 3 else 'Both' if veriftype == 4 else 'None'}, {groups}, {friends}, {followers}, {following}, None, {description.replace(',', '').replace(nlChar, '     ') if description else 'None'}\n"
         whoData = (discord.File(io.BytesIO(whoData.encode()), filename=f"rowhois-rowhois-{userId[0]}.csv"))
@@ -716,7 +732,7 @@ async def groupclothing(interaction: discord.Interaction, group: int, page: int 
                 if await handle_error(e, interaction, "groupclothing", shard, "Group ID"): return
             for asset in clothing:
                 if isinstance(asset, int) and asset not in assetBlocklist: files.append(discord.File(f'cache/clothing/{asset}.png', filename=f"rowhois-groupclothing-{asset}.png"))
-            if not clothing:
+            if not files:
                 embed.description = "No clothing assets were found."
                 await interaction.followup.send(embed=embed)
                 return
@@ -740,12 +756,16 @@ async def userclothing(interaction: discord.Interaction, user: str, page: int = 
         if await handle_error(e, interaction, "userclothing", shard, "User"): return
     try:
         userAssets, pagination = await RoModules.get_creator_assets(user[0], "User", 3, page, shard)
-        if pagination != page:
+        if pagination != page or page < 1:
             embed.description = "Invalid page number."
             await interaction.followup.send(embed=embed)
             return
         if not userAssets:
             embed.description = "This user has no clothing assets."
+            await interaction.followup.send(embed=embed)
+            return
+        if user[0] == 1:
+            embed.description = "userclothing has been disabled for this user."
             await interaction.followup.send(embed=embed)
             return
         tasks, files = [], []
@@ -755,7 +775,7 @@ async def userclothing(interaction: discord.Interaction, user: str, page: int = 
             if await handle_error(e, interaction, "userclothing", shard, "User"): return
         for asset in clothing:
             if isinstance(asset, int) and asset not in assetBlocklist: files.append(discord.File(f'cache/clothing/{asset}.png', filename=f"rowhois-userclothing-{asset}.png"))
-        if not clothing:
+        if not files:
             embed.description = "No clothing assets were found."
             await interaction.followup.send(embed=embed)
             return

@@ -25,6 +25,7 @@ An advanced Roblox lookup Discord bot utility.
 |  robloxbadges   | `User`             |                                                                                                                                         Returns a list of the Roblox badges a player owns. |
 |  groupclothing  | `Group ID`, `Page` |                                                                                                   Fetches bulk clothing assets from a group. This command is restricted to a subscription. |
 |  userclothing   | `User`, `Page`     |                                                                                                    Fetches bulk clothing assets from a user. This command is restricted to a subscription. |
+|      about      | None               |                                                                                                         Shows advanced statistics about RoWhoIs, including cache size, users, shards, etc. |
 
 ## Dependencies
 
@@ -175,11 +176,11 @@ Logs that are live are written to main.log, and sessions that are gracefully clo
 
 ## Caching
 
-The only _feasible_ thing for RoWhoIs to cache is clothing textures. RoWhoIs only caches clothing texture files for several reasons, namely though being:
+RoWhoIs caches catalog nextPageCursors and asset files to reduce the number of API calls made. This is especially useful for the `groupclothing` and `userclothing` commands, as they can make a large number of API calls in a short period of time.
 
-- Clothing textures never change
-- It is the only use-case where downloading an asset is required
-  - All other image operations use embed links, meaning it's more efficient to use those
+Due to the non-changing nature of assets, caching makes sense as to reduce bandwith and API calls used.
+
+nextPageCursor cache is retained for an hour per group/user, and asset files are retained permanently.
 
 ## Moderation
 
