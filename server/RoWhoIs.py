@@ -53,7 +53,7 @@ async def heartbeat() -> None:
         except Exception as e: await log_collector.error(f"Error in heartbeat: {e}")
         await asyncio.sleep(60)
 
-async def validate_user(interaction: discord.Interaction, embed: discord.Embed, user_id: int = None, requires_entitlement: bool = False, requires_connection: bool = True) -> bool:
+async def validate_user(interaction: discord.Interaction, embed: discord.Embed, user_id: int = None, requires_entitlement: bool = False, requires_connection: bool = True, kind_upsell: bool = True) -> bool:
     """Validates if a user has sufficient access to a command. Used for blocklists and entitlement checks."""
     global optOut, userBlocklist
     if interaction.user.id in userBlocklist:
@@ -66,8 +66,10 @@ async def validate_user(interaction: discord.Interaction, embed: discord.Embed, 
         await log_collector.info("heartBeat is False, deflecting a command properly...")
         embed.description = "Roblox is currently experiencing downtime. Please try again later."
     elif len(interaction.entitlements) == 0 and productionMode and requires_entitlement:
-        await interaction.response.require_premium()
-        return False
+        if not kind_upsell:
+            await interaction.response.require_premium()
+            return False
+        embed.description = f"This advanced option requires RoWhoIs {emojiTable.get('subscription')}"
     else: return True
     embed.title = None
     embed.colour = 0xFF0000
@@ -187,22 +189,23 @@ async def help(interaction: discord.Interaction):
     embedVar = discord.Embed(title="RoWhoIs Commands", color=3451360)
     if not (await validate_user(interaction, embedVar, requires_connection=False)): return
     await interaction.response.defer(ephemeral=False)
-    embedVar.add_field(name="whois", value="Get detailed profile information from a User ID/Username.", inline=True)
-    embedVar.add_field(name="clothingtexture", value="Retrieves the texture file for a 2D clothing asset.", inline=True)
-    embedVar.add_field(name="userid", value="Get a User ID based off a username.", inline=True)
-    embedVar.add_field(name="username", value="Get a username based off a User ID.", inline=True)
-    embedVar.add_field(name="ownsitem", value="Retrieve whether a user owns an item or not. Works with players who have a private inventory.", inline=True)
-    embedVar.add_field(name="ownsbadge", value="Retrieve whether a user owns a badge or not. Works with players who have a private inventory.", inline=True)
-    embedVar.add_field(name="isfriendswith", value="Check if two players are friended.", inline=True)
-    embedVar.add_field(name="group", value="Get detailed group information from a Group ID.", inline=True)
+    embedVar.add_field(name="whois", value="Get detailed profile information from a User ID/Username", inline=True)
+    embedVar.add_field(name="clothingtexture", value="Retrieves the texture file for a 2D clothing asset", inline=True)
+    embedVar.add_field(name="userid", value="Get a User ID based off a username", inline=True)
+    embedVar.add_field(name="username", value="Get a username based off a User ID", inline=True)
+    embedVar.add_field(name="ownsitem", value="Retrieve whether a user owns an item or not. Works with players who have a private inventory", inline=True)
+    embedVar.add_field(name="ownsbadge", value="Retrieve whether a user owns a badge or not. Works with players who have a private inventory", inline=True)
+    embedVar.add_field(name="isfriendswith", value="Check if two players are friended", inline=True)
+    embedVar.add_field(name="group", value="Get detailed group information from a Group ID", inline=True)
     embedVar.add_field(name="groupclothing " + f"{emojiTable.get('subscription')}", value="Retrieve clothing textures from a group", inline=True)
     embedVar.add_field(name="userclothing " + f"{emojiTable.get('subscription')}", value="Retrieve clothing textures from a user", inline=True)
-    embedVar.add_field(name="isingroup", value="Check if a player is in the specified group.", inline=True)
-    embedVar.add_field(name="limited", value="Returns a limited ID, the rap, and value of the specified limited.", inline=True)
-    embedVar.add_field(name="itemdetails", value="Returns details about a catalog item.", inline=True)
-    embedVar.add_field(name="membership", value="Check if a player has Premium or has had Builders Club.", inline=True)
+    embedVar.add_field(name="isingroup", value="Check if a player is in the specified group", inline=True)
+    embedVar.add_field(name="limited", value="Returns a limited ID, the rap, and value of the specified limited", inline=True)
+    embedVar.add_field(name="itemdetails", value="Returns details about a catalog item", inline=True)
+    embedVar.add_field(name="membership", value="Check if a player has Premium or has had Builders Club", inline=True)
     embedVar.add_field(name="checkusername", value="Check if a username is available", inline=True)
     embedVar.add_field(name="robloxbadges", value="Shows what Roblox badges a player has", inline=True)
+    embedVar.add_field(name="asset", value="Fetches an asset file from an asset ID. Not recommended for clothing textures and only currently supports rbxm files", inline=True)
     embedVar.add_field(name="about", value="Shows a bit about RoWhoIs and advanced statistics", inline=True)
     embedVar.set_footer(text=f"{'Get RoWhoIs+ to use ' + emojiTable.get('subscription') + ' commands' if len(interaction.entitlements) == 0 and productionMode else 'You have access to RoWhoIs+ features'}")
     await interaction.followup.send(embed=embedVar)
@@ -219,7 +222,7 @@ async def about(interaction: discord.Interaction):
         embed.title = "About RoWhoIs"
         embed.set_thumbnail(url="https://rowhois.com/rwi-pfp-anim.gif")
         embed.set_author(name="Made with <3 by aut.m (249681221066424321)", icon_url="https://rowhois.com/profile_picture.jpeg")
-        embed.description = "RoWhoIs provides advanced information about Roblox users, groups, and assets. It is designed to be fast, reliable, and easy to use."
+        embed.description = "RoWhoIs provides advanced information about Roblox users, groups, and assets. It's designed to be fast, reliable, and easy to use."
         embed.add_field(name="Version", value=f"`{shortHash}`", inline=True)
         uptime = datetime.datetime.utcnow() - client.uptime
         days, remainder = divmod(uptime.total_seconds(), 86400)
@@ -540,7 +543,7 @@ async def clothingtexture(interaction: discord.Interaction, clothing_id: int):
     await interaction.response.defer(ephemeral=False)
     shard = await gUtils.shard_metrics(interaction)
     try:
-        try: clothing_id = await RoModules.fetch_clothing_asset(clothing_id, shard)
+        try: clothing_id = await RoModules.fetch_asset(clothing_id, shard)
         except ErrorDict.AssetNotAvailable:
             embed.description = "Cannot fetch moderated assets."
             await interaction.followup.send(embed=embed)
@@ -634,7 +637,7 @@ async def group(interaction: discord.Interaction, group: int, download: bool = F
         embed.add_field(name="Group ID:", value=f"`{group}`")
         embed.add_field(name="Status:", value=f"`{'Locked' if groupInfo[8] else 'Okay'}`", inline=True)
         embed.add_field(name="Created:", value=f"{await gUtils.fancy_time(groupInfo[2])}", inline=True)
-        if all(groupInfo[4]) is not False: embed.add_field(name="Owner:", value=f"`{groupInfo[4][0]}` (`{groupInfo[4][1]}`) {(' ' + emojiTable.get('verified')) if groupInfo[4][2] else ''}", inline=True)
+        if all(groupInfo[4][:1]): embed.add_field(name="Owner:", value=f"`{groupInfo[4][0]}` (`{groupInfo[4][1]}`) {(' ' + emojiTable.get('verified')) if groupInfo[4][2] else ''}", inline=True)
         else: embed.add_field(name="Owner:", value=f"Nobody!", inline=True)
         embed.add_field(name="Members:", value=f"`{groupInfo[6]}`", inline=True)
         embed.add_field(name="Joinable:", value=f"`{'False' if groupInfo[8] else 'True' if groupInfo[7] else 'False'}`", inline=True)
@@ -711,7 +714,7 @@ async def groupclothing(interaction: discord.Interaction, group: int, page: int 
     """Retrieve clothing texture files from a group"""
     if await check_cooldown(interaction, "extreme"): return
     embed = discord.Embed(color=0xFF0000)
-    if not (await validate_user(interaction, embed, requires_entitlement=True)): return
+    if not (await validate_user(interaction, embed, requires_entitlement=True, kind_upsell=False)): return
     await interaction.response.defer(ephemeral=False)
     shard = await gUtils.shard_metrics(interaction)
     try:
@@ -726,7 +729,7 @@ async def groupclothing(interaction: discord.Interaction, group: int, page: int 
                 await interaction.followup.send(embed=embed)
                 return
             tasks, files = [], []
-            for asset in groupAssets: tasks.append(gUtils.safe_wrapper(RoModules.fetch_clothing_asset, asset, shard))
+            for asset in groupAssets: tasks.append(gUtils.safe_wrapper(RoModules.fetch_asset, asset, shard))
             try: clothing = await asyncio.gather(*tasks)
             except Exception as e:
                 if await handle_error(e, interaction, "groupclothing", shard, "Group ID"): return
@@ -746,7 +749,7 @@ async def userclothing(interaction: discord.Interaction, user: str, page: int = 
     """Retrieve clothing texture files from a user"""
     if await check_cooldown(interaction, "extreme"): return
     embed = discord.Embed(color=0xFF0000)
-    if not (await validate_user(interaction, embed, requires_entitlement=True)): return
+    if not (await validate_user(interaction, embed, requires_entitlement=True, kind_upsell=False)): return
     await interaction.response.defer(ephemeral=False)
     shard = await gUtils.shard_metrics(interaction)
     try:
@@ -769,7 +772,7 @@ async def userclothing(interaction: discord.Interaction, user: str, page: int = 
             await interaction.followup.send(embed=embed)
             return
         tasks, files = [], []
-        for asset in userAssets: tasks.append(gUtils.safe_wrapper(RoModules.fetch_clothing_asset, asset, shard))
+        for asset in userAssets: tasks.append(gUtils.safe_wrapper(RoModules.fetch_asset, asset, shard))
         try: clothing = await asyncio.gather(*tasks)
         except Exception as e:
             if await handle_error(e, interaction, "userclothing", shard, "User"): return
@@ -781,3 +784,25 @@ async def userclothing(interaction: discord.Interaction, user: str, page: int = 
             return
         await interaction.followup.send("", files=files)
     except Exception as e: await handle_error(e, interaction, "userclothing", shard, "User")
+
+@client.tree.command()
+async def asset(interaction: discord.Interaction, asset: int, version: int = 1):
+    """Retrieve asset files as a .obj"""
+    if await check_cooldown(interaction, "extreme"): return
+    embed = discord.Embed(color=0xFF0000)
+    if not (await validate_user(interaction, embed, requires_entitlement=True)): return
+    await interaction.response.defer(ephemeral=False)
+    shard = await gUtils.shard_metrics(interaction)
+    try:
+        if asset in assetBlocklist:
+            embed.description = "The asset creator has requested for this asset to be removed from RoWhoIs."
+            await interaction.followup.send(embed=embed)
+            return
+        asset = await RoModules.fetch_asset(asset, shard, location="asset", version=version, filetype="rbxm")
+        if not asset:
+            embed.description = "This asset does not exist."
+            await interaction.followup.send(embed=embed)
+            return
+        uploaded_file = discord.File(f"cache/asset/{str(asset) + '-' + str(version) if version is not None else str(asset)}.rbxm", filename=f"rowhois-{str(asset) + '-' + str(version) if version is not None else str(asset)}.rbxm")
+        await interaction.followup.send("", file=uploaded_file)
+    except Exception as e: await handle_error(e, interaction, "asset", shard, "Asset ID or Version")

@@ -59,7 +59,6 @@ async def cache_cursor(cursor: str, type: str, key: int, write: bool = False, pa
         async with aiofiles.open(filename, "r") as f: cursors = json.loads(await f.read())
     if write:
         cursors.setdefault(type, {}).setdefault(key, {"expires": time.time() + 3600})
-        if 'expires' in cursors[type][key] and cursors[type][key]['expires'] < time.time(): cursors[type][key]['expires'] = time.time() + 3600
         cursors[type][key].setdefault(pagination, {})["cursor"] = cursor
     else:
         for type_key, type_value in list(cursors.items()):

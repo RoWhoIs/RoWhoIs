@@ -246,23 +246,30 @@ async def get_creator_assets(creator: int, creator_type: str, asset_type: int, p
     for asset in data[1]['data']: assetIds.append(asset['id'])
     return assetIds, i + 1
 
-async def fetch_clothing_asset(asset_id: int, shard_id: int) -> int: # Unsafe by design
-    """Fetches the clothing asset's texture file"""
+async def fetch_asset(asset_id: int, shard_id: int, filetype: str = "png", location: str = "clothing", version: int = None) -> int: # Unsafe by design
+    """Fetches an asset and caches it locally for future use. Returns the asset id."""
     try:
-        try: # Check cache first
-            async with aiofiles.open(f'cache/clothing/{asset_id}.png', 'rb'): return asset_id
+        try:
+            async with aiofiles.open(f"cache/{location}/{str(asset_id)}{'-' + str(version) if version is not None else ''}.{filetype}", 'rb'): return asset_id
         except FileNotFoundError:
-            initAsset = await Roquest.GetFileContent(asset_id, shard_id=shard_id)
-            initAssetContent = io.BytesIO(initAsset)
-            initAssetContent = initAssetContent.read().decode()
-            match = re.search(r'<url>.*id=(\d+)</url>', initAssetContent)
-            if not match: raise ErrorDict.DoesNotExistError
-            async with aiofiles.open(f'cache/clothing/{asset_id}.png', 'wb') as cached_image:
-                downloadedAsset = await Roquest.GetFileContent(match.group(1), shard_id=shard_id)
-                if not downloadedAsset or len(downloadedAsset) < 512: raise ErrorDict.UndocumentedError
-                await cached_image.write(downloadedAsset)
-        await cached_image.close()
-        return asset_id
+            if filetype in ["png"]:
+                initAsset = await Roquest.GetFileContent(asset_id, shard_id=shard_id)
+                initAssetContent = io.BytesIO(initAsset)
+                initAssetContent = initAssetContent.read().decode()
+                match = re.search(r'<url>.*id=(\d+)</url>', initAssetContent)
+                if not match: raise ErrorDict.DoesNotExistError
+                async with aiofiles.open(f"cache/{location}/{str(asset_id)}{'-' + str(version) if version is not None else ''}.{filetype}", 'wb') as cached_content:
+                    downloadedAsset = await Roquest.GetFileContent(match.group(1), shard_id=shard_id)
+                    if not downloadedAsset or len(downloadedAsset) < 512: raise ErrorDict.UndocumentedError
+                    await cached_content.write(downloadedAsset)
+                await cached_content.close()
+                return asset_id
+        downloadedAsset = await Roquest.GetFileContent(asset_id, version=version, shard_id=shard_id)
+        if filetype in ["png"]: raise ErrorDict.MismatchedDataError
+        else:
+            async with aiofiles.open(f"cache/{location}/{str(asset_id)}{'-' + str(version) if version is not None else ''}.{filetype}", 'wb') as cached_content: await cached_content.write(downloadedAsset)
+            await cached_content.close()
+            return asset_id
     except UnicodeDecodeError: raise ErrorDict.MismatchedDataError
 
 async def nil_pointer() -> int: 

@@ -5,7 +5,7 @@ if not os.path.exists("utils/logger.py"):
     exit(1)
 from utils.logger import AsyncLogCollector
 
-for folder in ["logs", "cache", "cache/clothing"]:
+for folder in ["logs", "cache", "cache/clothing", "cache/asset"]:
     if not os.path.exists(folder): os.makedirs(folder)
 
 logCollector = AsyncLogCollector("logs/main.log")

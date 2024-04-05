@@ -147,7 +147,7 @@ async def RoliData():
         await log_collector.error(f"GET rolimons | itemdetails: Failed after 3 attempts.")
         raise ErrorDict.UnexpectedServerResponseError
 
-async def GetFileContent(asset_id: int, shard_id: int = None) -> bytes:
+async def GetFileContent(asset_id: int, version: int = None, shard_id: int = None) -> bytes:
     """Retrieves large non-json assets"""
     global proxyCredentials, lastProxy, x_csrf_token
     try:
@@ -155,7 +155,7 @@ async def GetFileContent(asset_id: int, shard_id: int = None) -> bytes:
         lastProxy = proxy
         await log_collector.info(f"GETFILECONTENT [{proxy if proxy is not None else 'non-proxied'}] | {asset_id}", shard_id=shard_id)
         async with aiohttp.ClientSession(cookies={".ROBLOSECURITY": rsec}, headers={"x-csrf-token": x_csrf_token}) as main_session:
-            async with main_session.request("GET", f"https://assetdelivery.roblox.com/v1/asset/?id={asset_id}", proxy=proxy, proxy_auth=proxyCredentials) as resp:
+            async with main_session.request("GET", f"https://assetdelivery.roblox.com/v1/asset/?id={asset_id}&version={version if version is not None else ''}", proxy=proxy, proxy_auth=proxyCredentials) as resp:
                 if resp.status == 200:
                     content = await resp.read()
                     return content
@@ -171,7 +171,11 @@ async def GetFileContent(asset_id: int, shard_id: int = None) -> bytes:
 
 async def heartbeat() -> bool:
     """Determines if Roblox is OK by checking if the API is up, returns True if alive"""
-    async with aiohttp.ClientSession(cookies={".roblosecurity": rsec}) as main_session:
-        async with main_session.get("https://users.roblox.com/") as resp:
-            if resp.status == 200: return True
-    return False
+    try:
+        async with aiohttp.ClientSession(cookies={".roblosecurity": rsec}) as main_session:
+            async with main_session.get("https://users.roblox.com/") as resp:
+                if resp.status == 200: return True
+        return False
+    except Exception as e:
+        await log_collector.warn(f"Heartbeat encountered an error: {e}")
+        return False
