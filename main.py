@@ -5,7 +5,7 @@ if not os.path.exists("utils/logger.py"):
     exit(1)
 from utils.logger import AsyncLogCollector
 
-for folder in ["logs", "cache", "cache/clothing"]:
+for folder in ["logs", "cache", "cache/clothing", "cache/asset"]:
     if not os.path.exists(folder): os.makedirs(folder)
 
 logCollector = AsyncLogCollector("logs/main.log")
@@ -27,7 +27,7 @@ except subprocess.CalledProcessError:
 
 sync_logging("info", f"Initializing RoWhoIs on version {version}...")
 
-for file in ["server/Roquest.py", "server/RoWhoIs.py", "config.json", "utils/ErrorDict.py"]:
+for file in ["server/Roquest.py", "server/RoWhoIs.py", "config.json", "utils/ErrorDict.py", "utils/gUtils.py"]:
     if not os.path.exists(file):
         sync_logging("fatal", f"Missing {file}! RoWhoIs will not be able to initialize.")
         exit(1)
@@ -40,7 +40,7 @@ def push_status(enabling: bool, webhook_token: str) -> None:
     """Pushes to the webhook the initialization status of RoWhoIs"""
     try:
         async def push(enabling: bool, webhook_token: str) -> None:
-            async with aiohttp.ClientSession() as session: await session.request("POST", webhook_token, json={"username": "RoWhoIs Status", "avatar_url": "https://www.robloxians.com/resources/rwi-pfp.png", "embeds": [{"title": "RoWhoIs Status", "color": 65293 if enabling else 0xFF0000, "description": f"RoWhoIs is now {'online' if enabling else 'offline'}!"}]})
+            async with aiohttp.ClientSession() as session: await session.request("POST", webhook_token, json={"username": "RoWhoIs Status", "avatar_url": "https://rowhois.com/resources/rwi-pfp.png", "embeds": [{"title": "RoWhoIs Status", "color": 65293 if enabling else 0xFF0000, "description": f"RoWhoIs is now {'online' if enabling else 'offline'}!"}]})
         asyncio.new_event_loop().run_until_complete(push(enabling, webhook_token))
     except Exception as e: sync_logging("error", f"Failed to push to status webhook: {e}")
 
@@ -53,10 +53,10 @@ try:
 except KeyError:
     sync_logging("fatal", "Failed to retrieve production type. RoWhoIs will not be able to initialize.")
     exit(1)
+if productionMode: push_status(True, webhookToken)
 for i in range(5): # Rerun server in event of a crash
     try:
         from server import Roquest, RoWhoIs
-        if productionMode: push_status(True, webhookToken)
         Roquest.initialize(config)
         if RoWhoIs.run(productionMode, version, config) is True: break
     except RuntimeError: pass  # Occurs when exited before fully initialized

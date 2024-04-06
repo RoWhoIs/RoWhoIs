@@ -2,27 +2,31 @@
 
 An advanced Roblox lookup Discord bot utility.
 
-![Demo of the whois command](https://www.robloxians.com/resources/demo-whois-small.gif)
+![Demo of the whois command](https://rowhois.com/resources/demo-whois-small.gif)
 
 ## Commands
 
-|     Command     | Parameters         |                                                                                                                                                                                Description |
-|:---------------:|:-------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|
-|      help       | None               |                                                                                                                                                   Displays a list of commands RoWhoIs has. |
-|      whois      | `User`             | Returns User ID, account status, joined, last online, description, previous usernames, verified email, total rap, total value, group count, friend count, follower count, following count. |
-| clothingtexture | `Clothing ID`      |                                                                                                                         Returns a PNG file containing the texture for a 2D clothing asset. |
-|    ownsitem     | `User`, `Item ID`  |                                                                                          Returns the item name, a count of the item owned and the unique asset ids for each item if owned. |
-|    ownsbadge    | `User`, `Badge ID` |                                                                                                                                        Returns badge award date, name, and image if owned. |
-|  isfriendswith  | `User1`, `User`    |                                                                                                                                                                  Returns True/False embed. |
-|      group      | `Group ID`         |                                                                                         Returns the group name, ID, status, created, owner username, owner userid, shout, and description. |
-|    isingroup    | `User`, `Group ID` |                                                                                                                                              Returns player's role and group name if True. |
-|     limited     | `Limited`          |                                                                                                                                               Returns the ID, RAP, and Value of a limited. |
-|   itemdetails   | `Item ID`          |                                                                                   Returns the creator username & id, description, created, updated, quantity, remaining, and lowest price. |
-|   membership    | `User`             |                                                                                                                               Returns whether a player has Premium, or has had BC/TBC/OBC. |
-|  checkusername  | `Username`         |                                                                                                                                                    Checks whether a username is available. |
-|     userid      | `Username`         |                                                                                                                                                       Returns the User ID from a username. |
-|    username     | `User ID`          |                                                                                                                                                       Returns the username from a User ID. |
-|  robloxbadges   | `User`             |                                                                                                                                         Returns a list of the Roblox badges a player owns. |
+|     Command     | Parameters             |                                                                                                                                                                                Description |
+|:---------------:|:-----------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|
+|      help       | None                   |                                                                                                                                                   Displays a list of commands RoWhoIs has. |
+|      whois      | `User`                 | Returns User ID, account status, joined, last online, description, previous usernames, verified email, total rap, total value, group count, friend count, follower count, following count. |
+| clothingtexture | `Clothing ID`          |                                                                                                                         Returns a PNG file containing the texture for a 2D clothing asset. |
+|    ownsitem     | `User`, `Item ID`      |                                                                                          Returns the item name, a count of the item owned and the unique asset ids for each item if owned. |
+|    ownsbadge    | `User`, `Badge ID`     |                                                                                                                                        Returns badge award date, name, and image if owned. |
+|  isfriendswith  | `User1`, `User`        |                                                                                                                                                                  Returns True/False embed. |
+|      group      | `Group ID`             |                                                                                         Returns the group name, ID, status, created, owner username, owner userid, shout, and description. |
+|    isingroup    | `User`, `Group ID`     |                                                                                                                                              Returns player's role and group name if True. |
+|     limited     | `Limited`              |                                                                                                                                               Returns the ID, RAP, and Value of a limited. |
+|   itemdetails   | `Item ID`              |                                                                                   Returns the creator username & id, description, created, updated, quantity, remaining, and lowest price. |
+|   membership    | `User`                 |                                                                                                                               Returns whether a player has Premium, or has had BC/TBC/OBC. |
+|  checkusername  | `Username`             |                                                                                                                                                    Checks whether a username is available. |
+|     userid      | `Username`             |                                                                                                                                                       Returns the User ID from a username. |
+|    username     | `User ID`              |                                                                                                                                                       Returns the username from a User ID. |
+|  robloxbadges   | `User`                 |                                                                                                                                         Returns a list of the Roblox badges a player owns. |
+|  groupclothing  | `Group ID`, `Page`     |                                                                                                   Fetches bulk clothing assets from a group. This command is restricted to a subscription. |
+|  userclothing   | `User`, `Page`         |                                                                                                    Fetches bulk clothing assets from a user. This command is restricted to a subscription. |
+|      about      | None                   |                                                                                                         Shows advanced statistics about RoWhoIs, including cache size, users, shards, etc. |
+|      asset      | `Asset ID`, `Version`  |                                                                                                  Fetches an asset file from Roblox. This command is not recommended for clothing textures. |
 
 ## Dependencies
 
@@ -173,11 +177,16 @@ Logs that are live are written to main.log, and sessions that are gracefully clo
 
 ## Caching
 
-The only _feasible_ thing for RoWhoIs to cache is clothing textures. RoWhoIs only caches clothing texture files for several reasons, namely though being:
+RoWhoIs caches catalog nextPageCursors and asset files to reduce the number of API calls made. This is especially useful for the `groupclothing` and `userclothing` commands, as they can make a large number of API calls in a short period of time.
 
-- Clothing textures never change
-- It is the only use-case where downloading an asset is required
-  - All other image operations use embed links, meaning it's more efficient to use those
+Due to the non-changing nature of assets, caching makes sense as to reduce bandwith and API calls used.
+
+nextPageCursor cache is retained for an hour per group/user, and asset files are retained permanently.
+
+## Moderation
+
+RoWhoIs has a built-in moderation system. This system is used to prevent abuse of the bot and to ensure that the bot is used in a safe and responsible manner. The moderation system is split into three parts: opt-out users/assets, and banned users.
+These are all stored in `config.json` under the `RoWhoIs` key and loaded during initialization.
 
 ## Sharding
 

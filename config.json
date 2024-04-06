@@ -2,6 +2,7 @@
   "Authentication": {
     "production": "",
     "testing": "",
+    "webhook": "",
     "roblosecurity": "",
     "topgg": "",
     "dbl": ""
@@ -10,6 +11,7 @@
     "production_mode": false,
     "opt_out": [],
     "banned_users": [],
+    "banned_assets": [],
     "admin_ids": []
   },
   "Proxying": {
