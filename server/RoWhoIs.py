@@ -322,7 +322,7 @@ async def whois(interaction: discord.Interaction, user: str, download: bool = Fa
             formattedUsernames = ', '.join([f"`{username}`" for username in previousUsernames[:10]]) + (f", and {len(previousUsernames) - 10} more" if len(previousUsernames) > 10 else '')
             embed.add_field(name=f"Previous Usernames ({len(previousUsernames)}):", value=formattedUsernames, inline=False)
         if veriftype is not None: embed.add_field(name="Verified Email:", value="`N/A (*Nil*)`" if veriftype == -1 else "`N/A (*-1*)`" if veriftype == 0 else "`Verified, hat present`" if veriftype == 1 else "`Verified, sign present`" if veriftype == 2 else "`Unverified`" if veriftype == 3 else "`Verified, sign & hat present`" if veriftype == 4 else "`N/A`", inline=True)
-        if description: embed.add_field(name="Description:", value=f"```{description}```", inline=False)
+        if description: embed.add_field(name="Description:", value=f"```{description.replace('```', '')}```", inline=False)
         embed.add_field(name="Joined:", value=f"{joinedTimestamp}", inline=True)
         embed.add_field(name="Last Online:", value=f"{lastOnlineFormatted}", inline=True)
         embed.add_field(name="Groups:", value=f"`{groups}`", inline=True)
@@ -571,7 +571,7 @@ async def itemdetails(interaction: discord.Interaction, item: int, download: boo
         else: isCollectible = False
         embed.title = f"{emojiTable.get('limited') if data['IsLimited'] else emojiTable.get('limitedu') if data['IsLimitedUnique'] else emojiTable.get('collectible') if isCollectible else ''} {data['Name']}"
         embed.add_field(name="Creator:", value=f"`{data['Creator']['Name']}` (`{data['Creator']['CreatorTargetId']}`) {emojiTable.get('staff') if userid in staffIds else emojiTable.get('verified') if data['Creator']['HasVerifiedBadge'] else ''}")
-        if data['Description'] != "": embed.add_field(name="Description:", value=f"```{data['Description']}```", inline=False)
+        if data['Description'] != "": embed.add_field(name="Description:", value=f"```{data['Description'].replace('```', '')}```", inline=False)
         embed.add_field(name="Created:", value=f"{(await gUtils.fancy_time(data['Created']))}", inline=True)
         embed.add_field(name="Updated:", value=f"{(await gUtils.fancy_time(data['Updated']))}", inline=True)
         if isCollectible:
@@ -643,7 +643,7 @@ async def group(interaction: discord.Interaction, group: int, download: bool = F
         embed.add_field(name="Joinable:", value=f"`{'False' if groupInfo[8] else 'True' if groupInfo[7] else 'False'}`", inline=True)
         if groupInfo[5] is not None:
             if groupInfo[5][0] != "": embed.add_field(name="Shout:", value=f"`{groupInfo[5][0]}` -- `{groupInfo[5][1]}` (`{groupInfo[5][2]}`) {('' + emojiTable.get('verified')) if groupInfo[5][3] else ''}", inline=False)
-        if groupInfo[1] != "": embed.add_field(name="Group Description:", value=f"```{groupInfo[1]}```", inline=False)
+        if groupInfo[1] != "": embed.add_field(name="Group Description:", value=f"```{groupInfo[1].replace('```', '')}```", inline=False)
         embed.colour = 0x00FF00
         if download:
             nlChar = "\n"
