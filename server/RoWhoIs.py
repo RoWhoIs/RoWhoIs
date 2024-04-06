@@ -230,7 +230,7 @@ async def about(interaction: discord.Interaction):
         minutes, _ = divmod(remainder, 60)
         embed.add_field(name="Uptime", value=f"`{int(days)} day{'s' if int(days) != 1 else ''}, {int(hours)} hour{'s' if int(hours) != 1 else ''}, {int(minutes)} minute{'s' if int(minutes) != 1 else ''}`", inline=True)
         embed.add_field(name="Roblox Connection", value=f"{':green_circle: `Online' if heartBeat else ':red_circle: `Offline'}`", inline=True)
-        embed.add_field(name="Last Rolimons Update", value=f"{await gUtils.legacy_fancy_time(lastRoliUpdate)}", inline=True)
+        embed.add_field(name="Last Rolimons Update", value=f"`{await gUtils.legacy_fancy_time(lastRoliUpdate)}`", inline=True)
         embed.add_field(name="Servers", value=f"{len(client.guilds)}", inline=True)
         embed.add_field(name="Users", value=f"{sum(guild.member_count if guild.member_count is not None else 0 for guild in client.guilds)}", inline=True)
         embed.add_field(name="Shards", value=f"`{client.shard_count}`", inline=True)
@@ -311,8 +311,8 @@ async def whois(interaction: discord.Interaction, user: str, download: bool = Fa
         groups = len(groups['data'])
         embed.set_thumbnail(url=userThumbnail)
         if banned or userId[0] == 1: veriftype, previousUsernames = None, []
-        lastOnlineFormatted, joinedTimestamp = await asyncio.gather(gUtils.fancy_time(unformattedLastOnline), gUtils.fancy_time(created))
-        if name == displayname: embed.title = f"{name} {emojiTable.get('staff') if userId[0] in staffIds else emojiTable.get('verified') if verified else ''} "
+        lastOnlineFormatted, joinedTimestamp = await asyncio.gather(gUtils.legacy_fancy_time(unformattedLastOnline, regex=True), gUtils.fancy_time(created))
+        if name == displayname: embed.title = f"{name} {emojiTable.get('staff') if userId[0] in staffIds else emojiTable.get('verified') if verified else ''} {emojiTable.get('donor') if userId[0] in whoIsDonors else ''}"
         else: embed.title = f"{name} ({displayname}) {emojiTable.get('staff') if userId[0] in staffIds else emojiTable.get('verified') if verified else ''} {emojiTable.get('donor') if userId[0] in whoIsDonors else ''}"
         embed.colour = 0x00ff00
         embed.url = f"https://www.roblox.com/users/{userId[0]}/profile" if not banned else None
@@ -324,7 +324,7 @@ async def whois(interaction: discord.Interaction, user: str, download: bool = Fa
         if veriftype is not None: embed.add_field(name="Verified Email:", value="`N/A (*Nil*)`" if veriftype == -1 else "`N/A (*-1*)`" if veriftype == 0 else "`Verified, hat present`" if veriftype == 1 else "`Verified, sign present`" if veriftype == 2 else "`Unverified`" if veriftype == 3 else "`Verified, sign & hat present`" if veriftype == 4 else "`N/A`", inline=True)
         if description: embed.add_field(name="Description:", value=f"```{description.replace('```', '')}```", inline=False)
         embed.add_field(name="Joined:", value=f"{joinedTimestamp}", inline=True)
-        embed.add_field(name="Last Online:", value=f"{lastOnlineFormatted}", inline=True)
+        embed.add_field(name="Last Online:", value=f"`{lastOnlineFormatted}`", inline=True)
         embed.add_field(name="Groups:", value=f"`{groups}`", inline=True)
         embed.add_field(name="Friends:", value=f"`{friends}`", inline=True)
         embed.add_field(name="Followers:", value=f"`{followers}`", inline=True)
@@ -573,7 +573,7 @@ async def itemdetails(interaction: discord.Interaction, item: int, download: boo
         embed.add_field(name="Creator:", value=f"`{data['Creator']['Name']}` (`{data['Creator']['CreatorTargetId']}`) {emojiTable.get('staff') if userid in staffIds else emojiTable.get('verified') if data['Creator']['HasVerifiedBadge'] else ''}")
         if data['Description'] != "": embed.add_field(name="Description:", value=f"```{data['Description'].replace('```', '')}```", inline=False)
         embed.add_field(name="Created:", value=f"{(await gUtils.fancy_time(data['Created']))}", inline=True)
-        embed.add_field(name="Updated:", value=f"{(await gUtils.fancy_time(data['Updated']))}", inline=True)
+        embed.add_field(name="Updated:", value=f"`{(await gUtils.legacy_fancy_time(data['Updated'], regex=True))}`", inline=True)
         if isCollectible:
             embed.add_field(name="Quantity:", value=f"`{data['CollectiblesItemDetails']['TotalQuantity']}`", inline=True)
             if data['CollectiblesItemDetails']['CollectibleLowestResalePrice'] is not None and data['IsForSale']: embed.add_field(name="Lowest Price:", value=f"{emojiTable.get('robux')} `{data['CollectiblesItemDetails']['CollectibleLowestResalePrice']}`", inline=True)
@@ -787,7 +787,7 @@ async def userclothing(interaction: discord.Interaction, user: str, page: int = 
 
 @client.tree.command()
 async def asset(interaction: discord.Interaction, asset: int, version: int = 1):
-    """Retrieve asset files as a .obj"""
+    """Retrieve asset files as a .rbxm"""
     if await check_cooldown(interaction, "extreme"): return
     embed = discord.Embed(color=0xFF0000)
     if not (await validate_user(interaction, embed, requires_entitlement=True)): return
