@@ -339,9 +339,9 @@ async def whois(interaction: discord.Interaction, user: str, download: bool = Fa
             embed.description = "***Currently calculating more statistics...***"
             if download: await interaction.followup.send(embed=embed, file=whoData)
             else: await interaction.followup.send(embed=embed)
-            embed.description = None
             try: privateInventory, totalRap, totalValue, limiteds = await RoModules.get_limiteds(userId[0], roliData, shard) # VERY slow when user has a lot of limiteds
             except Exception: privateInventory, totalRap, totalValue = False, "Failed to fetch", "Failed to fetch"
+        embed.description = None
         if not privateInventory:
             embed.add_field(name="Total RAP:", value=f"`{totalRap}`", inline=True)
             embed.add_field(name="Total Value:", value=f"`{totalValue}`", inline=True)
