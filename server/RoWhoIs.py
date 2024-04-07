@@ -790,7 +790,7 @@ async def asset(interaction: discord.Interaction, asset: int, version: int = 1):
     """Retrieve asset files as a .rbxm"""
     if await check_cooldown(interaction, "extreme"): return
     embed = discord.Embed(color=0xFF0000)
-    if not (await validate_user(interaction, embed, requires_entitlement=True)): return
+    if not (await validate_user(interaction, embed)): return
     await interaction.response.defer(ephemeral=False)
     shard = await gUtils.shard_metrics(interaction)
     try:
