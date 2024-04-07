@@ -335,18 +335,18 @@ async def whois(interaction: discord.Interaction, user: str, download: bool = Fa
         whoData = (discord.File(io.BytesIO(whoData.encode()), filename=f"rowhois-rowhois-{userId[0]}.csv"))
         if not banned and userId[0] != 1:
             isEdited = True
+            embed.add_field(name="Privated Inventory:", value=f"`{privateInventory}`", inline=True)
             embed.description = "***Currently calculating more statistics...***"
-            if download: messageId = (await interaction.followup.send(embed=embed, file=whoData)).id
-            else: messageId = (await interaction.followup.send(embed=embed)).id
+            if download: await interaction.followup.send(embed=embed, file=whoData)
+            else: await interaction.followup.send(embed=embed)
+            embed.description = None
             try: privateInventory, totalRap, totalValue, limiteds = await RoModules.get_limiteds(userId[0], roliData, shard) # VERY slow when user has a lot of limiteds
             except Exception: privateInventory, totalRap, totalValue = False, "Failed to fetch", "Failed to fetch"
         if not privateInventory:
             embed.add_field(name="Total RAP:", value=f"`{totalRap}`", inline=True)
             embed.add_field(name="Total Value:", value=f"`{totalValue}`", inline=True)
-        if not banned: embed.add_field(name="Privated Inventory:", value=f"`{privateInventory}`", inline=True)
-        embed.description = None
         if download and not isEdited: await interaction.followup.send(embed=embed, file=whoData)
-        elif isEdited: await interaction.followup.edit_message(messageId, embed=embed)
+        elif isEdited: await interaction.edit_original_response(embed=embed)
         else: await interaction.followup.send(embed=embed)
     except Exception as e: await handle_error(e, interaction, "whois", shard, "User")
 
