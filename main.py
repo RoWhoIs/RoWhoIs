@@ -62,7 +62,7 @@ for i in range(5): # Rerun server in event of a crash
     except RuntimeError: pass  # Occurs when exited before fully initialized
     except ErrorDict.MissingRequiredConfigs: sync_logging("fatal", f"Missing or malformed configuration options detected!")
     except Exception as e:
-        sync_logging("fatal", f"A fatal error occurred during runtime: {type(e)} | STACKTRACE: {''.join(traceback.format_exception(etype=type(e), value=e, tb=e.__traceback__))}")
+        sync_logging("fatal", f"A fatal error occurred during runtime: {type(e)} | {traceback.format_exc()}")
         if i < 4: sync_logging("warn", f"Server crash detected. Restarting server...")
 
 if productionMode: push_status(False, webhookToken)

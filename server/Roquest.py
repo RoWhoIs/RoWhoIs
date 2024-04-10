@@ -102,7 +102,7 @@ async def token_renewal(automated: bool = False) -> None:
 
 loop = asyncio.get_event_loop()
 
-async def Roquest(method: str, node: str, endpoint: str, shard_id: int = None, failretry=False, **kwargs) -> tuple[int, Any]:
+async def Roquest(method: str, node: str, endpoint: str, shard_id: int = None, failretry=False, **kwargs) -> tuple[int, Any]: # This function is shit
     """Performs API calls to Roblox, returns status code and json response"""
     global proxyCredentials, lastProxy, x_csrf_token
     method = method.lower()
@@ -127,9 +127,9 @@ async def Roquest(method: str, node: str, endpoint: str, shard_id: int = None, f
                         if not failretry: break
                 except Exception as e:
                     proxy = await proxy_picker(proxy, True)
-                    await log_collector.error(f"{method.upper()} {node} [{proxy if proxy is not None else 'non-proxied'}] | {endpoint}: {e if e != '' else 'Connection timed out.'}", shard_id=shard_id)
+                    await log_collector.error(f"{method.upper()} {node} [{proxy if proxy is not None else 'non-proxied'}] | {endpoint}: {type(e)} |  {e if e != '' else 'Connection timed out.'}", shard_id=shard_id)
             except Exception as e:
-                await log_collector.error(f"{method.upper()} {node} [{proxy if proxy is not None else 'non-proxied'}] | {endpoint}: Severe error: {e}", shard_id=shard_id)
+                await log_collector.error(f"{method.upper()} {node} [{proxy if proxy is not None else 'non-proxied'}] | {endpoint}: Severe error: {type(e)} | {e}", shard_id=shard_id)
                 raise ErrorDict.UnexpectedServerResponseError
     await log_collector.error(f"{method.upper()} {node} [{proxy if proxy is not None else 'non-proxied'}] | {endpoint}: Failed after {retry + 1} attempt{'s' if retry >= 1 else ''}.", shard_id=shard_id)
     return resp.status, {"error": "Failed to retrieve data"}
@@ -164,6 +164,7 @@ async def GetFileContent(asset_id: int, version: int = None, shard_id: int = Non
                     if (await resp.json())['errors'][0]['message'] == 'Asset is not approved for the requester': raise ErrorDict.AssetNotAvailable
                 elif resp.status in [404, 400]: raise ErrorDict.DoesNotExistError
                 else:
+                    proxy = await proxy_picker(lastProxy, True)
                     await log_collector.warn(f"GETFILECONTENT [{proxy if proxy is not None else 'non-proxied'}] | {asset_id}: {resp.status}", shard_id=shard_id)
                     raise ErrorDict.UnexpectedServerResponseError
     finally: # Hold the connection hostage until we FINISH downloading THE FILE.
