@@ -329,22 +329,22 @@ async def whois(interaction: discord.Interaction, user: str, download: bool = Fa
         embed.add_field(name="Friends:", value=f"`{friends}`", inline=True)
         embed.add_field(name="Followers:", value=f"`{followers}`", inline=True)
         embed.add_field(name="Following:", value=f"`{following}`", inline=True)
-        privateInventory, isEdited, nlChar = True, False, "\n"
+        privateInventory, isEdited, nlChar = None, False, "\n"
         if previousUsernames: whoData = "id, username, nickname, verified, rowhois_staff, account_status, joined, last_online, verified_email, groups, friends, followers, following, previous_usernames, description\n" + ''.join([f"{userId[0]}, {userId[1]}, {displayname}, {userId[0] in staffIds}, {'Terminated' if banned else 'Okay' if not banned else 'None'}, {created}, {unformattedLastOnline}, {'None' if veriftype == -1 else 'None' if veriftype == 0 else 'Hat' if veriftype == 1 else 'Sign' if veriftype == 2 else 'Unverified' if veriftype == 3 else 'Both' if veriftype == 4 else 'None'}, {groups}, {friends}, {followers}, {following}, {name}, {description.replace(',', '').replace(nlChar, '     ')  if description else 'None'}{nlChar}" for name in previousUsernames])
         else: whoData = f"id, username, nickname, verified, rowhois_staff, account_status, joined, last_online, verified_email, groups, friends, followers, following, previous_usernames, description\n{userId[0]}, {userId[1]}, {displayname}, {verified}, {userId[0] in staffIds}, {'Terminated' if banned else 'Okay' if not banned else 'None'}, {created}, {unformattedLastOnline}, {'None' if veriftype == -1 else 'None' if veriftype == 0 else 'Hat' if veriftype == 1 else 'Sign' if veriftype == 2 else 'Unverified' if veriftype == 3 else 'Both' if veriftype == 4 else 'None'}, {groups}, {friends}, {followers}, {following}, None, {description.replace(',', '').replace(nlChar, '     ') if description else 'None'}\n"
         whoData = (discord.File(io.BytesIO(whoData.encode()), filename=f"rowhois-rowhois-{userId[0]}.csv"))
         if not banned and userId[0] != 1:
             isEdited = True
-            embed.add_field(name="Privated Inventory:", value=f"`{privateInventory}`", inline=True)
             embed.description = "***Currently calculating more statistics...***"
             if download: await interaction.followup.send(embed=embed, file=whoData)
             else: await interaction.followup.send(embed=embed)
-        embed.description = None
-        if not privateInventory:
-            try: _, totalRap, totalValue, limiteds = await RoModules.get_limiteds(userId[0], roliData, shard) # VERY slow when user has a lot of limiteds
+            embed.description = None
+            try: privateInventory, totalRap, totalValue, limiteds = await RoModules.get_limiteds(userId[0], roliData, shard) # VERY slow when user has a lot of limiteds
             except Exception: totalRap, totalValue = "Failed to fetch", "Failed to fetch"
-            embed.add_field(name="Total RAP:", value=f"`{totalRap}`", inline=True)
-            embed.add_field(name="Total Value:", value=f"`{totalValue}`", inline=True)
+            embed.add_field(name="Privated Inventory:", value=f"`{privateInventory if privateInventory is not None else 'Failed to fetch'}`", inline=True)
+            if not privateInventory:
+                embed.add_field(name="Total RAP:", value=f"`{totalRap}`", inline=True)
+                embed.add_field(name="Total Value:", value=f"`{totalValue}`", inline=True)
         if download and not isEdited: await interaction.followup.send(embed=embed, file=whoData)
         elif isEdited: await interaction.edit_original_response(embed=embed)
         else: await interaction.followup.send(embed=embed)
