@@ -96,8 +96,8 @@ async def token_renewal(automated: bool = False) -> None:
     if automated:
         while True:
             try:
+                await asyncio.sleep(50)  # Recheck quickly to ensure we have a refreshed token before a command is ran
                 await token_renewal()
-                await asyncio.sleep(50) # Recheck quickly to ensure we have a refreshed token before a command is ran
             except Exception: pass
 
 loop = asyncio.get_event_loop()

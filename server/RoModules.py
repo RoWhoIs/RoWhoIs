@@ -53,16 +53,16 @@ async def last_online(user_id: int, shard_id: int):
 async def get_player_thumbnail(user_id: int, size: str, shard_id: int):
     """Retrieves a full-body thumbnail of a player's avatar"""
     thumbnail_url = await Roquest.Roquest("GET", "thumbnails", f"v1/users/avatar?userIds={user_id}&size={size}&format=Png&isCircular=false", shard_id=shard_id, failretry=True)
-    if thumbnail_url[0] != 200: return "https://rowhois.com/resources/not-available.png"
-    elif thumbnail_url[1]["data"][0]["state"] == "Blocked": return "https://rowhois.com/resources/blocked.png"
+    if thumbnail_url[0] != 200: return "https://rowhois.com/not-available.png"
+    elif thumbnail_url[1]["data"][0]["state"] == "Blocked": return "https://rowhois.com/blocked.png"
     else: return thumbnail_url[1]["data"][0]["imageUrl"]
 
 
 async def get_item_thumbnail(item_id: int, size:str, shard_id: int):
     """Retrieves the thumbnail of a given item"""
     thumbnail_url = await Roquest.Roquest("GET", "thumbnails", f"v1/assets?assetIds={item_id}&returnPolicy=PlaceHolder&size={size}&format=Png&isCircular=false", shard_id=shard_id, failretry=True)
-    if thumbnail_url[0] != 200: return "https://rowhois.com/resources/not-available.png"
-    elif thumbnail_url[1]["data"][0]["state"] == "Blocked": return "https://rowhois.com/resources/blocked.png"
+    if thumbnail_url[0] != 200: return "https://rowhois.com/not-available.png"
+    elif thumbnail_url[1]["data"][0]["state"] == "Blocked": return "https://rowhois.com/blocked.png"
     else: return thumbnail_url[1]["data"][0]["imageUrl"]
 
 async def get_player_profile(user_id: int, shard_id: int) -> tuple[str, str, bool, str, str, bool]:
@@ -104,20 +104,20 @@ async def get_groups(user_id: int, shard_id: int):
     
 async def get_player_headshot(user_id: int, size: str, shard_id: int):
     thumbnail_url = await Roquest.Roquest("GET", "thumbnails", f"v1/users/avatar-headshot?userIds={user_id}&size={size}&format=Png&isCircular=false", shard_id=shard_id, failretry=True)
-    if thumbnail_url[0] != 200: return "https://rowhois.com/resources/not-available.png"
-    elif thumbnail_url[1]["data"][0]["state"] == "Blocked": return "https://rowhois.com/resources/blocked.png"
+    if thumbnail_url[0] != 200: return "https://rowhois.com/not-available.png"
+    elif thumbnail_url[1]["data"][0]["state"] == "Blocked": return "https://rowhois.com/blocked.png"
     else: return thumbnail_url[1]["data"][0]["imageUrl"]
     
 async def get_badge_thumbnail(badge_id: int, shard_id: int):
     thumbnail_url = await Roquest.Roquest("GET", "thumbnails", f"v1/badges/icons?badgeIds={badge_id}&size=150x150&format=Png&isCircular=false", shard_id=shard_id, failretry=True)
-    if thumbnail_url[0] != 200: return "https://rowhois.com/resources/not-available.png"
-    elif thumbnail_url[1]["data"][0]["state"] == "Blocked": return "https://rowhois.com/resources/blocked.png"
+    if thumbnail_url[0] != 200: return "https://rowhois.com/not-available.png"
+    elif thumbnail_url[1]["data"][0]["state"] == "Blocked": return "https://rowhois.com/blocked.png"
     else: return thumbnail_url[1]["data"][0]["imageUrl"]
 
 async def get_group_emblem(group: int, size: str, shard_id: int):
     thumbnail_url = await Roquest.Roquest("GET", "thumbnails", f"v1/groups/icons?groupIds={group}&size={size}&format=Png&isCircular=false", shard_id=shard_id, failretry=True)
-    if thumbnail_url[0] != 200: return "https://rowhois.com/resources/not-available.png"
-    elif thumbnail_url[1]["data"][0]["state"] == "Blocked": return "https://rowhois.com/resources/blocked.png"
+    if thumbnail_url[0] != 200: return "https://rowhois.com/not-available.png"
+    elif thumbnail_url[1]["data"][0]["state"] == "Blocked": return "https://rowhois.com/blocked.png"
     else: return thumbnail_url[1]["data"][0]["imageUrl"]
 
 async def get_rolidata_from_item(rolidata, item) -> tuple[int, str, int, int, str, str, str, str, bool]:
@@ -224,7 +224,7 @@ async def roblox_badges(user: int, shard_id: int) -> tuple[List[int], Dict[int, 
     for badge in data[1]: badges.append(badge['id'])
     return sorted(badges), badgeTable
 
-async def get_creator_assets(creator: int, creator_type: str, asset_type: int, page: int, shard_id: int) -> tuple[int, List[Dict[str, Union[str, int]]]]:
+async def get_creator_assets(creator: int, creator_type: str, page: int, shard_id: int) -> tuple[int, List[Dict[str, Union[str, int]]]]:
     """Retrieves a group's assets
     Returns the assets, and the number of successful pages it iterated through"""
     nextPageCursor, assetIds, cached_pages = None, [], 0
@@ -237,7 +237,7 @@ async def get_creator_assets(creator: int, creator_type: str, asset_type: int, p
             nextPageCursor = cached_cursor
     if cached_pages == page: cached_pages -= 1
     for i in range(cached_pages, page):
-        data = await Roquest.Roquest("GET", "catalog", f"v1/search/items?category=All&creatorTargetId={creator}&creatorType={creator_type}&cursor={nextPageCursor if nextPageCursor is not None else ''}&limit=10&sortOrder=Desc&sortType=Updated&assetType={asset_type}", failretry=True, shard_id=shard_id)
+        data = await Roquest.Roquest("GET", "catalog", f"v1/search/items?category=Clothing&creatorTargetId={creator}&creatorType={creator_type}&cursor={nextPageCursor if nextPageCursor is not None else ''}&limit=10&sortOrder=Desc&includeNotForSale=true&sortType=Updated", failretry=True, shard_id=shard_id)
         if data[0] == 500: raise ErrorDict.DoesNotExistError # lol
         await general_error_handler(data[0])
         nextPageCursor = data[1].get('nextPageCursor')
@@ -245,6 +245,13 @@ async def get_creator_assets(creator: int, creator_type: str, asset_type: int, p
         if not nextPageCursor: break
     for asset in data[1]['data']: assetIds.append(asset['id'])
     return assetIds, i + 1
+
+async def public_inventory(user: int, shard_id: int) -> bool:
+    """Returns whether a user's inventory is public"""
+    data = await Roquest.Roquest("GET", "inventory", f"v1/users/{user}/can-view-inventory", shard_id=shard_id)
+    await general_error_handler(data[0])
+    print(data[1]['canView'])
+    return data[1]['canView']
 
 async def fetch_asset(asset_id: int, shard_id: int, filetype: str = "png", location: str = "clothing", version: int = None) -> int: # Unsafe by design
     """Fetches an asset and caches it locally for future use. Returns the asset id."""

@@ -231,8 +231,8 @@ async def about(interaction: discord.Interaction):
         embed.add_field(name="Uptime", value=f"`{int(days)} day{'s' if int(days) != 1 else ''}, {int(hours)} hour{'s' if int(hours) != 1 else ''}, {int(minutes)} minute{'s' if int(minutes) != 1 else ''}`", inline=True)
         embed.add_field(name="Roblox Connection", value=f"{':green_circle: `Online' if heartBeat else ':red_circle: `Offline'}`", inline=True)
         embed.add_field(name="Last Rolimons Update", value=f"`{await gUtils.legacy_fancy_time(lastRoliUpdate)}`", inline=True)
-        embed.add_field(name="Servers", value=f"{len(client.guilds)}", inline=True)
-        embed.add_field(name="Users", value=f"{sum(guild.member_count if guild.member_count is not None else 0 for guild in client.guilds)}", inline=True)
+        embed.add_field(name="Servers", value=f"`{len(client.guilds)}`", inline=True)
+        embed.add_field(name="Users", value=f"`{sum(guild.member_count if guild.member_count is not None else 0 for guild in client.guilds)}`", inline=True)
         embed.add_field(name="Shards", value=f"`{client.shard_count}`", inline=True)
         embed.add_field(name="Shard ID", value=f"`{shard}`", inline=True)
         embed.add_field(name="Cache Size", value=f"`{round(sum(f.stat().st_size for f in Path('cache/').glob('**/*') if f.is_file()) / 1048576, 1)} MB`", inline=True)
@@ -329,7 +329,7 @@ async def whois(interaction: discord.Interaction, user: str, download: bool = Fa
         embed.add_field(name="Friends:", value=f"`{friends}`", inline=True)
         embed.add_field(name="Followers:", value=f"`{followers}`", inline=True)
         embed.add_field(name="Following:", value=f"`{following}`", inline=True)
-        privateInventory, isEdited, nlChar = True, False, "\n"
+        privateInventory, isEdited, nlChar = await RoModules.public_inventory(userId[0], shard), False, "\n"
         if previousUsernames: whoData = "id, username, nickname, verified, rowhois_staff, account_status, joined, last_online, verified_email, groups, friends, followers, following, previous_usernames, description\n" + ''.join([f"{userId[0]}, {userId[1]}, {displayname}, {userId[0] in staffIds}, {'Terminated' if banned else 'Okay' if not banned else 'None'}, {created}, {unformattedLastOnline}, {'None' if veriftype == -1 else 'None' if veriftype == 0 else 'Hat' if veriftype == 1 else 'Sign' if veriftype == 2 else 'Unverified' if veriftype == 3 else 'Both' if veriftype == 4 else 'None'}, {groups}, {friends}, {followers}, {following}, {name}, {description.replace(',', '').replace(nlChar, '     ')  if description else 'None'}{nlChar}" for name in previousUsernames])
         else: whoData = f"id, username, nickname, verified, rowhois_staff, account_status, joined, last_online, verified_email, groups, friends, followers, following, previous_usernames, description\n{userId[0]}, {userId[1]}, {displayname}, {verified}, {userId[0] in staffIds}, {'Terminated' if banned else 'Okay' if not banned else 'None'}, {created}, {unformattedLastOnline}, {'None' if veriftype == -1 else 'None' if veriftype == 0 else 'Hat' if veriftype == 1 else 'Sign' if veriftype == 2 else 'Unverified' if veriftype == 3 else 'Both' if veriftype == 4 else 'None'}, {groups}, {friends}, {followers}, {following}, None, {description.replace(',', '').replace(nlChar, '     ') if description else 'None'}\n"
         whoData = (discord.File(io.BytesIO(whoData.encode()), filename=f"rowhois-rowhois-{userId[0]}.csv"))
@@ -339,10 +339,10 @@ async def whois(interaction: discord.Interaction, user: str, download: bool = Fa
             embed.description = "***Currently calculating more statistics...***"
             if download: await interaction.followup.send(embed=embed, file=whoData)
             else: await interaction.followup.send(embed=embed)
-            try: privateInventory, totalRap, totalValue, limiteds = await RoModules.get_limiteds(userId[0], roliData, shard) # VERY slow when user has a lot of limiteds
-            except Exception: privateInventory, totalRap, totalValue = False, "Failed to fetch", "Failed to fetch"
         embed.description = None
         if not privateInventory:
+            try: _, totalRap, totalValue, limiteds = await RoModules.get_limiteds(userId[0], roliData, shard) # VERY slow when user has a lot of limiteds
+            except Exception: totalRap, totalValue = "Failed to fetch", "Failed to fetch"
             embed.add_field(name="Total RAP:", value=f"`{totalRap}`", inline=True)
             embed.add_field(name="Total Value:", value=f"`{totalValue}`", inline=True)
         if download and not isEdited: await interaction.followup.send(embed=embed, file=whoData)
@@ -719,7 +719,7 @@ async def groupclothing(interaction: discord.Interaction, group: int, page: int 
     shard = await gUtils.shard_metrics(interaction)
     try:
         try:
-            groupAssets, pagination = await RoModules.get_creator_assets(group, "Group", 3, page, shard)
+            groupAssets, pagination = await RoModules.get_creator_assets(group, "Group", page, shard)
             if pagination != page:
                 embed.description = "Invalid page number."
                 await interaction.followup.send(embed=embed)
@@ -758,17 +758,13 @@ async def userclothing(interaction: discord.Interaction, user: str, page: int = 
     except Exception as e:
         if await handle_error(e, interaction, "userclothing", shard, "User"): return
     try:
-        userAssets, pagination = await RoModules.get_creator_assets(user[0], "User", 3, page, shard)
+        userAssets, pagination = await RoModules.get_creator_assets(user[0], "User", page, shard)
         if pagination != page or page < 1:
             embed.description = "Invalid page number."
             await interaction.followup.send(embed=embed)
             return
         if not userAssets:
             embed.description = "This user has no clothing assets."
-            await interaction.followup.send(embed=embed)
-            return
-        if user[0] == 1:
-            embed.description = "userclothing has been disabled for this user."
             await interaction.followup.send(embed=embed)
             return
         tasks, files = [], []
