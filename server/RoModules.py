@@ -246,13 +246,6 @@ async def get_creator_assets(creator: int, creator_type: str, page: int, shard_i
     for asset in data[1]['data']: assetIds.append(asset['id'])
     return assetIds, i + 1
 
-async def public_inventory(user: int, shard_id: int) -> bool:
-    """Returns whether a user's inventory is public"""
-    data = await Roquest.Roquest("GET", "inventory", f"v1/users/{user}/can-view-inventory", shard_id=shard_id)
-    await general_error_handler(data[0])
-    print(data[1]['canView'])
-    return data[1]['canView']
-
 async def fetch_asset(asset_id: int, shard_id: int, filetype: str = "png", location: str = "clothing", version: int = None) -> int: # Unsafe by design
     """Fetches an asset and caches it locally for future use. Returns the asset id."""
     try:
