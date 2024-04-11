@@ -58,7 +58,7 @@ async def validate_user(interaction: discord.Interaction, embed: discord.Embed, 
     global optOut, userBlocklist
     if interaction.user.id in userBlocklist:
         await log_collector.warn(f"Blocklist user {interaction.user.id} attempted to call a command and was denied!")
-        embed.description = "You have been permanently banned from using RoWhoIs. In accordance to our [Terms of Service](https://rowhois.com/Terms-Of-Service/), we reserve the right to block any user from using our service."
+        embed.description = "You have been permanently banned from using RoWhoIs. In accordance to our [Terms of Service](https://rowhois.com/terms-of-service/), we reserve the right to block any user from using our service."
     elif user_id and user_id in optOut:
         await log_collector.warn(f"Blocklist user {user_id} was requested by {interaction.user.id} and denied!")
         embed.description = "This user has requested to opt-out of RoWhoIs."
@@ -308,7 +308,6 @@ async def whois(interaction: discord.Interaction, user: str, download: bool = Fa
         if banned or userId[0] == 1: tasks = [RoModules.nil_pointer(), RoModules.nil_pointer(), gUtils.safe_wrapper(RoModules.get_player_thumbnail, userId[0], "420x420", shard), gUtils.safe_wrapper(RoModules.last_online, userId[0], shard), gUtils.safe_wrapper(RoModules.get_groups, userId[0], shard), gUtils.safe_wrapper(RoModules.get_socials, userId[0], shard)]
         else: tasks = [gUtils.safe_wrapper(RoModules.get_previous_usernames, userId[0], shard), gUtils.safe_wrapper(RoModules.check_verification, userId[0], shard), gUtils.safe_wrapper(RoModules.get_player_thumbnail, userId[0], "420x420", shard), gUtils.safe_wrapper(RoModules.last_online, userId[0], shard), gUtils.safe_wrapper(RoModules.get_groups, userId[0], shard), gUtils.safe_wrapper(RoModules.get_socials, userId[0], shard)]
         previousUsernames, veriftype, userThumbnail, unformattedLastOnline, groups, (friends, followers, following) = await asyncio.gather(*tasks) # If it shows an error in your IDE, it's lying, all values are unpacked
-        groups = len(groups['data'])
         embed.set_thumbnail(url=userThumbnail)
         if banned or userId[0] == 1: veriftype, previousUsernames = None, []
         lastOnlineFormatted, joinedTimestamp = await asyncio.gather(gUtils.legacy_fancy_time(unformattedLastOnline, regex=True), gUtils.fancy_time(created))
@@ -325,7 +324,7 @@ async def whois(interaction: discord.Interaction, user: str, download: bool = Fa
         if description: embed.add_field(name="Description:", value=f"```{description.replace('```', '')}```", inline=False)
         embed.add_field(name="Joined:", value=f"{joinedTimestamp}", inline=True)
         embed.add_field(name="Last Online:", value=f"`{lastOnlineFormatted}`", inline=True)
-        embed.add_field(name="Groups:", value=f"`{groups}`", inline=True)
+        embed.add_field(name="Groups:", value=f"`{len(groups['data'])}`", inline=True)
         embed.add_field(name="Friends:", value=f"`{friends}`", inline=True)
         embed.add_field(name="Followers:", value=f"`{followers}`", inline=True)
         embed.add_field(name="Following:", value=f"`{following}`", inline=True)
@@ -349,7 +348,6 @@ async def whois(interaction: discord.Interaction, user: str, download: bool = Fa
         elif isEdited: await interaction.edit_original_response(embed=embed)
         else: await interaction.followup.send(embed=embed)
     except Exception as e: await handle_error(e, interaction, "whois", shard, "User")
-
 @client.tree.command()
 async def ownsitem(interaction: discord.Interaction, user: str, item_id: int, download: bool = False):
     """Check if a player owns a specific item"""

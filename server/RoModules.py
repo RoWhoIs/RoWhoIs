@@ -120,7 +120,7 @@ async def get_group_emblem(group: int, size: str, shard_id: int):
     elif thumbnail_url[1]["data"][0]["state"] == "Blocked": return "https://rowhois.com/blocked.png"
     else: return thumbnail_url[1]["data"][0]["imageUrl"]
 
-async def get_rolidata_from_item(rolidata, item) -> tuple[int, str, int, int, str, str, str, str, bool]:
+async def get_rolidata_from_item(rolidata, item: str) -> tuple[int, str, int, int, str, str, str, str, bool]:
     """Returns limited id, name, acronym, rap, value, demand, trend, projected, and rare"""
     demandDict = {-1: None, 0: "Terrible", 1: "Low", 2: "Normal", 3: "High", 4: "Amazing"}
     trendDict = {-1: None, 0: "Unstable", 1: "Lowering", 2: "Stable", 3: "Rising", 4: "Fluctuating"}
