@@ -40,7 +40,7 @@ def push_status(enabling: bool, webhook_token: str) -> None:
     """Pushes to the webhook the initialization status of RoWhoIs"""
     try:
         async def push(enabling: bool, webhook_token: str) -> None:
-            async with aiohttp.ClientSession() as session: await session.request("POST", webhook_token, json={"username": "RoWhoIs Status", "avatar_url": "https://rowhois.com/resources/rwi-pfp.png", "embeds": [{"title": "RoWhoIs Status", "color": 65293 if enabling else 0xFF0000, "description": f"RoWhoIs is now {'online' if enabling else 'offline'}!"}]})
+            async with aiohttp.ClientSession() as session: await session.request("POST", webhook_token, json={"username": "RoWhoIs Status", "avatar_url": "https://rowhois.com//rwi-pfp.png", "embeds": [{"title": "RoWhoIs Status", "color": 65293 if enabling else 0xFF0000, "description": f"RoWhoIs is now {'online' if enabling else 'offline'}!"}]})
         asyncio.new_event_loop().run_until_complete(push(enabling, webhook_token))
     except Exception as e: sync_logging("error", f"Failed to push to status webhook: {e}")
 
@@ -48,8 +48,8 @@ try:
     from utils import ErrorDict
     productionMode = config['RoWhoIs']['production_mode']
     webhookToken = config['Authentication']['webhook']
-    if productionMode: sync_logging("warn", "Currently running in production mode.")
-    else: sync_logging("warn", "Currently running in testing mode.")
+    if productionMode: sync_logging("warn", "Currently running in production mode. Non-failing user data will be truncated.")
+    else: sync_logging("warn", "Currently running in testing mode. All user data will be retained.")
 except KeyError:
     sync_logging("fatal", "Failed to retrieve production type. RoWhoIs will not be able to initialize.")
     exit(1)
@@ -62,7 +62,7 @@ for i in range(5): # Rerun server in event of a crash
     except RuntimeError: pass  # Occurs when exited before fully initialized
     except ErrorDict.MissingRequiredConfigs: sync_logging("fatal", f"Missing or malformed configuration options detected!")
     except Exception as e:
-        sync_logging("fatal", f"A fatal error occurred during runtime: {type(e)} | STACKTRACE: {''.join(traceback.format_exception(etype=type(e), value=e, tb=e.__traceback__))}")
+        sync_logging("fatal", f"A fatal error occurred during runtime: {type(e)} | {traceback.format_exc()}")
         if i < 4: sync_logging("warn", f"Server crash detected. Restarting server...")
 
 if productionMode: push_status(False, webhookToken)

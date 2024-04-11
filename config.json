@@ -12,7 +12,8 @@
     "opt_out": [],
     "banned_users": [],
     "banned_assets": [],
-    "admin_ids": []
+    "admin_ids": [],
+    "donors": []
   },
   "Proxying": {
     "proxying_enabled": false,

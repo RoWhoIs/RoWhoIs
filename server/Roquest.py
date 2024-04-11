@@ -12,13 +12,15 @@ lastProxy, x_csrf_token = None, ""
 def initialize(config):
     """Sets configurations for proxying. Needs to be ran before running any other function."""
     try:
-        global enableProxying, proxyUrls, proxyCredentials, logProxying, rsec
+        global enableProxying, proxyUrls, proxyCredentials, logProxying, rsec, productionMode, proxyPool
+        proxyPool = []
         enableProxying = config["Proxying"]["proxying_enabled"]
         logProxying = config["Proxying"]["log_proxying"]
         username, password = config["Proxying"]["username"], config["Proxying"]["password"]
         rsec = config["Authentication"]["roblosecurity"]
         if password == "": password = None
         proxyUrls = config["Proxying"]["proxy_urls"]
+        productionMode = config["RoWhoIs"]["production_mode"]
         if username != "": proxyCredentials = aiohttp.BasicAuth(login=username, password=password)
         else: proxyCredentials = None
         if enableProxying: loop.create_task(proxy_handler())
@@ -96,8 +98,8 @@ async def token_renewal(automated: bool = False) -> None:
     if automated:
         while True:
             try:
+                await asyncio.sleep(50)  # Recheck quickly to ensure we have a refreshed token before a command is ran
                 await token_renewal()
-                await asyncio.sleep(50) # Recheck quickly to ensure we have a refreshed token before a command is ran
             except Exception: pass
 
 loop = asyncio.get_event_loop()
@@ -110,42 +112,27 @@ async def Roquest(method: str, node: str, endpoint: str, shard_id: int = None, f
         async with aiohttp.ClientSession(cookies={".roblosecurity": rsec}, headers={"x-csrf-token": x_csrf_token}) as main_session:
             try:
                 proxy = await proxy_picker(lastProxy, False) # Moved here so on retry, switch proxies
-                await log_collector.info(f"{method.upper()} {node} [{proxy if proxy is not None else 'non-proxied'}] | {endpoint}", shard_id=shard_id)
                 lastProxy = proxy
+                logBlurb = f"{method.upper()} {node} [{proxy if proxy is not None else 'non-proxied'}] {'| ' + endpoint if endpoint != '' else endpoint}"
+                if not productionMode: await log_collector.info(f"{logBlurb}", shard_id=shard_id) # PRIVACY FILTER
                 try:
                     async with main_session.request(method, f"https://{node}.roblox.com/{endpoint}", proxy=proxy, proxy_auth=proxyCredentials, timeout=4, **kwargs) as resp:
                         if resp.status == 200: return resp.status, await resp.json()
-                        elif resp.status in [404, 400]: # Standard not exist, disregard retries
-                            await log_collector.warn(f"{method.upper()} {node} [{proxy if proxy is not None else 'non-proxied'}] | {endpoint}: {resp.status}", shard_id=shard_id)
-                            return resp.status, await resp.json()
+                        await log_collector.warn(f"{logBlurb}: {resp.status} {('- ' + str(retry + 1) + '/3') if failretry else ''}", shard_id=shard_id)
+                        if resp.status in [404, 400]: return resp.status, await resp.json() # Standard not exist, disregard retries
                         elif resp.status == 403:
-                            await log_collector.warn(f"{method.upper()} {node} [{proxy if proxy is not None else 'non-proxied'}] | {endpoint}: {resp.status} {('- ' + str(retry + 1) + '/3') if failretry else ''}", shard_id=shard_id)
                             if not failretry: return resp.status, await resp.json()
                             await token_renewal()
                         elif resp.status == 429: await asyncio.sleep(2) # Proxy changed per retry, so proxy_picker not needed here
-                        else: await log_collector.warn(f"{method.upper()} {node} [{proxy if proxy is not None else 'non-proxied'}] | {endpoint}: {resp.status}. Retrying... {retry + 1}/3", shard_id=shard_id)
                         if not failretry: break
                 except Exception as e:
-                    proxy = await proxy_picker(proxy, True)
-                    await log_collector.error(f"{method.upper()} {node} [{proxy if proxy is not None else 'non-proxied'}] | {endpoint}: {e if e != '' else 'Connection timed out.'}", shard_id=shard_id)
+                    await proxy_picker(proxy, True)
+                    await log_collector.error(f"{logBlurb}: {type(e)} |  {e if not isinstance(e, asyncio.exceptions.TimeoutError) else 'Timed out.'}", shard_id=shard_id)
             except Exception as e:
-                await log_collector.error(f"{method.upper()} {node} [{proxy if proxy is not None else 'non-proxied'}] | {endpoint}: Severe error: {e}", shard_id=shard_id)
+                await log_collector.error(f"{logBlurb}: Severe error: {type(e)} | {e}", shard_id=shard_id)
                 raise ErrorDict.UnexpectedServerResponseError
-    await log_collector.error(f"{method.upper()} {node} [{proxy if proxy is not None else 'non-proxied'}] | {endpoint}: Failed after {retry + 1} attempt{'s' if retry >= 1 else ''}.", shard_id=shard_id)
+    await log_collector.error(f"{logBlurb}: Failed after {retry + 1} attempt{'s' if retry >= 1 else ''}.", shard_id=shard_id)
     return resp.status, {"error": "Failed to retrieve data"}
-
-async def RoliData():
-    """Fetches Rolimons limited data"""
-    async with aiohttp.ClientSession(cookies={".ROBLOSECURITY": rsec}) as session:
-        for retry in range(3):
-            async with session.get("https://www.rolimons.com/itemapi/itemdetails") as resp:
-                if resp.status == 200: return await resp.json()
-                elif resp.status == 429:
-                    await log_collector.warn(f"GET rolimons | itemdetails: {resp.status} (WAIT 5s) {retry + 1}/3")
-                    await asyncio.sleep(5)
-                else: await log_collector.warn(f"GET rolimons | itemdetails: {resp.status} {retry + 1}/3")
-        await log_collector.error(f"GET rolimons | itemdetails: Failed after 3 attempts.")
-        raise ErrorDict.UnexpectedServerResponseError
 
 async def GetFileContent(asset_id: int, version: int = None, shard_id: int = None) -> bytes:
     """Retrieves large non-json assets"""
@@ -164,18 +151,31 @@ async def GetFileContent(asset_id: int, version: int = None, shard_id: int = Non
                     if (await resp.json())['errors'][0]['message'] == 'Asset is not approved for the requester': raise ErrorDict.AssetNotAvailable
                 elif resp.status in [404, 400]: raise ErrorDict.DoesNotExistError
                 else:
+                    proxy = await proxy_picker(lastProxy, True)
                     await log_collector.warn(f"GETFILECONTENT [{proxy if proxy is not None else 'non-proxied'}] | {asset_id}: {resp.status}", shard_id=shard_id)
                     raise ErrorDict.UnexpectedServerResponseError
     finally: # Hold the connection hostage until we FINISH downloading THE FILE.
         if resp: await resp.release()
 
+async def RoliData():
+    """Fetches Rolimons limited data"""
+    async with aiohttp.ClientSession() as session:
+        for retry in range(3):
+            async with session.get("https://www.rolimons.com/itemapi/itemdetails") as resp:
+                if resp.status == 200: return await resp.json()
+                elif resp.status == 429:
+                    await log_collector.warn(f"GET rolimons | itemdetails: {resp.status} (WAIT 5s) {retry + 1}/3")
+                    await asyncio.sleep(5)
+                else: await log_collector.warn(f"GET rolimons | itemdetails: {resp.status} {retry + 1}/3")
+        await log_collector.error(f"GET rolimons | itemdetails: Failed after 3 attempts.")
+        raise ErrorDict.UnexpectedServerResponseError
+
 async def heartbeat() -> bool:
     """Determines if Roblox is OK by checking if the API is up, returns True if alive"""
     try:
-        async with aiohttp.ClientSession(cookies={".roblosecurity": rsec}) as main_session:
-            async with main_session.get("https://users.roblox.com/") as resp:
-                if resp.status == 200: return True
+        data = await Roquest("GET", "users", "")
+        if data[0] == 200: return True
         return False
     except Exception as e:
-        await log_collector.warn(f"Heartbeat encountered an error: {e}")
+        await log_collector.warn(f"Heartbeat error: {e}")
         return False
