@@ -162,9 +162,7 @@ async def RoliData():
     async with aiohttp.ClientSession() as session:
         for retry in range(3):
             async with session.get("https://www.rolimons.com/itemapi/itemdetails") as resp:
-                if resp.status == 200:
-                    await log_collector.info(f"GET rolimons | itemdetails", shard_id=None)
-                    return await resp.json()
+                if resp.status == 200: return await resp.json()
                 elif resp.status == 429:
                     await log_collector.warn(f"GET rolimons | itemdetails: {resp.status} (WAIT 5s) {retry + 1}/3")
                     await asyncio.sleep(5)

@@ -48,8 +48,8 @@ try:
     from utils import ErrorDict
     productionMode = config['RoWhoIs']['production_mode']
     webhookToken = config['Authentication']['webhook']
-    if productionMode: sync_logging("warn", "Currently running in production mode.")
-    else: sync_logging("warn", "Currently running in testing mode.")
+    if productionMode: sync_logging("warn", "Currently running in production mode. Non-failing user data will be truncated.")
+    else: sync_logging("warn", "Currently running in testing mode. All user data will be retained.")
 except KeyError:
     sync_logging("fatal", "Failed to retrieve production type. RoWhoIs will not be able to initialize.")
     exit(1)
