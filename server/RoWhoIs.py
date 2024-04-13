@@ -216,7 +216,7 @@ async def about(interaction: discord.Interaction):
     """Shows detailed information about RoWhoIs"""
     if await check_cooldown(interaction, "low"): return
     embed = discord.Embed(color=3451360)
-    if not (await validate_user(interaction, embed)): return
+    if not (await validate_user(interaction, embed, requires_connection=False)): return
     await interaction.response.defer(ephemeral=False)
     shard = await gUtils.shard_metrics(interaction)
     try:
@@ -254,12 +254,10 @@ async def userid(interaction: discord.Interaction, username: str, download: bool
         except Exception as e: 
             if await handle_error(e, interaction, "userid", shard, "User"): return
         if not (await validate_user(interaction, embed, user_id[0])): return
-        if user_id[1] == user_id[2]: embed.title = f"{user_id[1]} {emojiTable.get('staff') if user_id[0] in staffIds else emojiTable.get('verified') if user_id[3] else ''}"
-        else: embed.title = f"{user_id[1]} ({user_id[2]}) {emojiTable.get('staff') if user_id[0] in staffIds else emojiTable.get('verified') if user_id[3] else ''}"
-        embed.description = f"**User ID:** `{user_id[0]}`"
-        embed.url = f"https://www.roblox.com/users/{user_id[0]}/profile"
-        user_thumbnail = await RoModules.get_player_bust(user_id[0], "420x420", shard)
-        if user_thumbnail: embed.set_thumbnail(url=user_thumbnail)
+        bust, headshot = await asyncio.gather(RoModules.get_player_bust(user_id[0], "420x420", shard), RoModules.get_player_headshot(user_id[0],  shard))
+        embed.set_author(name=f"{user_id[1]} { '(' + user_id[2] + ')' if user_id[1] != user_id[2] else ''}", icon_url=bust, url=f"https://www.roblox.com/users/{user_id[0]}/profile")
+        embed.description = f"{emojiTable.get('staff') if user_id[0] in staffIds else ''} {emojiTable.get('donor') if user_id[0] in whoIsDonors else ''} {emojiTable.get('verified') if user_id[3] else ''}"
+        embed.add_field(name="User ID:", value=f"`{user_id[0]}`", inline=True)
         embed.colour = 0x00FF00
         if download:
             csv = "username, id\n" + "\n".join([f"{user_id[1]}, {user_id[0]}"])

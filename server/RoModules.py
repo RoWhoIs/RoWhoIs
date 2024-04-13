@@ -50,12 +50,6 @@ async def last_online(user_id: int, shard_id: int):
     await general_error_handler(last_data[0])
     return last_data[1]["lastOnlineTimestamps"][0]["lastOnline"]
 
-async def get_player_thumbnail(user_id: int, size: str, shard_id: int):
-    """Retrieves a full-body thumbnail of a player's avatar"""
-    thumbnail_url = await Roquest.Roquest("GET", "thumbnails", f"v1/users/avatar?userIds={user_id}&size={size}&format=Png&isCircular=false", shard_id=shard_id, failretry=True)
-    if thumbnail_url[0] != 200: return "https://rowhois.com/not-available.png"
-    elif thumbnail_url[1]["data"][0]["state"] == "Blocked": return "https://rowhois.com/blocked.png"
-    else: return thumbnail_url[1]["data"][0]["imageUrl"]
 
 async def get_player_profile(user_id: int, shard_id: int) -> tuple[str, str, bool, str, str, bool]:
     """Returns description, joined, banned, username, display name, verified"""
@@ -106,6 +100,13 @@ async def get_player_headshot(user_id: int, shard_id: int):
     elif thumbnail_url[1]["data"][0]["state"] == "Blocked": return "https://rowhois.com/blocked.png"
     else: return thumbnail_url[1]["data"][0]["imageUrl"]
 
+async def get_player_thumbnail(user_id: int, size: str, shard_id: int):
+    """Retrieves a full-body thumbnail of a player's avatar"""
+    thumbnail_url = await Roquest.Roquest("GET", "thumbnails", f"v1/users/avatar?userIds={user_id}&size={size}&format=Png&isCircular=false", shard_id=shard_id, failretry=True)
+    if thumbnail_url[0] != 200: return "https://rowhois.com/not-available.png"
+    elif thumbnail_url[1]["data"][0]["state"] == "Blocked": return "https://rowhois.com/blocked.png"
+    else: return thumbnail_url[1]["data"][0]["imageUrl"]
+
 async def get_badge_thumbnail(badge_id: int, shard_id: int):
     thumbnail_url = await Roquest.Roquest("GET", "thumbnails", f"v1/badges/icons?badgeIds={badge_id}&size=150x150&format=Png&isCircular=false", shard_id=shard_id, failretry=True)
     if thumbnail_url[0] != 200: return "https://rowhois.com/not-available.png"
@@ -114,6 +115,13 @@ async def get_badge_thumbnail(badge_id: int, shard_id: int):
 
 async def get_group_emblem(group: int, size: str, shard_id: int):
     thumbnail_url = await Roquest.Roquest("GET", "thumbnails", f"v1/groups/icons?groupIds={group}&size={size}&format=Png&isCircular=false", shard_id=shard_id, failretry=True)
+    if thumbnail_url[0] != 200: return "https://rowhois.com/not-available.png"
+    elif thumbnail_url[1]["data"][0]["state"] == "Blocked": return "https://rowhois.com/blocked.png"
+    else: return thumbnail_url[1]["data"][0]["imageUrl"]
+
+async def get_item_thumbnail(item_id: int, size: str, shard_id: int):
+    """Retrieves the thumbnail of a given item"""
+    thumbnail_url = await Roquest.Roquest("GET", "thumbnails", f"v1/assets?assetIds={item_id}&returnPolicy=PlaceHolder&size={size}&format=Png&isCircular=false", shard_id=shard_id, failretry=True)
     if thumbnail_url[0] != 200: return "https://rowhois.com/not-available.png"
     elif thumbnail_url[1]["data"][0]["state"] == "Blocked": return "https://rowhois.com/blocked.png"
     else: return thumbnail_url[1]["data"][0]["imageUrl"]
@@ -131,7 +139,7 @@ async def get_membership(user: int, shard_id: int) -> tuple[bool, bool, bool, bo
     """Returns hasPremium, ownedBc, ownedTbc, and ownedObc"""
     checkBc = await Roquest.Roquest("GET", "inventory", f"v1/users/{user}/items/4/24814192", shard_id=shard_id)
     await general_error_handler(checkBc[0])
-    checkPremium, checkTbc, checkObc = await asyncio.gather(Roquest.Roquest("GET", "premiumfeatures", f"v1/users/{user}/validate-membership", shard_id=shard_id), Roquest.Roquest("GET", "inventory", f"v1/users/{user}/items/4/11895536", shard_id=shard_id), Roquest.Roquest("GET", "inventory", f"v1/users/{user}/items/4/17407931", shard_id=shard_id))
+    checkPremium, checkTbc, checkObc = await asyncio.gather(Roquest.Roquest("GET", "premiumfeatures", f"v1/users/{user}/validate-membership", shard_id=shard_id, bypass_proxy=True), Roquest.Roquest("GET", "inventory", f"v1/users/{user}/items/4/11895536", shard_id=shard_id), Roquest.Roquest("GET", "inventory", f"v1/users/{user}/items/4/17407931", shard_id=shard_id))
     await asyncio.gather(general_error_handler(checkPremium[0]), general_error_handler(checkObc[0]), general_error_handler(checkTbc[0]))
     ownedBc = any("type" in item for item in checkBc[1].get("data", []))
     ownedTbc = any("type" in item for item in checkTbc[1].get("data", []))
@@ -160,7 +168,7 @@ async def get_group(group: int, shard_id: int) -> tuple[str, str, str, bool, lis
 
 async def validate_username(username: str, shard_id: int) -> tuple[int, str]:
     """Validate if a username is available"""
-    data = await Roquest.Roquest("POST", "auth", f"v2/usernames/validate", json={"username": username, "birthday": "2000-01-01T00:00:00.000Z", "context": 0}, shard_id=shard_id, failretry=True)
+    data = await Roquest.Roquest("POST", "auth", f"v2/usernames/validate", json={"username": username, "birthday": "2000-01-01T00:00:00.000Z", "context": 0}, shard_id=shard_id, bypass_proxy=True, failretry=True)
     await general_error_handler(data[0])
     return data[1]['code'], data[1]['message']
 
