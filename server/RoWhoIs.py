@@ -1,6 +1,6 @@
 from server import Roquest, RoModules
 from utils import logger, ErrorDict, gUtils
-import asyncio, discord, io, aiohttp, signal, datetime, inspect
+import asyncio, discord, io, aiohttp, signal, datetime, inspect, time
 from pathlib import Path
 from typing import Any, Optional
 
@@ -182,6 +182,7 @@ async def on_app_command_error(interaction: discord.Interaction, error: discord.
     else:
         await log_collector.critical(f"Unexpected error occured during core command function: {type(error)}, {error} invoked by {interaction.user.id}")
         await interaction.followup.send(f"Whoops! Looks like we encountered an unexpected error. We've reported this to our dev team and we'll fix it shortly!", ephemeral=True)
+
 @client.tree.command()
 async def help(interaction: discord.Interaction):
     """List all of the commands RoWhoIs supports & what they do"""
@@ -257,7 +258,7 @@ async def userid(interaction: discord.Interaction, username: str, download: bool
         else: embed.title = f"{user_id[1]} ({user_id[2]}) {emojiTable.get('staff') if user_id[0] in staffIds else emojiTable.get('verified') if user_id[3] else ''}"
         embed.description = f"**User ID:** `{user_id[0]}`"
         embed.url = f"https://www.roblox.com/users/{user_id[0]}/profile"
-        user_thumbnail = await RoModules.get_player_headshot(user_id[0], "420x420", shard)
+        user_thumbnail = await RoModules.get_player_bust(user_id[0], "420x420", shard)
         if user_thumbnail: embed.set_thumbnail(url=user_thumbnail)
         embed.colour = 0x00FF00
         if download:
@@ -282,7 +283,7 @@ async def username(interaction: discord.Interaction, userid: int, download: bool
         else: embed.title = f"{username[0]} ({username[1]}) {emojiTable.get('staff') if userid in staffIds else emojiTable.get('verified') if username[2] else ''}"
         embed.description = f"**Username:** `{username[0]}`"
         embed.url = f"https://www.roblox.com/users/{userid}/profile"
-        user_thumbnail = await RoModules.get_player_headshot(userid, "420x420", shard)
+        user_thumbnail = await RoModules.get_player_bust(userid, "420x420", shard)
         if user_thumbnail: embed.set_thumbnail(url=user_thumbnail)
         embed.colour = 0x00FF00
         if download:
@@ -305,14 +306,14 @@ async def whois(interaction: discord.Interaction, user: str, download: bool = Fa
         try: description, created, banned, name, displayname, verified = await RoModules.get_player_profile(userId[0], shard)
         except Exception as e:
             if await handle_error(e, interaction, "whois", shard, "User"): return
-        if banned or userId[0] == 1: tasks = [RoModules.nil_pointer(), RoModules.nil_pointer(), gUtils.safe_wrapper(RoModules.get_player_thumbnail, userId[0], "420x420", shard), gUtils.safe_wrapper(RoModules.last_online, userId[0], shard), gUtils.safe_wrapper(RoModules.get_groups, userId[0], shard), gUtils.safe_wrapper(RoModules.get_socials, userId[0], shard)]
-        else: tasks = [gUtils.safe_wrapper(RoModules.get_previous_usernames, userId[0], shard), gUtils.safe_wrapper(RoModules.check_verification, userId[0], shard), gUtils.safe_wrapper(RoModules.get_player_thumbnail, userId[0], "420x420", shard), gUtils.safe_wrapper(RoModules.last_online, userId[0], shard), gUtils.safe_wrapper(RoModules.get_groups, userId[0], shard), gUtils.safe_wrapper(RoModules.get_socials, userId[0], shard)]
-        previousUsernames, veriftype, userThumbnail, unformattedLastOnline, groups, (friends, followers, following) = await asyncio.gather(*tasks) # If it shows an error in your IDE, it's lying, all values are unpacked
+        if banned or userId[0] == 1: tasks = [RoModules.nil_pointer(), RoModules.nil_pointer(), gUtils.safe_wrapper(RoModules.get_player_thumbnail, userId[0], "420x420", shard), gUtils.safe_wrapper(RoModules.last_online, userId[0], shard), gUtils.safe_wrapper(RoModules.get_groups, userId[0], shard), gUtils.safe_wrapper(RoModules.get_socials, userId[0], shard), gUtils.safe_wrapper(RoModules.get_player_headshot, userId[0], shard)]
+        else: tasks = [gUtils.safe_wrapper(RoModules.get_previous_usernames, userId[0], shard), gUtils.safe_wrapper(RoModules.check_verification, userId[0], shard), gUtils.safe_wrapper(RoModules.get_player_thumbnail, userId[0], "420x420", shard), gUtils.safe_wrapper(RoModules.last_online, userId[0], shard), gUtils.safe_wrapper(RoModules.get_groups, userId[0], shard), gUtils.safe_wrapper(RoModules.get_socials, userId[0], shard), gUtils.safe_wrapper(RoModules.get_player_headshot, userId[0], shard)]
+        previousUsernames, veriftype, userThumbnail, unformattedLastOnline, groups, (friends, followers, following), userHeadshot = await asyncio.gather(*tasks) # If it shows an error in your IDE, it's lying, all values are unpacked
+        embed.description = f"{emojiTable.get('staff') if userId[0] in staffIds else ''} {emojiTable.get('donor') if userId[0] in whoIsDonors else ''} {emojiTable.get('verified') if verified else ''}"
         embed.set_thumbnail(url=userThumbnail)
+        embed.set_author(name=f"{name} {'(' + displayname + ')' if displayname != name else ''}", url=f"https://www.roblox.com/users/{userId[0]}/profile", icon_url=userHeadshot)
         if banned or userId[0] == 1: veriftype, previousUsernames = None, []
         lastOnlineFormatted, joinedTimestamp = await asyncio.gather(gUtils.legacy_fancy_time(unformattedLastOnline, regex=True), gUtils.fancy_time(created))
-        if name == displayname: embed.title = f"{name} {emojiTable.get('staff') if userId[0] in staffIds else emojiTable.get('verified') if verified else ''} {emojiTable.get('donor') if userId[0] in whoIsDonors else ''}"
-        else: embed.title = f"{name} ({displayname}) {emojiTable.get('staff') if userId[0] in staffIds else emojiTable.get('verified') if verified else ''} {emojiTable.get('donor') if userId[0] in whoIsDonors else ''}"
         embed.colour = 0x00ff00
         embed.url = f"https://www.roblox.com/users/{userId[0]}/profile" if not banned else None
         embed.add_field(name="User ID:", value=f"`{userId[0]}`", inline=True)
@@ -333,11 +334,9 @@ async def whois(interaction: discord.Interaction, user: str, download: bool = Fa
         else: whoData = f"id, username, nickname, verified, rowhois_staff, account_status, joined, last_online, verified_email, groups, friends, followers, following, previous_usernames, description\n{userId[0]}, {userId[1]}, {displayname}, {verified}, {userId[0] in staffIds}, {'Terminated' if banned else 'Okay' if not banned else 'None'}, {created}, {unformattedLastOnline}, {'None' if veriftype == -1 else 'None' if veriftype == 0 else 'Hat' if veriftype == 1 else 'Sign' if veriftype == 2 else 'Unverified' if veriftype == 3 else 'Both' if veriftype == 4 else 'None'}, {groups}, {friends}, {followers}, {following}, None, {description.replace(',', '').replace(nlChar, '     ') if description else 'None'}\n"
         whoData = (discord.File(io.BytesIO(whoData.encode()), filename=f"rowhois-rowhois-{userId[0]}.csv"))
         if not banned and userId[0] != 1:
-            isEdited = True
-            embed.description = "***Currently calculating more statistics...***"
+            isEdited, iniTS = True, time.time()
             if download: await interaction.followup.send(embed=embed, file=whoData)
             else: await interaction.followup.send(embed=embed)
-            embed.description = None
             try: privateInventory, totalRap, totalValue, limiteds = await RoModules.get_limiteds(userId[0], roliData, shard) # VERY slow when user has a lot of limiteds
             except Exception: totalRap, totalValue = "Failed to fetch", "Failed to fetch"
             embed.add_field(name="Privated Inventory:", value=f"`{privateInventory if privateInventory is not None else 'Failed to fetch'}`", inline=True)
@@ -345,7 +344,10 @@ async def whois(interaction: discord.Interaction, user: str, download: bool = Fa
                 embed.add_field(name="Total RAP:", value=f"`{totalRap}`", inline=True)
                 embed.add_field(name="Total Value:", value=f"`{totalValue}`", inline=True)
         if download and not isEdited: await interaction.followup.send(embed=embed, file=whoData)
-        elif isEdited: await interaction.edit_original_response(embed=embed)
+        elif isEdited:
+            time_diff = time.time() - iniTS
+            if time_diff < 0.75: await asyncio.sleep(0.75 - time_diff) # 0.75 to prevent ratelimiting by Discord when inv takes no time to calc
+            await interaction.edit_original_response(embed=embed)
         else: await interaction.followup.send(embed=embed)
     except Exception as e: await handle_error(e, interaction, "whois", shard, "User")
 @client.tree.command()
@@ -700,7 +702,7 @@ async def robloxbadges(interaction: discord.Interaction, user: str):
             badge_name = badges[1].get(badge)
             if badge_name: descriptor += f"{emojiTable.get(str(badge_name).lower())} `{badge_name}`\n"
         if descriptor == "":  descriptor = "This user has no Roblox badges."
-        embed.set_thumbnail(url=await RoModules.get_player_headshot(user_id[0], "420x420", shard))
+        embed.set_thumbnail(url=await RoModules.get_player_bust(user_id[0], "420x420", shard))
         embed.colour = 0x00FF00
         embed.title = f"{user_id[1]}'s Roblox Badges:"
         embed.description = descriptor

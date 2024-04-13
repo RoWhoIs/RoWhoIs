@@ -57,14 +57,6 @@ async def get_player_thumbnail(user_id: int, size: str, shard_id: int):
     elif thumbnail_url[1]["data"][0]["state"] == "Blocked": return "https://rowhois.com/blocked.png"
     else: return thumbnail_url[1]["data"][0]["imageUrl"]
 
-
-async def get_item_thumbnail(item_id: int, size:str, shard_id: int):
-    """Retrieves the thumbnail of a given item"""
-    thumbnail_url = await Roquest.Roquest("GET", "thumbnails", f"v1/assets?assetIds={item_id}&returnPolicy=PlaceHolder&size={size}&format=Png&isCircular=false", shard_id=shard_id, failretry=True)
-    if thumbnail_url[0] != 200: return "https://rowhois.com/not-available.png"
-    elif thumbnail_url[1]["data"][0]["state"] == "Blocked": return "https://rowhois.com/blocked.png"
-    else: return thumbnail_url[1]["data"][0]["imageUrl"]
-
 async def get_player_profile(user_id: int, shard_id: int) -> tuple[str, str, bool, str, str, bool]:
     """Returns description, joined, banned, username, display name, verified"""
     desc = await Roquest.Roquest("GET", "users", f"v1/users/{user_id}", shard_id=shard_id)
@@ -102,12 +94,18 @@ async def get_groups(user_id: int, shard_id: int):
     await general_error_handler(group_data[0])
     return group_data[1]
     
-async def get_player_headshot(user_id: int, size: str, shard_id: int):
+async def get_player_bust(user_id: int, size: str, shard_id: int):
     thumbnail_url = await Roquest.Roquest("GET", "thumbnails", f"v1/users/avatar-headshot?userIds={user_id}&size={size}&format=Png&isCircular=false", shard_id=shard_id, failretry=True)
     if thumbnail_url[0] != 200: return "https://rowhois.com/not-available.png"
     elif thumbnail_url[1]["data"][0]["state"] == "Blocked": return "https://rowhois.com/blocked.png"
     else: return thumbnail_url[1]["data"][0]["imageUrl"]
-    
+
+async def get_player_headshot(user_id: int, shard_id: int):
+    thumbnail_url = await Roquest.Roquest("GET", "thumbnails", f"v1/users/avatar-headshot?userIds={user_id}&size=60x60&format=Png&isCircular=true", shard_id=shard_id, failretry=True)
+    if thumbnail_url[0] != 200: return "https://rowhois.com/not-available.png"
+    elif thumbnail_url[1]["data"][0]["state"] == "Blocked": return "https://rowhois.com/blocked.png"
+    else: return thumbnail_url[1]["data"][0]["imageUrl"]
+
 async def get_badge_thumbnail(badge_id: int, shard_id: int):
     thumbnail_url = await Roquest.Roquest("GET", "thumbnails", f"v1/badges/icons?badgeIds={badge_id}&size=150x150&format=Png&isCircular=false", shard_id=shard_id, failretry=True)
     if thumbnail_url[0] != 200: return "https://rowhois.com/not-available.png"
