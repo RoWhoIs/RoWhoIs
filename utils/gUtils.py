@@ -13,37 +13,16 @@ log_collector = logger.AsyncLogCollector("logs/main.log")
 async def fancy_time(initstamp: str, ret_type: str = "R") -> str:
     """Converts a datetime string to a Discord relative time format"""
     try:
-        match = re.match(r"(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(\.\d+)?Z", initstamp)
-        if match:
-            year, month, day, hour, minute, second, microsecond = match.groups()
-            lastOnlineDatetime = datetime.datetime(int(year), int(month), int(day), int(hour), int(minute), int(second), int(float(microsecond) * 1_000_000) if microsecond else 0)
-            return f"<t:{int(time.mktime(lastOnlineDatetime.timetuple()))}:{ret_type}>"
-        else: return initstamp
+        if not isinstance(initstamp, datetime.datetime):
+            match = re.match(r"(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(\.\d+)?Z", initstamp)
+            if match:
+                year, month, day, hour, minute, second, microsecond = match.groups()
+                lastOnlineDatetime = datetime.datetime(int(year), int(month), int(day), int(hour), int(minute), int(second), int(float(microsecond)) if microsecond else 0, tzinfo=datetime.timezone.utc)
+                return f"<t:{int(lastOnlineDatetime.timestamp())}:{ret_type}>"
+        else: return f"<t:{int(initstamp.replace(tzinfo=datetime.timezone.utc).timestamp())}:{ret_type}>"
     except Exception as e:
         await log_collector.error(f"Error formatting time: {e} | Returning fallback data: {initstamp}")
         return initstamp
-
-async def legacy_fancy_time(timestamp: datetime.time, regex: bool = False) -> str:
-    """Legacy fancy time used for raw datetime formats without the use of Discord's relative time formatting"""
-    try:
-        if regex:
-            match = re.match(r"(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(\.\d+)?Z", timestamp)
-            if match:
-                year, month, day, hour, minute, second, microsecond = match.groups()
-                timestamp = datetime.datetime(int(year), int(month), int(day), int(hour), int(minute), int(second), int(float(microsecond) * 1_000_000) if microsecond else 0)
-            else: return timestamp
-        timeDifference = datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None) - timestamp
-        timeUnits = [("year", 12, timeDifference.days // 365), ("month", 1, timeDifference.days // 30),  ("week", 7, timeDifference.days // 7), ("day", 1, timeDifference.days), ("hour", 60, timeDifference.seconds // 3600), ("minute", 60, timeDifference.seconds // 60), ("second", 1, timeDifference.seconds)]
-        for unit, _, value in timeUnits:
-            if value > 0:
-                lastOnlineFormatted = f"{value} {unit + 's' if value != 1 else unit} ago"
-                break
-        else: lastOnlineFormatted = f"{timeDifference.seconds} {'second' if timeDifference.seconds == 1 else 'seconds'} ago"
-        lastOnlineFormatted += f" ({timestamp.strftime('%m/%d/%Y %H:%M:%S')})"
-        return lastOnlineFormatted
-    except Exception as e:
-        await log_collector.error(f"Error formatting time: {e} | Returning fallback data: {timestamp}")
-        return timestamp
 
 class ShardAnalytics:
     def __init__(self, shard_count: int, init_shown: bool): self.shard_count, self.init_shown = shard_count, init_shown
