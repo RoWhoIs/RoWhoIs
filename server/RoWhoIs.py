@@ -731,7 +731,11 @@ async def asset(interaction: discord.Interaction, asset: int, version: int = 1):
             embed.description = "The asset creator has requested for this asset to be removed from RoWhoIs."
             await interaction.followup.send(embed=embed)
             return
-        asset = await RoModules.fetch_asset(asset, shard, location="asset", version=version, filetype="rbxm")
+        try: asset = await RoModules.fetch_asset(asset, shard, location="asset", version=version, filetype="rbxm")
+        except ErrorDict.AssetNotAvailable:
+            embed.description = "Cannot fetch moderated assets."
+            await interaction.followup.send(embed=embed)
+            return
         if not asset:
             embed.description = "This asset does not exist."
             await interaction.followup.send(embed=embed)
