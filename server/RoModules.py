@@ -5,7 +5,7 @@ RoWhoIs modules library. If a roquest is likely to be reused multiple times thro
 import asyncio, aiofiles, re, io
 from typing import Union, List, Dict
 from server import Roquest
-from utils import ErrorDict, gUtils
+from utils import ErrorDict, gUtils, typedefs
 
 async def general_error_handler(data: int, expectedresponsecode: int = 200) -> None:
     """Will throw an error when data doesn't match requirements"""
@@ -15,6 +15,15 @@ async def general_error_handler(data: int, expectedresponsecode: int = 200) -> N
     elif data == 409: raise ErrorDict.MismatchedDataError
     elif data == 429: raise ErrorDict.RatelimitedError
     elif data != expectedresponsecode: raise ErrorDict.UnexpectedServerResponseError
+
+async def handle_usertype(user: Union[int, str], shard_id: int) -> typedefs.User:
+    """Handles a user type and returns a User object containing id, name, nickname, and verified"""
+    if isinstance(user, int):
+        offload = await convert_to_username(user, shard_id)
+        return typedefs.User(id=user, username=offload[0], nickname=offload[1], verified=offload[2])
+    elif isinstance(user, str):
+        offload = await convert_to_id(user, shard_id)
+        return typedefs.User(id=offload[0], username=offload[1], nickname=offload[2], verified=offload[3])
 
 async def convert_to_id(username: str, shard_id: int) -> tuple[int, str, str, bool]:
     """Returns user id, username, display name, verified badge"""

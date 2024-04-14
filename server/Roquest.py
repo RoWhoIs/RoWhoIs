@@ -11,11 +11,11 @@ log_collector = AsyncLogCollector("logs/main.log")
 def initialize(config):
     """Sets configurations for proxying. Needs to be ran before running any other function."""
     try:
-        global rsec, productionMode, globProxies, BaseUserAuth, currentProxy
+        global rsec, productionMode, globProxies, BaseUserAuth, currentProxy, poolProxies
         globProxies = typedefs.Proxies(config["Proxying"]["proxying_enabled"], config["Proxying"]["proxy_urls"], config["Proxying"]["username"], config["Proxying"]["password"], config["Proxying"]["log_proxying"])
         rsec, productionMode = config["Authentication"]["roblosecurity"], config["RoWhoIs"]["production_mode"]
         BaseUserAuth = typedefs.UserAuth(config["Authentication"]["roblosecurity"], "")
-        currentProxy = typedefs.Proxy(None)
+        currentProxy, poolProxies = typedefs.Proxy(None), typedefs.Proxies(globProxies.enabled, [])
         if globProxies.enabled: loop.create_task(proxy_handler())
         loop.create_task(validate_cookie())
     except KeyError: raise ErrorDict.MissingRequiredConfigs
@@ -96,17 +96,16 @@ async def Roquest(method: str, node: str, endpoint: str, shard_id: int = None, f
         async with aiohttp.ClientSession(cookies={".roblosecurity": BaseUserAuth.token} if bypass_proxy else {}, headers={"x-csrf-token": BaseUserAuth.csrf} if bypass_proxy else {}) as main_session:
             try:
                 if not bypass_proxy: await proxy_picker()
-                logBlurb = f"{method.upper()} {node} [{'non-proxied'}] {'| ' + endpoint if endpoint != '' else endpoint}"
+                logBlurb = f"{method.upper()} {node} [{currentProxy.ip if currentProxy.ip is not None and not bypass_proxy else 'non-proxied'}] {'| ' + endpoint if endpoint != '' else endpoint}"
                 if not productionMode: await log_collector.info(f"{logBlurb}", shard_id=shard_id) # PRIVACY FILTER
                 try:
-                    async with main_session.request(method.lower(), f"https://{node}.roblox.com/{endpoint}", timeout=4, proxy=currentProxy.ip, proxy_auth=globProxies.auth, **kwargs) as resp:
+                    async with main_session.request(method.lower(), f"https://{node}.roblox.com/{endpoint}", timeout=4, proxy=currentProxy.ip if not bypass_proxy else None, proxy_auth=globProxies.auth if not bypass_proxy else None, **kwargs) as resp:
                         if resp.status == 200: return resp.status, await resp.json()
                         await log_collector.warn(f"{logBlurb}: {resp.status} {('- ' + str(retry + 1) + '/3') if failretry else ''}", shard_id=shard_id)
                         if resp.status in [404, 400]: return resp.status, await resp.json() # Standard not exist, disregard retries
                         elif resp.status == 403:
                             if not failretry: return resp.status, await resp.json()
                             await token_renewal()
-                        elif resp.status == 429: await asyncio.sleep(2)
                         if not failretry: break
                 except Exception as e:
                     await proxy_picker(True)
@@ -121,9 +120,10 @@ async def GetFileContent(asset_id: int, version: int = None, shard_id: int = Non
     """Retrieves large non-json assets"""
     try:
         await proxy_picker()
-        await log_collector.info(f"GETFILECONTENT [{'non-proxied'}] | {asset_id}", shard_id=shard_id)
+        logBlurb = f"GETFILECONTENT [{currentProxy.ip if currentProxy.ip is not None else 'non-proxied'}] | {asset_id}"
+        if not productionMode: await log_collector.info(logBlurb, shard_id=shard_id)
         async with aiohttp.ClientSession() as main_session:
-            async with main_session.request("GET", f"https://assetdelivery.roblox.com/v1/asset/?id={asset_id}&version={version if version is not None else ''}") as resp:
+            async with main_session.request("GET", f"https://assetdelivery.roblox.com/v1/asset/?id={asset_id}&version={version if version is not None else ''}", proxy=currentProxy.ip, proxy_auth=globProxies.auth) as resp:
                 if resp.status == 200:
                     content = await resp.read()
                     return content
@@ -132,7 +132,7 @@ async def GetFileContent(asset_id: int, version: int = None, shard_id: int = Non
                     if (await resp.json())['errors'][0]['message'] == 'Asset is not approved for the requester': raise ErrorDict.AssetNotAvailable
                 elif resp.status in [404, 400]: raise ErrorDict.DoesNotExistError
                 else:
-                    await log_collector.warn(f"GETFILECONTENT [{'non-proxied'}] | {asset_id}: {resp.status}", shard_id=shard_id)
+                    await log_collector.warn(f"{logBlurb}: {resp.status}", shard_id=shard_id)
                     raise ErrorDict.UnexpectedServerResponseError
     finally: # Hold the connection hostage until we FINISH downloading THE FILE.
         if resp: await resp.release()
