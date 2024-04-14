@@ -349,7 +349,7 @@ async def ownsitem(interaction: discord.Interaction, user: str, item: int, downl
     try:
         try:
             user = await RoModules.handle_usertype(user, shard)
-            if not (await validate_user(interaction, embed, user_id[0])): return
+            if not (await validate_user(interaction, embed, user.id)): return
         except Exception as e:
             if await handle_error(e, interaction, "ownsitem", shard, "User"): return
         data = await RoModules.owns_item(user.id, item, shard)
@@ -367,7 +367,7 @@ async def ownsitem(interaction: discord.Interaction, user: str, item: int, downl
             embed.description = "**UAIDs:**\n" + ', '.join([f"`{uaid}`" for uaid in map(str, displayUAIDs)])
             remainingCount = max(0, data[1] - 100)
             if remainingCount > 0: embed.description += f", and {remainingCount} more."
-        else: embed.description = f"{user_id[1]} doesn't own this item!"
+        else: embed.description = f"{user.username} doesn't own this item!"
         if download:
             if data[0]: csv = "username, id, item, owned, uaid\n" + "\n".join([f"{user.username}, {user.id}, {item}, {bool(data[0])}, {uaid}" for uaid in data[3]])
             else: csv = f"username, id, item, owned, uaid\n{user.username}, {user.id}, {item}, {bool(data[0])}, None"
@@ -445,7 +445,7 @@ async def isfriendswith(interaction: discord.Interaction, user1: str, user2: str
             if friends['id'] == secondUser or friendName == secondUser:
                 if friends['id'] in optOut:
                     embed.description = "This user's friend has requested to opt-out of the RoWhoIs search."
-                    await log_collector.warn(f"Opt-out user {user.id} was called by {interaction.user.id} and denied!")
+                    await log_collector.warn(f"Opt-out user {friends['id']} was called by {interaction.user.id} and denied!")
                     await interaction.followup.send(embed=embed)
                     return
                 friend_name, friended = friends['name'], True
@@ -453,7 +453,7 @@ async def isfriendswith(interaction: discord.Interaction, user1: str, user2: str
             else: friended = False
         if friended:
             embed.colour = 0x00FF00
-            embed.description = f"{user.username} is friends with {friend_name}!"
+            embed.description = f"{user1.username} is friends with {friend_name}!"
             await interaction.followup.send(embed=embed)
             return
         else:
@@ -563,7 +563,7 @@ async def membership(interaction: discord.Interaction, user: str):
         else: noTiers = False
         newline = '\n'
         embed.title = f"{user.username}'s memberships:"
-        embed.description = f"{(emojiTable.get('premium') + ' `Premium`' + newline) if data[0] else ''}{(emojiTable.get('bc') + ' `Builders Club`' + newline) if data[1] else ''}{(emojiTable.get('tbc') + '`Turbo Builders Club`' + newline) if data[2] else ''}{(emojiTable.get('obc') + ' `Outrageous Builders Club`' + newline) if data[3] else ''}{(str(user_id[1]) + ' has no memberships.') if noTiers and not data[0] else ''}"
+        embed.description = f"{(emojiTable.get('premium') + ' `Premium`' + newline) if data[0] else ''}{(emojiTable.get('bc') + ' `Builders Club`' + newline) if data[1] else ''}{(emojiTable.get('tbc') + '`Turbo Builders Club`' + newline) if data[2] else ''}{(emojiTable.get('obc') + ' `Outrageous Builders Club`' + newline) if data[3] else ''}{(str(user.username) + ' has no memberships.') if noTiers and not data[0] else ''}"
         embed.colour = 0x00FF00
         await interaction.response.send_message(embed=embed)
     except Exception as e: await handle_error(e, interaction, "getmembership", shard, "User")
@@ -638,9 +638,9 @@ async def robloxbadges(interaction: discord.Interaction, user: str):
             badge_name = badges[1].get(badge)
             if badge_name: descriptor += f"{emojiTable.get(str(badge_name).lower())} `{badge_name}`\n"
         if descriptor == "":  descriptor = "This user has no Roblox badges."
-        embed.set_thumbnail(url=await RoModules.get_player_bust(user_id[0], "420x420", shard))
+        embed.set_thumbnail(url=await RoModules.get_player_bust(user.id, "420x420", shard))
         embed.colour = 0x00FF00
-        embed.title = f"{user_id[1]}'s Roblox Badges:"
+        embed.title = f"{user.username}'s Roblox Badges:"
         embed.description = descriptor
         await interaction.response.send_message(embed=embed)
     except Exception as e: await handle_error(e, interaction, "robloxbadges", shard, "User")
