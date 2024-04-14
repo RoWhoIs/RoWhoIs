@@ -106,7 +106,7 @@ async def Roquest(method: str, node: str, endpoint: str, shard_id: int = None, f
                         elif resp.status == 403:
                             if not failretry: return resp.status, await resp.json()
                             await token_renewal()
-                        if not failretry: break
+                        if not failretry and resp.status not in [429, 500]: break
                 except Exception as e:
                     await proxy_picker(True)
                     await log_collector.error(f"{logBlurb}: {type(e)} |  {e if not isinstance(e, asyncio.exceptions.TimeoutError) else 'Timed out.'}", shard_id=shard_id)
