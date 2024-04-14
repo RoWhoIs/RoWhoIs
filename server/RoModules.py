@@ -18,12 +18,12 @@ async def general_error_handler(data: int, expectedresponsecode: int = 200) -> N
 
 async def handle_usertype(user: Union[int, str], shard_id: int) -> typedefs.User:
     """Handles a user type and returns a User object containing id, name, nickname, and verified"""
-    if isinstance(user, int):
+    if user.isdigit():
         offload = await convert_to_username(user, shard_id)
-        return typedefs.User(id=user, username=offload[0], nickname=offload[1], verified=offload[2])
-    elif isinstance(user, str):
+        return typedefs.User(id=int(user), username=offload[0], nickname=offload[1], verified=offload[2])
+    else:
         offload = await convert_to_id(user, shard_id)
-        return typedefs.User(id=offload[0], username=offload[1], nickname=offload[2], verified=offload[3])
+        return typedefs.User(id=int(offload[0]), username=offload[1], nickname=offload[2], verified=offload[3])
 
 async def convert_to_id(username: str, shard_id: int) -> tuple[int, str, str, bool]:
     """Returns user id, username, display name, verified badge"""

@@ -500,20 +500,20 @@ async def clothingtexture(interaction: discord.Interaction, clothing_id: int):
     if await check_cooldown(interaction, "extreme"): return
     embed = discord.Embed(color=0xFF0000)
     if not (await validate_user(interaction, embed)): return
+    await interaction.response.defer(ephemeral=False)
     if clothing_id in assetBlocklist:
         embed.description = "The asset creator has requested for this asset to be removed from RoWhoIs."
-        await interaction.response.send_message(embed=embed)
+        await interaction.followup.send(embed=embed)
         return
-    await interaction.response.defer(ephemeral=False)
     shard = await gUtils.shard_metrics(interaction)
     try:
         try: clothing_id = await RoModules.fetch_asset(clothing_id, shard)
         except ErrorDict.AssetNotAvailable:
             embed.description = "Cannot fetch moderated assets."
-            await interaction.response.send_message(embed=embed)
+            await interaction.followup.send(embed=embed)
             return
         uploaded_image = discord.File(f'cache/clothing/{clothing_id}.png', filename=f"rowhois-{clothing_id}.png")
-        await interaction.response.send_message("", file=uploaded_image)
+        await interaction.followup.send("", file=uploaded_image)
     except Exception as e: await handle_error(e, interaction, "getclothingtexture", shard, "Clothing ID")
 
 @client.tree.command()

@@ -101,12 +101,12 @@ async def Roquest(method: str, node: str, endpoint: str, shard_id: int = None, f
                 try:
                     async with main_session.request(method.lower(), f"https://{node}.roblox.com/{endpoint}", timeout=4, proxy=currentProxy.ip if not bypass_proxy else None, proxy_auth=globProxies.auth if not bypass_proxy else None, **kwargs) as resp:
                         if resp.status == 200: return resp.status, await resp.json()
-                        await log_collector.warn(f"{logBlurb}: {resp.status} {('- ' + str(retry + 1) + '/3') if failretry else ''}", shard_id=shard_id)
+                        await log_collector.warn(f"{logBlurb}: {resp.status} {('- ' + str(retry + 1) + '/3')}", shard_id=shard_id)
                         if resp.status in [404, 400]: return resp.status, await resp.json() # Standard not exist, disregard retries
                         elif resp.status == 403:
                             if not failretry: return resp.status, await resp.json()
                             await token_renewal()
-                        if not failretry and resp.status not in [429, 500]: break
+                        if not failretry and (resp.status not in [429, 500]): break
                 except Exception as e:
                     await proxy_picker(True)
                     await log_collector.error(f"{logBlurb}: {type(e)} |  {e if not isinstance(e, asyncio.exceptions.TimeoutError) else 'Timed out.'}", shard_id=shard_id)
