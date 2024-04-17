@@ -2,7 +2,7 @@ from server import Roquest, RoModules
 from utils import logger, ErrorDict, gUtils, typedefs
 import asyncio, discord, io, aiohttp, signal, datetime, inspect, time
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Optional, Literal
 
 def run(productionmode: bool, version: str, config) -> bool:
     """Runs the server"""
@@ -207,9 +207,9 @@ async def help(interaction: discord.Interaction):
     embedVar.add_field(name="membership", value="Check if a player has Premium or has had Builders Club", inline=True)
     embedVar.add_field(name="checkusername", value="Check if a username is available", inline=True)
     embedVar.add_field(name="robloxbadges", value="Shows what Roblox badges a player has", inline=True)
-    embedVar.add_field(name="asset", value="Fetches an asset file from an asset ID. Not recommended for clothing textures and only currently supports rbxm files", inline=True)
+    embedVar.add_field(name="asset", value="Fetches an asset file from an asset ID. Not recommended for clothing textures", inline=True)
     embedVar.add_field(name="about", value="Shows a bit about RoWhoIs and advanced statistics", inline=True)
-    embedVar.set_footer(text=f"{'Get RoWhoIs+ to use ' + emojiTable.get('subscription') + ' commands' if len(interaction.entitlements) == 0 and productionMode else 'You have access to RoWhoIs+ features'}")
+    embedVar.set_footer(text=f"{'Get RoWhoIs+ to use + commands' if len(interaction.entitlements) == 0 and productionMode else 'You have access to RoWhoIs+ features'}")
     await interaction.response.send_message(embed=embedVar)
 
 @client.tree.command()
@@ -249,7 +249,7 @@ async def userid(interaction: discord.Interaction, username: str, download: bool
     if not (await validate_user(interaction, embed, requires_entitlement=download)): return
     shard = await gUtils.shard_metrics(interaction)
     try:
-        user = await RoModules.handle_usertype(username, shard)
+        user = await RoModules.convert_to_id(username, shard)
         if not (await validate_user(interaction, embed, user.id)): return
         bust, headshot = await asyncio.gather(RoModules.get_player_bust(user.id, "420x420", shard), RoModules.get_player_headshot(user.id,  shard))
         embed.set_thumbnail(url=bust)
@@ -271,7 +271,7 @@ async def username(interaction: discord.Interaction, userid: int, download: bool
     if not (await validate_user(interaction, embed, userid, requires_entitlement=download)): return
     shard = await gUtils.shard_metrics(interaction)
     try:
-        user = await RoModules.handle_usertype(userid, shard)
+        user = await RoModules.convert_to_username(userid, shard)
         bust, headshot = await asyncio.gather(RoModules.get_player_bust(user.id, "420x420", shard), RoModules.get_player_headshot(user.id, shard))
         embed.set_thumbnail(url=bust)
         embed.set_author(name=f"{user.username} { '(' + user.nickname + ')' if user.username != user.nickname else ''}", icon_url=headshot, url=f"https://www.roblox.com/users/{user.id}/profile")
@@ -472,7 +472,7 @@ async def isingroup(interaction: discord.Interaction, user: str, group: int):
     try:
         try:
             user = await RoModules.handle_usertype(user, shard)
-        except Exception as e: 
+        except Exception as e:
             if await handle_error(e, interaction, "isingroup", shard, "User"): return
         if not (await validate_user(interaction, embed, user.id)): return
         usergroups = await RoModules.get_groups(user.id, shard)
@@ -690,12 +690,11 @@ async def userclothing(interaction: discord.Interaction, user: str, page: int = 
     await interaction.response.defer(ephemeral=False)
     shard = await gUtils.shard_metrics(interaction)
     try:
-        user = [int(user), None] if user.isdigit() else (await RoModules.convert_to_id(user, shard))[:2]
-        if user[1] is None: user[1] = (await RoModules.convert_to_username(user[0], shard))[0]
+        user = await RoModules.handle_usertype(user, shard)
     except Exception as e:
         if await handle_error(e, interaction, "userclothing", shard, "User"): return
     try:
-        userAssets, pagination = await RoModules.get_creator_assets(user[0], "User", page, shard)
+        userAssets, pagination = await RoModules.get_creator_assets(user.id, "User", page, shard)
         if pagination != page or page < 1:
             embed.description = "Invalid page number."
             await interaction.followup.send(embed=embed)
@@ -719,8 +718,8 @@ async def userclothing(interaction: discord.Interaction, user: str, page: int = 
     except Exception as e: await handle_error(e, interaction, "userclothing", shard, "User")
 
 @client.tree.command()
-async def asset(interaction: discord.Interaction, asset: int, version: int = 1):
-    """Retrieve asset files as a .rbxm"""
+async def asset(interaction: discord.Interaction, asset: int, filetype: Literal["rbxm", "png", "obj", "mesh", "rbxmx", "rbxl", "rbxlx", "mp4"], version: int = None):
+    """Retrieve asset files"""
     if await check_cooldown(interaction, "extreme"): return
     embed = discord.Embed(color=0xFF0000)
     if not (await validate_user(interaction, embed)): return
@@ -731,7 +730,7 @@ async def asset(interaction: discord.Interaction, asset: int, version: int = 1):
             embed.description = "The asset creator has requested for this asset to be removed from RoWhoIs."
             await interaction.followup.send(embed=embed)
             return
-        try: asset = await RoModules.fetch_asset(asset, shard, location="asset", version=version, filetype="rbxm")
+        try: asset = await RoModules.fetch_asset(asset, shard, location="asset", version=version, filetype=filetype if filetype is not None else 'rbxm')
         except ErrorDict.AssetNotAvailable:
             embed.description = "Cannot fetch moderated assets."
             await interaction.followup.send(embed=embed)
@@ -740,6 +739,6 @@ async def asset(interaction: discord.Interaction, asset: int, version: int = 1):
             embed.description = "This asset does not exist."
             await interaction.followup.send(embed=embed)
             return
-        uploaded_file = discord.File(f"cache/asset/{str(asset) + '-' + str(version) if version is not None else str(asset)}.rbxm", filename=f"rowhois-{str(asset) + '-' + str(version) if version is not None else str(asset)}.rbxm")
+        uploaded_file = discord.File(f"cache/asset/{str(asset) + '-' + str(version) if version is not None else str(asset)}.{filetype if filetype is not None else 'rbxm'}", filename=f"rowhois-{str(asset) + '-' + str(version) if version is not None else str(asset)}.{filetype if filetype is not None else ''}")
         await interaction.followup.send("", file=uploaded_file)
     except Exception as e: await handle_error(e, interaction, "asset", shard, "Asset ID or Version")

@@ -18,12 +18,9 @@ async def general_error_handler(data: int, expectedresponsecode: int = 200) -> N
 
 async def handle_usertype(user: Union[int, str], shard_id: int) -> typedefs.User:
     """Handles a user type and returns a User object containing id, name, nickname, and verified"""
-    if user.isdigit():
-        offload = await convert_to_username(user, shard_id)
-        return typedefs.User(id=int(user), username=offload[0], nickname=offload[1], verified=offload[2])
-    else:
-        offload = await convert_to_id(user, shard_id)
-        return typedefs.User(id=int(offload[0]), username=offload[1], nickname=offload[2], verified=offload[3])
+    user = str(user)
+    if user.isdigit(): return await convert_to_username(user, shard_id)
+    else: return await convert_to_id(user, shard_id)
 
 async def convert_to_id(username: str, shard_id: int) -> tuple[int, str, str, bool]:
     """Returns user id, username, display name, verified badge"""
@@ -31,7 +28,7 @@ async def convert_to_id(username: str, shard_id: int) -> tuple[int, str, str, bo
     await general_error_handler(data[0])
     if "data" in data[1] and data[1]["data"]:
         user_data = data[1]["data"][0]
-        if "id" in user_data and "name" in user_data: return user_data["id"], user_data["name"], user_data["displayName"], user_data["hasVerifiedBadge"]
+        if "id" in user_data and "name" in user_data: return typedefs.User(id=int(user_data["id"]), username=user_data["name"], nickname=user_data["displayName"], verified=user_data["hasVerifiedBadge"])
         else: raise ErrorDict.DoesNotExistError
     else: raise ErrorDict.DoesNotExistError
         
@@ -41,7 +38,7 @@ async def convert_to_username(user: int, shard_id: int) -> tuple[str, str, bool]
     await general_error_handler(data[0])
     if "data" in data[1] and data[1]["data"]:
         user_data = data[1]["data"][0]
-        if "id" in user_data: return user_data["name"], user_data["displayName"], user_data["hasVerifiedBadge"]
+        if "id" in user_data: return typedefs.User(id=int(user), username=user_data["name"], nickname=user_data["displayName"], verified=user_data["hasVerifiedBadge"])
         else: raise ErrorDict.DoesNotExistError
     else: raise ErrorDict.DoesNotExistError
 
