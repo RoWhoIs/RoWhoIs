@@ -80,12 +80,12 @@ async def validate_user(interaction: discord.Interaction, embed: discord.Embed, 
 async def handle_error(error, interaction: discord.Interaction, command: str, shard_id: int, context: str = "Requested resource") -> bool:
     """Handles both user-facing and backend errors, even if they are undocumented."""
     embed = discord.Embed(color=0xFF0000)
-    if isinstance(error, ErrorDict.DoesNotExistError): embed.description = f"{context} doesn't exist."
+    if isinstance(error, ErrorDict.InvalidAuthorizationError): embed.description = f"Hm.. Looks like we can't access this {context.lower()} right now. Please try again later."
+    elif isinstance(error, ErrorDict.DoesNotExistError): embed.description = f"{context} doesn't exist."
     elif isinstance(error, ErrorDict.MismatchedDataError): embed.description = f"{context} is invalid."
     elif isinstance(error, ErrorDict.RatelimitedError): embed.description = "RoWhoIs is experienceing unusually high demand. Please try again."
     elif isinstance(error, discord.errors.NotFound): return True
     else:
-        if isinstance(error, ErrorDict.InvalidAuthorizationError): await Roquest.token_renewal()
         embed.description = "Whoops! An unknown error occurred. Please try again later."
         await log_collector.error(f"Error in the {command} command: {type(error)}, {error}", shard_id=shard_id)
     if interaction.response.is_done(): await interaction.followup.send(embed=embed, ephemeral=True)
@@ -198,6 +198,7 @@ async def help(interaction: discord.Interaction):
     embedVar.add_field(name="ownsitem", value="Retrieve whether a user owns an item or not. Works with players who have a private inventory", inline=True)
     embedVar.add_field(name="ownsbadge", value="Retrieve whether a user owns a badge or not. Works with players who have a private inventory", inline=True)
     embedVar.add_field(name="isfriendswith", value="Check if two players are friended", inline=True)
+    embedVar.add_field(name="game", value="Get detailed game information from a Game ID", inline=True)
     embedVar.add_field(name="group", value="Get detailed group information from a Group ID", inline=True)
     embedVar.add_field(name="groupclothing " + f"{emojiTable.get('subscription')}", value="Retrieves bulk clothing textures from a group", inline=True)
     embedVar.add_field(name="userclothing " + f"{emojiTable.get('subscription')}", value="Retrieves bulk clothing textures from a user", inline=True)
@@ -742,3 +743,32 @@ async def asset(interaction: discord.Interaction, asset: int, filetype: Literal[
         uploaded_file = discord.File(f"cache/asset/{str(asset) + '-' + str(version) if version is not None else str(asset)}.{filetype if filetype is not None else 'rbxm'}", filename=f"rowhois-{str(asset) + '-' + str(version) if version is not None else str(asset)}.{filetype if filetype is not None else ''}")
         await interaction.followup.send("", file=uploaded_file)
     except Exception as e: await handle_error(e, interaction, "asset", shard, "Asset ID or Version")
+
+@client.tree.command()
+async def game(interaction: discord.Interaction, game: int):
+    """Get detailed game information from a game ID"""
+    if await check_cooldown(interaction, "extreme"): return
+    embed = discord.Embed(color=0xFF0000)
+    if not (await validate_user(interaction, embed)): return
+    shard = await gUtils.shard_metrics(interaction)
+    try:
+        data = await RoModules.fetch_game(game, shard)
+        embed.set_thumbnail(url=data.thumbnail)
+        embed.title = data.name
+        embed.url = data.url
+        embed.add_field(name="Place ID", value=f"`{data.id}`", inline=True)
+        embed.add_field(name="Universe ID", value=f"`{data.universe}`", inline=True)
+        embed.add_field(name="Creator", value=f"`{data.creator.username}` (`{data.creator.id}`) {emojiTable.get('verified') if data.creator.verified else ''}")
+        embed.add_field(name="Copy Locked/Public", value=f"`{data.copy_protected}` | `{'Private' if not data.playable else 'Public'}`", inline=True)
+        embed.add_field(name="Created", value=f"{(await gUtils.fancy_time(data.created))}", inline=True)
+        embed.add_field(name="Updated", value=f"{(await gUtils.fancy_time(data.updated))}", inline=True)
+        embed.add_field(name="Favorites", value=f"`{data.favorites}`", inline=True)
+        embed.add_field(name="Likes", value=f"`{data.likes}`", inline=True)
+        embed.add_field(name="Dislikes", value=f"`{data.dislikes}`", inline=True)
+        embed.add_field(name="Visits", value=f"`{data.visits}`", inline=True)
+        embed.add_field(name="Max Players", value=f"`{data.max_players}`", inline=True)
+        embed.add_field(name="Playing", value=f"`{data.playing}`", inline=True)
+        if data.description != "": embed.add_field(name="Description", value=f"```{data.description.replace('```', '')}```", inline=False)
+        embed.colour = 0x00FF00
+        await interaction.response.send_message(embed=embed)
+    except Exception as e: await handle_error(e, interaction, "game", shard, "Game")
