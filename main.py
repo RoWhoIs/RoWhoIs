@@ -57,7 +57,7 @@ if productionMode: push_status(True, webhookToken)
 for i in range(5): # Rerun server in event of a crash
     try:
         from server import Roquest, RoWhoIs
-        Roquest.initialize(config)
+        Roquest.initialize(config, version)
         if RoWhoIs.run(productionMode, version, config) is True: break
     except KeyboardInterrupt: break
     except asyncio.exceptions.CancelledError: break

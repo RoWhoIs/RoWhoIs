@@ -8,13 +8,14 @@ from typing import Any
 
 log_collector = AsyncLogCollector("logs/main.log")
 
-def initialize(config):
+def initialize(config, version: str):
     """Sets configurations for proxying. Needs to be ran before running any other function."""
     try:
-        global rsec, productionMode, globProxies, BaseUserAuth, currentProxy, poolProxies
+        global rsec, productionMode, globProxies, BaseUserAuth, currentProxy, poolProxies, uasString
         globProxies = typedefs.Proxies(config["Proxying"]["proxying_enabled"], config["Proxying"]["proxy_urls"], config["Proxying"]["username"], config["Proxying"]["password"], config["Proxying"]["log_proxying"])
         rsec, productionMode = config["Authentication"]["roblosecurity"], config["RoWhoIs"]["production_mode"]
         BaseUserAuth = typedefs.UserAuth(config["Authentication"]["roblosecurity"], "")
+        uasString = f"RoWhoIs-server/{version} ({'prod-mode' if productionMode else 'testing-mode'})"
         currentProxy, poolProxies = typedefs.Proxy(None), typedefs.Proxies(globProxies.enabled, [])
         if globProxies.enabled: loop.create_task(proxy_handler())
         loop.create_task(validate_cookie())
@@ -27,7 +28,7 @@ async def proxy_handler() -> None:
         while globProxies.enabled:
             async def test_proxy(alivesession, proxy_url):
                 try:
-                    async with alivesession.get("https://auth.roblox.com/", headers={'User-Agent': 'rowhois-server'}, proxy=proxy_url, proxy_auth=globProxies.auth, timeout=2) as response:
+                    async with alivesession.get("https://auth.roblox.com/", headers={"User-Agent": uasString}, proxy=proxy_url, proxy_auth=globProxies.auth, timeout=2) as response:
                         if response.status == 200: return True
                 except Exception: pass
                 return False
@@ -67,7 +68,7 @@ async def proxy_picker(diderror: bool = False):
 
 async def validate_cookie() -> None:
     """Validates the RSEC value from config.json"""
-    async with aiohttp.ClientSession(cookies={".roblosecurity": BaseUserAuth.token}, headers={'User-Agent': 'rowhois-server'}) as main_session:
+    async with aiohttp.ClientSession(cookies={".roblosecurity": BaseUserAuth.token}, headers={"User-Agent": uasString}) as main_session:
         async with main_session.get("https://users.roblox.com/v1/users/authenticated") as resp:
             if resp.status == 200: await loop.create_task(token_renewal(True))
             else: await log_collector.error("Invalid ROBLOSECURITY cookie. RoWhoIs will not function properly.")
@@ -78,7 +79,7 @@ async def token_renewal(automated: bool = False) -> None:
     while True:
         try:
             async with aiohttp.ClientSession(cookies={".roblosecurity": BaseUserAuth.token}) as main_session:
-                async with main_session.post("https://auth.roblox.com/v2/logout", headers={'User-Agent': 'rowhois-server'}) as resp:
+                async with main_session.post("https://auth.roblox.com/v2/logout", headers={"User-Agent": uasString}) as resp:
                     if 'x-csrf-token' in resp.headers: BaseUserAuth.csrf = resp.headers['x-csrf-token']
         except Exception as e:
             await log_collector.error(f"token_renewal encountered an error while updating x-csrf-token: {e}")
@@ -93,7 +94,7 @@ async def Roquest(method: str, node: str, endpoint: str, shard_id: int = None, f
     """Performs a request to the Roblox API. Returns a tuple with the status code and the response data.
     bypass_proxy will override proxying and perform an authenticated roquest"""
     for retry in range(3):
-        async with aiohttp.ClientSession(cookies={".roblosecurity": BaseUserAuth.token} if bypass_proxy else {}, headers={"x-csrf-token": BaseUserAuth.csrf, 'User-Agent': 'rowhois-server'} if bypass_proxy else {'User-Agent': 'rowhois-server'}) as main_session:
+        async with aiohttp.ClientSession(cookies={".roblosecurity": BaseUserAuth.token} if bypass_proxy else {}, headers={"x-csrf-token": BaseUserAuth.csrf, 'User-Agent': uasString} if bypass_proxy else {'User-Agent': uasString}) as main_session:
             try:
                 if not bypass_proxy: await proxy_picker()
                 logBlurb = f"{method.upper()} {node} [{currentProxy.ip if currentProxy.ip is not None and not bypass_proxy else 'non-proxied'}] {'| ' + endpoint if endpoint != '' else endpoint}"
@@ -123,7 +124,7 @@ async def GetFileContent(asset_id: int, version: int = None, shard_id: int = Non
         logBlurb = f"GETFILECONTENT [{currentProxy.ip if currentProxy.ip is not None else 'non-proxied'}] | {asset_id}"
         if not productionMode: await log_collector.info(logBlurb, shard_id=shard_id)
         async with aiohttp.ClientSession() as main_session:
-            async with main_session.request("GET", f"https://assetdelivery.roblox.com/v1/asset/?id={asset_id}&version={version if version is not None else ''}", headers={'User-Agent': 'rowhois-server'}, proxy=currentProxy.ip, proxy_auth=globProxies.auth) as resp:
+            async with main_session.request("GET", f"https://assetdelivery.roblox.com/v1/asset/?id={asset_id}&version={version if version is not None else ''}", headers={'User-Agent': uasString}, proxy=currentProxy.ip, proxy_auth=globProxies.auth) as resp:
                 if resp.status == 200:
                     content = await resp.read()
                     return content
@@ -141,7 +142,7 @@ async def RoliData():
     """Fetches Rolimons limited data"""
     async with aiohttp.ClientSession() as session:
         for retry in range(3):
-            async with session.get("https://www.rolimons.com/itemapi/itemdetails", headers={'User-Agent': 'rowhois-server'}) as resp:
+            async with session.get("https://www.rolimons.com/itemapi/itemdetails", headers={'User-Agent': uasString}) as resp:
                 if resp.status == 200: return await resp.json()
                 elif resp.status == 429:
                     await log_collector.warn(f"GET rolimons | itemdetails: {resp.status} (WAIT 5s) {retry + 1}/3")
