@@ -59,6 +59,8 @@ for i in range(5): # Rerun server in event of a crash
         from server import Roquest, RoWhoIs
         Roquest.initialize(config)
         if RoWhoIs.run(productionMode, version, config) is True: break
+    except KeyboardInterrupt: break
+    except asyncio.exceptions.CancelledError: break
     except RuntimeError: pass  # Occurs when exited before fully initialized
     except ErrorDict.MissingRequiredConfigs: sync_logging("fatal", f"Missing or malformed configuration options detected!")
     except Exception as e:

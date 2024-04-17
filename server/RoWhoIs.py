@@ -1,6 +1,6 @@
 from server import Roquest, RoModules
 from utils import logger, ErrorDict, gUtils, typedefs
-import asyncio, discord, io, aiohttp, signal, datetime, inspect, time
+import asyncio, discord, io, aiohttp, datetime, inspect, time
 from pathlib import Path
 from typing import Any, Optional, Literal
 
@@ -17,6 +17,10 @@ def run(productionmode: bool, version: str, config) -> bool:
         else: loop.run_until_complete(client.start(config['Authentication']['production']))
         return True
     except KeyError: raise ErrorDict.MissingRequiredConfigs
+    except asyncio.exceptions.CancelledError: return True
+    except KeyboardInterrupt:
+        loop.run_until_complete(shutdown())
+        return True
 
 class RoWhoIs(discord.AutoShardedClient):
     def __init__(self, *, intents: discord.Intents):
@@ -69,7 +73,7 @@ async def validate_user(interaction: discord.Interaction, embed: discord.Embed, 
         if not kind_upsell:
             await interaction.response.require_premium()
             return False
-        embed.description = f"This advanced option requires RoWhoIs {emojiTable.get('subscription')}"
+        embed.description = f"This advanced option requires RoWhoIs {emojiTable.get('subscription')}. Please upgrade to use this option!"
     else: return True
     embed.title = None
     embed.colour = 0xFF0000
@@ -92,7 +96,7 @@ async def handle_error(error, interaction: discord.Interaction, command: str, sh
     else: await interaction.response.send_message(embed=embed, ephemeral=True)
     return True
 
-async def check_cooldown(interaction: discord.Interaction, intensity: str, cooldown_seconds: int = 60) -> bool:
+async def check_cooldown(interaction: discord.Interaction, intensity: Literal["extreme", "high", "medium", "low"], cooldown_seconds: int = 60) -> bool:
     """Custom cooldown handler for user commands because discord.py's implementation of it sucked
     True = On cooldown, False = Not on cooldown
     """
@@ -132,7 +136,6 @@ client = RoWhoIs(intents=discord.Intents.default())
 loop = asyncio.get_event_loop()
 loop.create_task(update_rolidata())
 loop.create_task(heartbeat())
-loop.add_signal_handler(signal.SIGINT, lambda: asyncio.create_task(shutdown()))
 userCooldowns = {}
 
 @client.event
@@ -302,7 +305,7 @@ async def whois(interaction: discord.Interaction, user: str, download: bool = Fa
         previousUsernames, veriftype, userThumbnail, user.online, groups, (user.friends, user.followers, user.following), userHeadshot = await asyncio.gather(*tasks) # If it shows an error in your IDE, it's lying, all values are unpacked
         embed.description = f"{emojiTable.get('staff') if user.id in staffIds else ''} {emojiTable.get('donor') if user.id in whoIsDonors else ''} {emojiTable.get('verified') if user.verified else ''}"
         embed.set_thumbnail(url=userThumbnail)
-        embed.set_author(name=f"{user.username} {'(' + user.nickname + ')' if user.nickname != user.username else ''}", url=f"https://www.roblox.com/users/{user.id}/profile", icon_url=userHeadshot)
+        embed.set_author(name=f"{user.username} {'(' + user.nickname + ')' if user.nickname != user.username else ''}", url=f"https://www.roblox.com/users/{user.id}/profile" if not user.banned else None, icon_url=userHeadshot)
         if user.banned or user.id == 1: veriftype, previousUsernames = None, []
         lastOnlineFormatted, joinedTimestamp = await asyncio.gather(gUtils.fancy_time(user.online), gUtils.fancy_time(user.joined))
         embed.colour = 0x00ff00
@@ -731,7 +734,7 @@ async def asset(interaction: discord.Interaction, asset: int, filetype: Literal[
             embed.description = "The asset creator has requested for this asset to be removed from RoWhoIs."
             await interaction.followup.send(embed=embed)
             return
-        try: asset = await RoModules.fetch_asset(asset, shard, location="asset", version=version, filetype=filetype if filetype is not None else 'rbxm')
+        try: asset = await RoModules.fetch_asset(asset, shard, location="asset", version=version, filetype=filetype)
         except ErrorDict.AssetNotAvailable:
             embed.description = "Cannot fetch moderated assets."
             await interaction.followup.send(embed=embed)
@@ -740,7 +743,7 @@ async def asset(interaction: discord.Interaction, asset: int, filetype: Literal[
             embed.description = "This asset does not exist."
             await interaction.followup.send(embed=embed)
             return
-        uploaded_file = discord.File(f"cache/asset/{str(asset) + '-' + str(version) if version is not None else str(asset)}.{filetype if filetype is not None else 'rbxm'}", filename=f"rowhois-{str(asset) + '-' + str(version) if version is not None else str(asset)}.{filetype if filetype is not None else ''}")
+        uploaded_file = discord.File(f"cache/asset/{str(asset) + '-' + str(version) if version is not None else str(asset)}.{filetype}", filename=f"rowhois-{str(asset) + '-' + str(version) if version is not None else str(asset)}.{filetype}")
         await interaction.followup.send("", file=uploaded_file)
     except Exception as e: await handle_error(e, interaction, "asset", shard, "Asset ID or Version")
 
