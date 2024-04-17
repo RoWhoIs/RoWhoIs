@@ -8,14 +8,14 @@ from typing import Any
 
 log_collector = AsyncLogCollector("logs/main.log")
 
-def initialize(config, version: str):
+def initialize(config, version: str, modded: bool):
     """Sets configurations for proxying. Needs to be ran before running any other function."""
     try:
         global rsec, productionMode, globProxies, BaseUserAuth, currentProxy, poolProxies, uasString
         globProxies = typedefs.Proxies(config["Proxying"]["proxying_enabled"], config["Proxying"]["proxy_urls"], config["Proxying"]["username"], config["Proxying"]["password"], config["Proxying"]["log_proxying"])
         rsec, productionMode = config["Authentication"]["roblosecurity"], config["RoWhoIs"]["production_mode"]
         BaseUserAuth = typedefs.UserAuth(config["Authentication"]["roblosecurity"], "")
-        uasString = f"RoWhoIs-server/{version} ({'prod-mode' if productionMode else 'testing-mode'})"
+        uasString = f"RoWhoIs-server/{version}; {'modified' if modded else 'genuine'} ({'prod-mode' if productionMode else 'testing-mode'})"
         currentProxy, poolProxies = typedefs.Proxy(None), typedefs.Proxies(globProxies.enabled, [])
         if globProxies.enabled: loop.create_task(proxy_handler())
         loop.create_task(validate_cookie())

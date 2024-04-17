@@ -8,7 +8,7 @@ from utils.logger import AsyncLogCollector
 for folder in ["logs", "cache", "cache/clothing", "cache/asset"]:
     if not os.path.exists(folder): os.makedirs(folder)
 
-logCollector = AsyncLogCollector("logs/main.log")
+logCollector, modified = AsyncLogCollector("logs/main.log"), True
 
 def sync_logging(errorlevel: str, errorcontent: str) -> None:
     """Allows for synchronous logging using https://github.com/aut-mn/AsyncLogger"""
@@ -19,6 +19,7 @@ try:
     tag = subprocess.check_output(['git', 'tag', '--contains', 'HEAD']).strip()
     version = tag.decode('utf-8') if tag else None
     if version is None: raise subprocess.CalledProcessError(1, "git tag --contains HEAD")
+    else: modified = False
 except subprocess.CalledProcessError:
     try: # Fallback, rely on short hash
         short_commit_id = subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD']).strip()
@@ -57,7 +58,7 @@ if productionMode: push_status(True, webhookToken)
 for i in range(5): # Rerun server in event of a crash
     try:
         from server import Roquest, RoWhoIs
-        Roquest.initialize(config, version)
+        Roquest.initialize(config, version, modified)
         if RoWhoIs.run(productionMode, version, config) is True: break
     except KeyboardInterrupt: break
     except asyncio.exceptions.CancelledError: break
