@@ -146,7 +146,7 @@ async def interaction_runner(event: hikari.InteractionCreateEvent):
                     if isinstance(option.value, dict): kwargs[option.name] = option.value
                     else: args.append(option.value)
             try:
-                if not await interaction_permissions_check(event.interaction, command, requires_connection=self.requires_connection): return
+                if not await interaction_permissions_check(event.interaction, command, requires_connection=command.requires_connection): return
                 await command.wrapper(event.interaction, *args, **kwargs)
             except Exception as e: await handle_error(e, event, command.name, shard, command.context)
     except Exception as e:
