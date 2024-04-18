@@ -1,4 +1,4 @@
-import hikari, time, types
+import hikari, time, types, inspect
 from typing import Literal
 from utils import logger
 

@@ -40,8 +40,7 @@ def display_banner(version: str, production_mode: bool, modified: bool):
                     before_clear, after_clear = line.split('%{clear}', 1)
                     before_clear = ''.join([f'{background_color}{char}\033[0m' if char != '$' and background_color is not None else char for char in before_clear])
                     line = before_clear + after_clear
-                else:
-                    line = ''.join([f'{background_color}{char}\033[0m' if char != '$' and background_color is not None else char for char in line])
+                else: line = ''.join([f'{background_color}{char}\033[0m' if char != '$' and background_color is not None else char for char in line])
                 for code, color in COLOR_CODES.items():
                     if code in line:
                         if i == 0: foreground_color, line = color, ''
