@@ -44,7 +44,7 @@ async def check_cooldown(interaction: hikari.CommandInteraction, intensity: Lite
         userId, current_time = interaction.user.id, time.time()
         if commandName not in userCooldowns: userCooldowns[commandName] = {}
         if userId not in userCooldowns[commandName]: userCooldowns[commandName][userId] = []
-        if interaction.entitlements and productionMode: maxCommands = premiumCoolDict.get(intensity)
+        if interaction.entitlements and productionMode or not productionMode: maxCommands = premiumCoolDict.get(intensity)
         else: maxCommands = stdCoolDict.get(intensity)
         if all(current_time - timestamp >= cooldown_seconds for timestamp in userCooldowns[commandName][userId]): userCooldowns[commandName][userId] = []
         if len(userCooldowns[commandName][userId]) >= maxCommands:

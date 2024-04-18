@@ -1,32 +1,33 @@
 # RoWhoIs
 
-An advanced Roblox lookup Discord bot utility.
+The most advanced Roblox lookup Discord bot.
 
 ![Demo of the whois command](https://rowhois.com/demo-whois-small.gif)
 
 ## Commands
 
-|     Command     | Parameters             |                                                                                                                                                                                Description |
-|:---------------:|:-----------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|
-|      help       | None                   |                                                                                                                                                   Displays a list of commands RoWhoIs has. |
-|      whois      | `User`                 | Returns User ID, account status, joined, last online, description, previous usernames, verified email, total rap, total value, group count, friend count, follower count, following count. |
-| clothingtexture | `Clothing ID`          |                                                                                                                         Returns a PNG file containing the texture for a 2D clothing asset. |
-|    ownsitem     | `User`, `Item ID`      |                                                                                          Returns the item name, a count of the item owned and the unique asset ids for each item if owned. |
-|    ownsbadge    | `User`, `Badge ID`     |                                                                                                                                        Returns badge award date, name, and image if owned. |
-|  isfriendswith  | `User1`, `User`        |                                                                                                                                                                  Returns True/False embed. |
-|      group      | `Group ID`             |                                                                                         Returns the group name, ID, status, created, owner username, owner userid, shout, and description. |
-|    isingroup    | `User`, `Group ID`     |                                                                                                                                              Returns player's role and group name if True. |
-|     limited     | `Limited`              |                                                                                                                                               Returns the ID, RAP, and Value of a limited. |
-|   itemdetails   | `Item ID`              |                                                                                   Returns the creator username & id, description, created, updated, quantity, remaining, and lowest price. |
-|   membership    | `User`                 |                                                                                                                               Returns whether a player has Premium, or has had BC/TBC/OBC. |
-|  checkusername  | `Username`             |                                                                                                                                                    Checks whether a username is available. |
-|     userid      | `Username`             |                                                                                                                                                       Returns the User ID from a username. |
-|    username     | `User ID`              |                                                                                                                                                       Returns the username from a User ID. |
-|  robloxbadges   | `User`                 |                                                                                                                                         Returns a list of the Roblox badges a player owns. |
-|  groupclothing  | `Group ID`, `Page`     |                                                                                                   Fetches bulk clothing assets from a group. This command is restricted to a subscription. |
-|  userclothing   | `User`, `Page`         |                                                                                                    Fetches bulk clothing assets from a user. This command is restricted to a subscription. |
-|      about      | None                   |                                                                                                         Shows advanced statistics about RoWhoIs, including cache size, users, shards, etc. |
-|      asset      | `Asset ID`, `Version`  |                                                                                                  Fetches an asset file from Roblox. This command is not recommended for clothing textures. |
+|     Command     | Parameters            |                                                                                                                                                                                Description |
+|:---------------:|:----------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|
+|      help       | None                  |                                                                                                                                                   Displays a list of commands RoWhoIs has. |
+|      whois      | `User`                | Returns User ID, account status, joined, last online, description, previous usernames, verified email, total rap, total value, group count, friend count, follower count, following count. |
+| clothingtexture | `Clothing ID`         |                                                                                                                         Returns a PNG file containing the texture for a 2D clothing asset. |
+|    ownsitem     | `User`, `Item ID`     |                                                                                          Returns the item name, a count of the item owned and the unique asset ids for each item if owned. |
+|    ownsbadge    | `User`, `Badge ID`    |                                                                                                                                        Returns badge award date, name, and image if owned. |
+|  isfriendswith  | `User1`, `User`       |                                                                                                                                                                  Returns True/False embed. |
+|      game       | `Game ID`             |                                                                                               Returns game data like like/dislikes, favorites, players, max player count, copylocked, etc. |
+|      group      | `Group ID`            |                                                                                         Returns the group name, ID, status, created, owner username, owner userid, shout, and description. |
+|    isingroup    | `User`, `Group ID`    |                                                                                                                                              Returns player's role and group name if True. |
+|     limited     | `Limited`             |                                                                                                                                               Returns the ID, RAP, and Value of a limited. |
+|   itemdetails   | `Item ID`             |                                                                                   Returns the creator username & id, description, created, updated, quantity, remaining, and lowest price. |
+|   membership    | `User`                |                                                                                                                               Returns whether a player has Premium, or has had BC/TBC/OBC. |
+|  checkusername  | `Username`            |                                                                                                                                                    Checks whether a username is available. |
+|     userid      | `Username`            |                                                                                                                                                       Returns the User ID from a username. |
+|    username     | `User ID`             |                                                                                                                                                       Returns the username from a User ID. |
+|  robloxbadges   | `User`                |                                                                                                                                         Returns a list of the Roblox badges a player owns. |
+|  groupclothing  | `Group ID`, `Page`    |                                                                                                   Fetches bulk clothing assets from a group. This command is restricted to a subscription. |
+|  userclothing   | `User`, `Page`        |                                                                                                    Fetches bulk clothing assets from a user. This command is restricted to a subscription. |
+|      about      | None                  |                                                                                                         Shows advanced statistics about RoWhoIs, including cache size, users, shards, etc. |
+|      asset      | `Asset ID`, `Version` |                                                                                                  Fetches an asset file from Roblox. This command is not recommended for clothing textures. |
 
 
 ## In-Console Commands
@@ -108,32 +109,32 @@ All configuration options for this are optional. To disable any specific emoji, 
 
 To obtain these emojis, simply put a backslash behind the emoji in Discord then send it. An example output of this is: `<:verified:1186711315679563886>`
 
-| Emoji                | Use case                                                                                         |
-|:---------------------|:-------------------------------------------------------------------------------------------------|
-| verified             | Used for players who have the "verified" status on their profile.                                |
-| staff                | Used on the profile of RoWhoIs operators.                                                        |
-| subscription         | Used for RoWhoIs+, the subscription tier for RoWhoIs                                             |
-| donor                | Currently unused, placed on the profile of users who donate to RoWhoIs through GitHub or Bitcoin |
-| limited              | Applied to a limited item.                                                                       |
-| limitedu             | Applied to a limited-unique item.                                                                |
-| robux                | Used for symbolizing the virtual currency.                                                       |
-| collectible          | Used for user-generated limiteds.                                                                |
-| bc                   | Used for players who had Builders Club, a predecessor to Premium 450.                            |
-| tbc                  | Used for players who had Turbo Builders Club, a predecessor to Premium 1000.                     |
-| obc                  | Used for players who had Outrageous Builders Club, a predecessor to Premium 2200.                |
-| premium              | Used for players who have the Premium subscription.                                              |
-| administrator        | Part of the `robloxbadges` command.                                                              |
-| ambassador           | Part of the `robloxbadges` command.                                                              |
-| bloxxer              | Part of the `robloxbadges` command.                                                              |
-| bricksmith           | Part of the `robloxbadges` command.                                                              |
-| combat initiation    | Part of the `robloxbadges` command.                                                              |
-| homestead            | Part of the `robloxbadges` command.                                                              |
-| inviter              | Part of the `robloxbadges` command.                                                              |
-| official model maker | Part of the `robloxbadges` command.                                                              |
-| veteran              | Part of the `robloxbadges` command.                                                              |
-| warrior              | Part of the `robloxbadges` command.                                                              |
-| welcome to the club  | Part of the `robloxbadges` command.                                                              |
-| friendship           | Part of the `robloxbadges` command.                                                              |
+| Emoji                | Use case                                                                          |
+|:---------------------|:----------------------------------------------------------------------------------|
+| verified             | Used for players who have the "verified" status on their profile.                 |
+| staff                | Used on the profile of RoWhoIs operators.                                         |
+| subscription         | Used for RoWhoIs+, the subscription tier for RoWhoIs                              |
+| donor                | Placed on the profile of users who donate to RoWhoIs through GitHub or Bitcoin    |
+| limited              | Applied to a limited item.                                                        |
+| limitedu             | Applied to a limited-unique item.                                                 |
+| robux                | Used for symbolizing the virtual currency.                                        |
+| collectible          | Used for user-generated limiteds.                                                 |
+| bc                   | Used for players who had Builders Club, a predecessor to Premium 450.             |
+| tbc                  | Used for players who had Turbo Builders Club, a predecessor to Premium 1000.      |
+| obc                  | Used for players who had Outrageous Builders Club, a predecessor to Premium 2200. |
+| premium              | Used for players who have the Premium subscription.                               |
+| administrator        | Part of the `robloxbadges` command.                                               |
+| ambassador           | Part of the `robloxbadges` command.                                               |
+| bloxxer              | Part of the `robloxbadges` command.                                               |
+| bricksmith           | Part of the `robloxbadges` command.                                               |
+| combat initiation    | Part of the `robloxbadges` command.                                               |
+| homestead            | Part of the `robloxbadges` command.                                               |
+| inviter              | Part of the `robloxbadges` command.                                               |
+| official model maker | Part of the `robloxbadges` command.                                               |
+| veteran              | Part of the `robloxbadges` command.                                               |
+| warrior              | Part of the `robloxbadges` command.                                               |
+| welcome to the club  | Part of the `robloxbadges` command.                                               |
+| friendship           | Part of the `robloxbadges` command.                                               |
 
 ## Proxying
 
