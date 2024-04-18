@@ -5,6 +5,10 @@ if not os.path.exists("utils/logger.py"):
     exit(1)
 from utils.logger import AsyncLogCollector
 
+if os.name != "nt":
+    import uvloop
+    asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+setattr(asyncio.sslproto._SSLProtocolTransport, "_start_tls_compatible", True)
 for folder in ["logs", "cache", "cache/clothing", "cache/asset"]:
     if not os.path.exists(folder): os.makedirs(folder)
 
@@ -12,8 +16,8 @@ logCollector, modified = AsyncLogCollector("logs/main.log"), True
 
 def sync_logging(errorlevel: str, errorcontent: str) -> None:
     """Allows for synchronous logging using https://github.com/aut-mn/AsyncLogger"""
-    log_functions = {"fatal": logCollector.fatal, "error": logCollector.error, "warn": logCollector.warn, "info": logCollector.info}
-    asyncio.new_event_loop().run_until_complete(log_functions[errorlevel](errorcontent))
+    log_functions = {"fatal": lambda: logCollector.fatal(errorcontent, initiator="RoWhoIs.main"), "error": lambda: logCollector.error(errorcontent, initiator="RoWhoIs.main"), "warn": lambda: logCollector.warn(errorcontent, initiator="RoWhoIs.main"), "info": lambda: logCollector.info(errorcontent, initiator="RoWhoIs.main")}
+    asyncio.new_event_loop().run_until_complete(log_functions[errorlevel]())
 
 try:
     tag = subprocess.check_output(['git', 'tag', '--contains', 'HEAD']).strip()
@@ -59,7 +63,7 @@ for i in range(5): # Rerun server in event of a crash
     try:
         from server import Roquest, RoWhoIs
         Roquest.initialize(config, version, modified)
-        if RoWhoIs.run(productionMode, version, config) is True: break
+        if RoWhoIs.run(version) is True: break
     except KeyboardInterrupt: break
     except asyncio.exceptions.CancelledError: break
     except RuntimeError: pass  # Occurs when exited before fully initialized
@@ -68,6 +72,7 @@ for i in range(5): # Rerun server in event of a crash
         sync_logging("fatal", f"A fatal error occurred during runtime: {type(e)} | {traceback.format_exc()}")
         if i < 4: sync_logging("warn", f"Server crash detected. Restarting server...")
 
+sync_logging("info", "RoWhoIs down")
 if productionMode: push_status(False, webhookToken)
 os.rename("logs/main.log", f"logs/server-{datetime.datetime.now().strftime('%Y-%m-%d-%H%M%S')}.log")
 exit(0)

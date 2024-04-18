@@ -38,6 +38,7 @@ An advanced Roblox lookup Discord bot utility.
 | servers | Prints the server guild count      |
 |  cache  | Prints the cache size              |
 | cflush  | Flushes the cursors cache          |
+| lflush  | Flushes old logs                   |
 |  flush  | Flushes entire cache               |
 | reload  | Hot-reloads the configuration file |
 
@@ -46,7 +47,7 @@ An advanced Roblox lookup Discord bot utility.
 RoWhoIs relies on a set of dependencies to function properly.
 The following are all external dependencies RoWhoIs relies on to work:
 
-`aioconsole, aiofiles, aiohttp, discord`
+`aioconsole, aiofiles, aiohttp, hikari`
 
 These dependencies can be satisfied by pip:
 
