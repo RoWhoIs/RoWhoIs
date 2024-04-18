@@ -291,7 +291,7 @@ async def fetch_asset(asset_id: int, shard_id: int, filetype: str = "png", locat
             return asset_id
     except UnicodeDecodeError: raise ErrorDict.MismatchedDataError
 
-async def fetch_game(game: int, shard_id: int):
+async def fetch_game(game: int, shard_id: int)  -> typedefs.Game:
     """Fetches a game"""
     initRequest = await Roquest.Roquest("GET", "games", f"v1/games/multiget-place-details?placeIds={game}", shard_id=shard_id, bypass_proxy=True)
     await general_error_handler(initRequest[0])

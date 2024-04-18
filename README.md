@@ -28,12 +28,25 @@ An advanced Roblox lookup Discord bot utility.
 |      about      | None                   |                                                                                                         Shows advanced statistics about RoWhoIs, including cache size, users, shards, etc. |
 |      asset      | `Asset ID`, `Version`  |                                                                                                  Fetches an asset file from Roblox. This command is not recommended for clothing textures. |
 
+
+## In-Console Commands
+|  Name   | Description                        |
+|:-------:|:-----------------------------------|
+|  down   | Shuts the server down              |
+|   up    | Prints the server uptime           |
+| shards  | Prints the server shard count      |
+| servers | Prints the server guild count      |
+|  cache  | Prints the cache size              |
+| cflush  | Flushes the cursors cache          |
+|  flush  | Flushes entire cache               |
+| reload  | Hot-reloads the configuration file |
+
 ## Dependencies
 
 RoWhoIs relies on a set of dependencies to function properly.
 The following are all external dependencies RoWhoIs relies on to work:
 
-`aiofiles, aiohttp, discord`
+`aioconsole, aiofiles, aiohttp, discord`
 
 These dependencies can be satisfied by pip:
 

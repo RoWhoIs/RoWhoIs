@@ -1,3 +1,4 @@
-aiofiles
+aiofiles>=23.2.1
 aiohttp>=3.9.3
 git+https://github.com/Rapptz/discord.py
+aioconsole>=0.3.1

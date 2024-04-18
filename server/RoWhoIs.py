@@ -1,18 +1,25 @@
 from server import Roquest, RoModules
 from utils import logger, ErrorDict, gUtils, typedefs
-import asyncio, discord, io, aiohttp, datetime, inspect, time
+import asyncio, discord, io, aiohttp, datetime, inspect, time, json, aioconsole
 from pathlib import Path
 from typing import Any, Optional, Literal
+
+
+def load_config(config: dict) -> None:
+    global staffIds, optOut, userBlocklist, emojiTable, assetBlocklist, whoIsDonors
+    staffIds, optOut, userBlocklist, assetBlocklist, whoIsDonors = config['RoWhoIs']['admin_ids'], config['RoWhoIs']['opt_out'], config['RoWhoIs']['banned_users'], config['RoWhoIs']['banned_assets'], config['RoWhoIs']['donors']
+    emojiTable = {key: config['Emojis'][key] for key in config['Emojis']}
+    return
 
 def run(productionmode: bool, version: str, config) -> bool:
     """Runs the server"""
     try:
-        global productionMode, staffIds, optOut, userBlocklist, shortHash, emojiTable, botToken, assetBlocklist, whoIsDonors
-        emojiTable = {key: config['Emojis'][key] for key in config['Emojis']}
+        global productionMode, botToken, shortHash
         botToken = {"topgg": config['Authentication']['topgg'], "dbl": config['Authentication']['dbl']}
         shortHash, productionMode = version, productionmode
-        staffIds, optOut, userBlocklist, assetBlocklist, whoIsDonors = config['RoWhoIs']['admin_ids'], config['RoWhoIs']['opt_out'], config['RoWhoIs']['banned_users'], config['RoWhoIs']['banned_assets'], config['RoWhoIs']['donors']
+        load_config(config)
         client.uptime = datetime.datetime.utcnow()
+        loop.create_task(input_listener())
         if not productionMode: loop.run_until_complete(client.start(config['Authentication']['testing']))
         else: loop.run_until_complete(client.start(config['Authentication']['production']))
         return True
@@ -30,6 +37,8 @@ class RoWhoIs(discord.AutoShardedClient):
 
 async def shutdown() -> None:
     """Closes the client and cancels all tasks in the loop"""
+    global should_stop
+    should_stop = True
     await log_collector.info("Gracefully shutting down RoWhoIs...")
     await discord.AutoShardedClient.close(client)
     for task in asyncio.all_tasks(loop): task.cancel()
@@ -130,13 +139,41 @@ async def check_cooldown(interaction: discord.Interaction, intensity: Literal["e
         await log_collector.error(f"Error in cooldown handler: {e} | Command: {commandName} | User: {userId} | Returning False... ")
         return False
 
+async def input_listener() -> None:
+    """Allows for in-terminal commands while the server is running"""
+    while not should_stop:
+        try:
+            command = await aioconsole.ainput("")
+            if command == "help": print("Commands: down, up, shards, servers, users, cache, cflush, flush, reload")
+            if command == "down": await shutdown()
+            if command == "up": print(f"Uptime: {datetime.datetime.utcnow() - client.uptime}")
+            if command == "shards": print(f"Shards: {len(client.shards)}")
+            if command == "servers": print(f"Servers: {len(client.guilds)}")
+            if command == "users": print(f"Users: {sum(guild.member_count if guild.member_count is not None else 0 for guild in client.guilds)}")
+            if command == "cache": print(f"Cache Size: {round(sum(f.stat().st_size for f in Path('cache/').glob('**/*') if f.is_file()) / 1048576, 1)} MB")
+            if command == "cflush":
+                if Path("cache/cursors.json").is_file(): Path("cache/cursors.json").unlink()
+                print("Cursor Cache flushed.")
+            if command == "flush":
+                for file in Path("cache/").glob("**/*"):
+                    if file.is_file(): file.unlink()
+                print("Cache flushed.")
+            if command == "reload":
+                with open('config.json', 'r') as configfile:
+                    config = json.load(configfile)
+                    configfile.close()
+                load_config(config)
+                if config['RoWhoIs']['production_mode'] != productionMode: print("Production mode has changed. Restart the server to apply changes.")
+                print("Configuration reloaded.")
+        except Exception as e: await log_collector.error(f"Error in input listener: {e}")
+
+should_stop, userCooldowns = False, {}
 shardAnalytics = gUtils.ShardAnalytics(0, False)
 log_collector = logger.AsyncLogCollector("logs/main.log")
 client = RoWhoIs(intents=discord.Intents.default())
 loop = asyncio.get_event_loop()
 loop.create_task(update_rolidata())
 loop.create_task(heartbeat())
-userCooldowns = {}
 
 @client.event
 async def on_ready():
@@ -340,7 +377,7 @@ async def whois(interaction: discord.Interaction, user: str, download: bool = Fa
         if download and not isEdited: await interaction.followup.send(embed=embed, file=whoData)
         elif isEdited:
             time_diff = time.time() - iniTS
-            if time_diff < 0.75: await asyncio.sleep(0.75 - time_diff) # 0.75 to prevent ratelimiting by Discord when inv takes no time to calc
+            if time_diff < 1: await asyncio.sleep(1 - time_diff) # 1s = least error rate
             await interaction.edit_original_response(embed=embed)
         else: await interaction.followup.send(embed=embed)
     except Exception as e: await handle_error(e, interaction, "whois", shard, "User")
