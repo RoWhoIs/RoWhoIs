@@ -1,11 +1,11 @@
-from utils.logger import AsyncLogCollector
+from utils import logger, ErrorDict
 from pathlib import Path
 from server import Roquest
 from typing import Tuple
 import asyncio, time
 
 heartBeat,  roliData, lastRoliUpdate = False, {}, 0
-log_collector = AsyncLogCollector("logs/main.log")
+log_collector = logger.AsyncLogCollector("logs/main.log")
 
 async def coro_heartbeat():
     """[LOCAL COROUTINE, DO NOT USE]"""

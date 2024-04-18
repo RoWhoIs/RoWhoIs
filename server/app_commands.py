@@ -111,7 +111,7 @@ async def handle_error(error, interaction: hikari.CommandInteraction, command: s
     except hikari.errors.BadRequestError: await interaction.interaction.edit_initial_response(embed=embed)
     return True
 
-async def interaction_permissions_check(interaction: hikari.CommandInteraction, command: CommandType, user_id: int = None, kind_upsell: bool = True) -> bool:
+async def interaction_permissions_check(interaction: hikari.CommandInteraction, command: CommandType, user_id: int = None, kind_upsell: bool = True, requires_connection=True) -> bool:
     """Checks if the user has the required entitlements to run the command"""
     embed = hikari.Embed(color=0xFF0000)
     if command.requires_entitlement and not interaction.entitlements and not productionMode:
@@ -146,7 +146,7 @@ async def interaction_runner(event: hikari.InteractionCreateEvent):
                     if isinstance(option.value, dict): kwargs[option.name] = option.value
                     else: args.append(option.value)
             try:
-                if not await interaction_permissions_check(event.interaction, command): return
+                if not await interaction_permissions_check(event.interaction, command, requires_connection=self.requires_connection): return
                 await command.wrapper(event.interaction, *args, **kwargs)
             except Exception as e: await handle_error(e, event, command.name, shard, command.context)
     except Exception as e:

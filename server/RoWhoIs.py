@@ -226,7 +226,7 @@ async def ownsitem(interaction: hikari.CommandInteraction, user: str, item: int,
     shard = await gUtils.shard_metrics(interaction)
     try: user = await RoModules.handle_usertype(user, shard)
     except Exception as e:
-        if await handle_error(e, interaction, "ownsitem", shard, "User"): return
+        if await app_commands.handle_error(e, interaction, "ownsitem", shard, "User"): return
     data = await RoModules.owns_item(user.id, item, shard)
     if data[0] is None:
         if data[2] == "The specified user does not exist!": embed.description = "User does not exist or has been banned."
@@ -321,7 +321,7 @@ async def isingroup(interaction: hikari.CommandInteraction, user: str, group: in
     shard = await gUtils.shard_metrics(interaction)
     try: user = await RoModules.handle_usertype(user, shard)
     except Exception as e:
-        if await handle_error(e, interaction, "isingroup", shard, "User"): return
+        if await app_commands.handle_error(e, interaction, "isingroup", shard, "User"): return
     usergroups = await RoModules.get_groups(user.id, shard)
     ingroup = False
     for groups in usergroups['data']:
@@ -407,7 +407,7 @@ async def group(interaction: hikari.CommandInteraction, group: int, download: bo
     embed = hikari.Embed(color=0xFF0000)
     shard = await gUtils.shard_metrics(interaction)
     groupInfo = await RoModules.get_group(group, shard)
-    embed.set_thumbnail(hikari.URL(await RoModules.get_item_thumbnail(item, "420x420", shard)))
+    embed.set_thumbnail(hikari.URL(await RoModules.get_group_emblem(group, "420x420", shard)))
     embed.title = f"{groupInfo[0]}{(' ' + emojiTable.get('verified')) if groupInfo[3] else ''}"
     embed.add_field(name="Group ID:", value=f"`{group}`")
     embed.add_field(name="Status:", value=f"`{'Locked' if groupInfo[8] else 'Okay'}`", inline=True)
@@ -454,8 +454,8 @@ async def robloxbadges(interaction: hikari.CommandInteraction, user: str):
     for badge in badges[0]:
         badge_name = badges[1].get(badge)
         if badge_name: descriptor += f"{emojiTable.get(str(badge_name).lower())} `{badge_name}`\n"
-    if descriptor == "":  descriptor = "This user has no Roblox badges."
-    embed.set_thumbnail(hikari.URL(await RoModules.get_item_thumbnail(item, "420x420", shard)))
+    if descriptor == "": descriptor = "This user has no Roblox badges."
+    embed.set_thumbnail(hikari.URL(await RoModules.get_player_bust(user.id, "420x420", shard)))
     embed.colour = 0x00FF00
     embed.title = f"{user.username}'s Roblox Badges:"
     embed.description = descriptor
@@ -480,7 +480,7 @@ async def groupclothing(interaction: hikari.CommandInteraction, group: int, page
     for asset in groupAssets: tasks.append(gUtils.safe_wrapper(RoModules.fetch_asset, asset, shard))
     try: clothing = await asyncio.gather(*tasks)
     except Exception as e:
-        if await handle_error(e, interaction, "groupclothing", shard, "Group ID"): return
+        if await app_commands.handle_error(e, interaction, "groupclothing", shard, "Group ID"): return
     for asset in clothing:
         if isinstance(asset, int) and asset not in assetBlocklist: files.append(hikari.File(f'cache/clothing/{asset}.png', filename=f"rowhois-groupclothing-{asset}.png"))
     if not files: embed.description = "No clothing assets were found."
@@ -495,7 +495,7 @@ async def userclothing(interaction: hikari.CommandInteraction, user: str, page: 
     try:
         user = await RoModules.handle_usertype(user, shard)
     except Exception as e:
-        if await handle_error(e, interaction, "userclothing", shard, "User"): return
+        if await app_commands.handle_error(e, interaction, "userclothing", shard, "User"): return
     userAssets, pagination = await RoModules.get_creator_assets(user.id, "User", page, shard)
     if pagination != page or page < 1:
         embed.description = "Invalid page number."
@@ -509,7 +509,7 @@ async def userclothing(interaction: hikari.CommandInteraction, user: str, page: 
     for asset in userAssets: tasks.append(gUtils.safe_wrapper(RoModules.fetch_asset, asset, shard))
     try: clothing = await asyncio.gather(*tasks)
     except Exception as e:
-        if await handle_error(e, interaction, "userclothing", shard, "User"): return
+        if await app_commands.handle_error(e, interaction, "userclothing", shard, "User"): return
     for asset in clothing:
         if isinstance(asset, int) and asset not in assetBlocklist: files.append(hikari.File(f'cache/clothing/{asset}.png', filename=f"rowhois-userclothing-{asset}.png"))
     if not files: embed.description = "No clothing assets were found."
