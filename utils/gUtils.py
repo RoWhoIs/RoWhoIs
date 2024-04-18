@@ -4,9 +4,10 @@ Any function that requires global vars or is a task should not go here
 RoWhoIs 2024
 """
 import aiofiles
-import hikari, datetime, re, inspect, time, os, json, asyncio
+import hikari, datetime, re, inspect, time, os, json, asyncio, io
+from pathlib import Path
 from utils import logger
-from typing import Optional
+from typing import Optional, Any
 
 log_collector = logger.AsyncLogCollector("logs/main.log")
 
@@ -64,3 +65,9 @@ async def cache_cursor(cursor: str, type: str, key: int, write: bool = False, pa
         if type in cursors and key in cursors[type] and pagination in cursors[type][key]: return cursors[type][key][pagination]["cursor"]
     async with aiofiles.open(filename, "w") as f: await f.write(json.dumps(cursors))
     return None
+
+async def write_volatile_cache(filename: str, data: Any) -> Path:
+    """Writes any object to a file"""
+    async with aiofiles.open("cache/volatile/" + filename, "wb") as f:  await f.write(data.encode())
+    await f.close()
+    return Path("cache/volatile/" + filename)

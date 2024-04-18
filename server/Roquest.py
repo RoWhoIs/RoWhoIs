@@ -97,7 +97,7 @@ async def Roquest(method: str, node: str, endpoint: str, shard_id: int = None, f
         async with aiohttp.ClientSession(cookies={".roblosecurity": BaseUserAuth.token} if bypass_proxy else {}, headers={"x-csrf-token": BaseUserAuth.csrf, 'User-Agent': uasString} if bypass_proxy else {'User-Agent': uasString}) as main_session:
             try:
                 if not bypass_proxy: await proxy_picker()
-                logBlurb = f"[{currentProxy.ip if currentProxy.ip is not None and not bypass_proxy else 'non-proxied'}]  {method.upper()} {node} {'| ' + endpoint if endpoint != '' else endpoint}"
+                logBlurb = f"{currentProxy.ip + ';' if currentProxy.ip is not None and not bypass_proxy else 'non-proxied;'}  {method.upper()} {node} {'| ' + endpoint if endpoint != '' else endpoint}"
                 if not productionMode: await log_collector.info(f"{logBlurb}", initiator="RoWhoIs.Roquest", shard_id=shard_id) # PRIVACY FILTER
                 try:
                     async with main_session.request(method.lower(), f"https://{node}.roblox.com/{endpoint}", timeout=4, proxy=currentProxy.ip if not bypass_proxy else None, proxy_auth=globProxies.auth if not bypass_proxy else None, **kwargs) as resp:
@@ -121,7 +121,7 @@ async def GetFileContent(asset_id: int, version: int = None, shard_id: int = Non
     """Retrieves large non-json assets"""
     try:
         await proxy_picker()
-        logBlurb = f"GETFILECONTENT [{currentProxy.ip if currentProxy.ip is not None else 'non-proxied'}] | {asset_id}"
+        logBlurb = f"{currentProxy.ip + ';' if currentProxy.ip is not None else 'non-proxied;'} GETFILECONTENT  | {asset_id}"
         if not productionMode: await log_collector.info(logBlurb, initiator="RoWhoIs.GetFileContent", shard_id=shard_id)
         async with aiohttp.ClientSession() as main_session:
             async with main_session.request("GET", f"https://assetdelivery.roblox.com/v1/asset/?id={asset_id}&version={version if version is not None else ''}", headers={'User-Agent': uasString}, proxy=currentProxy.ip, proxy_auth=globProxies.auth) as resp:

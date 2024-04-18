@@ -1,5 +1,5 @@
-import asyncio, subprocess, datetime, json, os, aiohttp, traceback
-
+import asyncio, subprocess, datetime, json, os, aiohttp, traceback, warnings
+warnings.filterwarnings("ignore", category=RuntimeWarning)
 if not os.path.exists("utils/logger.py"):
     print("Missing utils/logger.py! RoWhoIs will not be able to initialize.")
     exit(1)
@@ -9,7 +9,7 @@ if os.name != "nt":
     import uvloop
     asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 setattr(asyncio.sslproto._SSLProtocolTransport, "_start_tls_compatible", True)
-for folder in ["logs", "cache", "cache/clothing", "cache/asset"]:
+for folder in ["logs", "cache", "cache/clothing", "cache/asset", "cache/volatile"]:
     if not os.path.exists(folder): os.makedirs(folder)
 
 logCollector, modified = logger.AsyncLogCollector("logs/main.log"), True

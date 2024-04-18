@@ -17,10 +17,9 @@ class AsyncLogCollector:
     async def log(self, level, message, initiator: str = None, shard_id: int = None):
         timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S,%f')[:-3]
         colored_level = self.log_levels.get(level.upper(), level.upper())
-        if shard_id is None:
-            print(f"{colored_level} {timestamp} \033[1m{initiator if initiator else 'unknowninitiator'}{'.' + shard_id if shard_id is not None else ''}\033[22m: {message}")
-            async with aiofiles.open(self.filename, mode='a') as file:
-                await file.write(f"{level.upper()} {timestamp} {initiator} {'SH' + str(shard_id) if shard_id is not None else ''}: {message}\n")
+        print(f"{colored_level} {timestamp} \033[1m{initiator if initiator else 'unknowninitiator'}{'.' + str(shard_id) if shard_id is not None else ''}\033[22m: {message}")
+        async with aiofiles.open(self.filename, mode='a') as file:
+            await file.write(f"{level.upper()} {timestamp} {initiator} {'SH' + str(shard_id) if shard_id is not None else ''}: {message}\n")
     async def debug(self, message, shard_id: int = None, initiator: str = None): await self.log('D', message, initiator, shard_id)
     async def info(self, message, shard_id: int = None, initiator: str = None): await self.log('I', message, initiator, shard_id)
     async def warn(self, message, shard_id: int = None, initiator: str = None): await self.log('W', message, initiator, shard_id)
