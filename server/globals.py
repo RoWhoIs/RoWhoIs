@@ -11,8 +11,7 @@ async def coro_heartbeat():
     """[LOCAL COROUTINE, DO NOT USE]"""
     global heartBeat
     while True:
-        try:
-            heartBeat = await Roquest.heartbeat()
+        try: heartBeat = await Roquest.heartbeat()
         except Exception: heartBeat = False
         await asyncio.sleep(60)
 

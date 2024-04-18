@@ -5,17 +5,18 @@ Pray to god nothing here breaks, soldier
 import hikari, time, types, inspect
 from typing import Literal, get_origin, get_args
 from utils import logger, ErrorDict
+from server import globals
 
 command_tree, userCooldowns = {}, {}
 log_collector = logger.AsyncLogCollector("logs/main.log")
 
-def init(productionmode: bool, optout, userblocklist, assetblocklist, emojitable) -> None:
-    global productionMode, optOut, userBlocklist, assetBlock, emojiTable, heartBeat
-    productionMode, optOut, userBlocklist, assetBlocklist, emojiTable, heartBeat = productionmode, optout, userblocklist, assetblocklist, emojitable, True
+def init(productionmode: bool, optout, userblocklist, emojitable) -> None:
+    global productionMode, optOut, userBlocklist, assetBlock, emojiTable
+    productionMode, optOut, userBlocklist, emojiTable = productionmode, optout, userblocklist, emojitable
 
 class CommandType:
     """Class for defining command objects"""
-    def __init__(self, wrapper, name: str, description: str, context: str, intensity: Literal["extreme", "high", "medium", "low"], requires_entitlement= False, requires_connection= True, options: hikari.CommandOption = None):
+    def __init__(self, wrapper, name: str, description: str, context: str, intensity: Literal["extreme", "high", "medium", "low"], requires_entitlement: bool = False, requires_connection: bool = True, options: hikari.CommandOption = None, kind_upsell: bool = True):
         self.wrapper = wrapper
         self.name = name
         self.description = description if description else 'No description provided.'
@@ -24,6 +25,13 @@ class CommandType:
         self.requires_entitlement = requires_entitlement
         self.requires_connection = requires_connection
         self.options = options
+        self.kind_upsell = kind_upsell
+
+async def commandType_fetch(interaction: hikari.CommandInteraction) -> CommandType:
+    """Converts an interaction into a CommandType object"""
+    command_name = interaction.command_name
+    if command_name in command_tree: return command_tree[command_name]
+    else: return None
 
 async def check_cooldown(interaction: hikari.CommandInteraction, intensity: Literal["extreme", "high", "medium", "low"], commandName: str, cooldown_seconds: int = 60) -> bool:
     """Custom cooldown handler for user commands
@@ -36,12 +44,13 @@ async def check_cooldown(interaction: hikari.CommandInteraction, intensity: Lite
         userId, current_time = interaction.user.id, time.time()
         if commandName not in userCooldowns: userCooldowns[commandName] = {}
         if userId not in userCooldowns[commandName]: userCooldowns[commandName][userId] = []
-        if interaction.entitlements and productionMode or not productionMode: maxCommands = premiumCoolDict.get(intensity)
+        if interaction.entitlements and productionMode: maxCommands = premiumCoolDict.get(intensity)
         else: maxCommands = stdCoolDict.get(intensity)
-        userCooldowns[commandName][userId] = [timestamp for timestamp in userCooldowns[commandName][userId] if current_time - timestamp < cooldown_seconds]
+        if all(current_time - timestamp >= cooldown_seconds for timestamp in userCooldowns[commandName][userId]): userCooldowns[commandName][userId] = []
         if len(userCooldowns[commandName][userId]) >= maxCommands:
-            remainingSeconds = cooldown_seconds - int(current_time - userCooldowns[commandName][userId][0])
-            await interaction.create_initial_response(response_type=hikari.ResponseType.MESSAGE_CREATE, content=f"Your enthusiasm is greatly appreciated, but please slow down! Try again in **{remainingSeconds}** seconds.", flags=hikari.MessageFlag.EPHEMERAL)
+            remainingSeconds = round(cooldown_seconds - int(current_time - userCooldowns[commandName][userId][0]))
+            if remainingSeconds <= 0: remainingSeconds = 1
+            await interaction.create_initial_response(response_type=hikari.ResponseType.MESSAGE_CREATE, content=f"Your enthusiasm is greatly appreciated, but please slow down! Try again in **{remainingSeconds}** second{'s' if remainingSeconds >= 2 else ''}.", flags=hikari.MessageFlag.EPHEMERAL)
             return True
         userCooldowns[commandName][userId].append(current_time)
         return False
@@ -63,11 +72,12 @@ async def sync_app_commands(client: hikari.GatewayBot) -> None:
 
 class Command:
     global command_tree
-    def __init__(self, context: str, intensity: Literal["extreme", "high", "medium", "low"], requires_entitlement= False, requires_connection= True):
+    def __init__(self, context: str, intensity: Literal["extreme", "high", "medium", "low"], requires_entitlement: bool = False, requires_connection: bool = True, kind_upsell: bool = True):
         self.intensity = intensity
         self.requires_entitlement = requires_entitlement
         self.requires_connection = requires_connection
         self.context = context
+        self.kind_upsell = kind_upsell
     def __call__(self, func):
         # Inspect the function to create a CommandType object to append to the command tree
         self.func = func
@@ -87,7 +97,7 @@ class Command:
                 option_type = hikari.OptionType.STRING if isinstance(literal_values[0], str) else hikari.OptionType.INTEGER
             option = hikari.CommandOption(name=name, description='No description provided.', type=option_type, is_required=True if param.default == inspect.Parameter.empty else False, choices=choices)
             self.options.append(option)
-        command_tree[self.name] = CommandType(self.wrapper, self.name, self.description, self.context, self.intensity, self.requires_entitlement, self.requires_connection, self.options)
+        command_tree[self.name] = CommandType(self.wrapper, self.name, self.description, self.context, self.intensity, self.requires_entitlement, self.requires_connection, self.options, self.kind_upsell)
         return self.wrapper
     def __get__(self, instance, owner): return types.MethodType(self, instance)
     async def wrapper(self, interaction: hikari.CommandInteraction, *args, **kwargs):
@@ -102,33 +112,38 @@ async def handle_error(error, interaction: hikari.CommandInteraction, command: s
     if isinstance(error, ErrorDict.InvalidAuthorizationError): embed.description = f"Hm.. Looks like we can't access this {context.lower()} right now. Please try again later."
     elif isinstance(error, ErrorDict.DoesNotExistError): embed.description = f"{context} doesn't exist."
     elif isinstance(error, ErrorDict.MismatchedDataError): embed.description = f"{context} is invalid."
-    elif isinstance(error, ErrorDict.RatelimitedError): embed.description = "RoWhoIs is experienceing unusually high demand. Please try again."
+    elif isinstance(error, ErrorDict.RatelimitedError): embed.description = "RoWhoIs is experienceing unusually high demand. Please try again later."
     elif isinstance(error, hikari.errors.NotFoundError): return True
     else:
         await log_collector.error(f"Error in the {command} command: {type(error)}, {error}", initiator="RoWhoIs.handle_error", shard_id=shard_id)
         embed.description = "Whoops! An unknown error occurred. Please try again later."
-    try: await interaction.interaction.create_initial_response(response_type=hikari.ResponseType.MESSAGE_CREATE, embed=embed, flags=hikari.MessageFlag.EPHEMERAL)
-    except hikari.errors.BadRequestError: await interaction.interaction.edit_initial_response(embed=embed)
+    if isinstance(interaction, hikari.CommandInteraction):
+        try: await interaction.create_initial_response(response_type=hikari.ResponseType.MESSAGE_CREATE, embed=embed, flags=hikari.MessageFlag.EPHEMERAL, attachments=None)
+        except hikari.errors.BadRequestError: await interaction.edit_initial_response(embed=embed, attachments=None)
+    else:
+        try: await interaction.interaction.create_initial_response(response_type=hikari.ResponseType.MESSAGE_CREATE, embed=embed, flags=hikari.MessageFlag.EPHEMERAL, attachments=None)
+        except hikari.errors.BadRequestError: await interaction.interaction.edit_initial_response(embed=embed, attachments=None)
     return True
 
-async def interaction_permissions_check(interaction: hikari.CommandInteraction, command: CommandType, user_id: int = None, kind_upsell: bool = True, requires_connection=True) -> bool:
-    """Checks if the user has the required entitlements to run the command"""
+async def interaction_permissions_check(interaction: hikari.CommandInteraction, command: CommandType = None, user_id: int = None, kind_upsell: bool = True, requires_connection: bool = True, requires_entitlements: bool = False) -> bool:
+    """Checks if the user has the required entitlements to run the command. Returns False if the user does not have the required entitlements."""
     embed = hikari.Embed(color=0xFF0000)
-    if command.requires_entitlement and not interaction.entitlements and not productionMode:
-        if not kind_upsell:
-            await interaction.create_premium_required_response()
-            return False
-        embed.description = f"This advanced option requires RoWhoIs {emojiTable.get('subscription')}. Please upgrade to use this option!"
+    if command is None: command = await commandType_fetch(interaction)
+    if (command.requires_entitlement or requires_entitlements) and not (interaction.entitlements or not productionMode):
+        try:
+            if kind_upsell or command.kind_upsell:
+                await interaction.create_premium_required_response()
+                return False
+        except hikari.errors.BadRequestError: pass
+        embed.description = f"This advanced option requires RoWhoIs {emojiTable.get('subscription')}. Please upgrade to use this feature!"
     elif interaction.user.id in userBlocklist:
         await log_collector.warn(f"Blocklist user {interaction.user.id} attempted to call a command and was denied!", initiator="RoWhoIs.interaction_permissions_check")
         embed.description = "You have been permanently banned from using RoWhoIs. In accordance to our [Terms of Service](https://rowhois.com/terms-of-service/), we reserve the right to block any user from using our service."
     elif user_id and user_id in optOut:
         await log_collector.warn(f"Blocklist user {user_id} was requested by {interaction.user.id} and denied!", initiator="RoWhoIs.interaction_permissions_check")
         embed.description = "This user has requested to opt-out of RoWhoIs."
-    elif not heartBeat and requires_connection: embed.description = "Roblox is currently experiencing downtime. Please try again later."
+    elif not globals.heartBeat and requires_connection: embed.description = "Roblox is currently experiencing downtime. Please try again later."
     else: return True
-    embed.title = None
-    embed.colour = 0xFF0000
     try: await interaction.create_initial_response(response_type=hikari.ResponseType.MESSAGE_CREATE, embed=embed, flags=hikari.MessageFlag.EPHEMERAL)
     except hikari.errors.BadRequestError: await interaction.edit_initial_response(embed=embed)
     return False
@@ -138,7 +153,7 @@ async def interaction_runner(event: hikari.InteractionCreateEvent):
         command_name = event.interaction.command_name
         shard = event.shard.id
         if command_name in command_tree:
-            command = command_tree[command_name]  # Get the CommandType object
+            command = command_tree[command_name]
             options = event.interaction.options
             args, kwargs = [], {}
             if options:
@@ -146,8 +161,7 @@ async def interaction_runner(event: hikari.InteractionCreateEvent):
                     if isinstance(option.value, dict): kwargs[option.name] = option.value
                     else: args.append(option.value)
             try:
-                if not await interaction_permissions_check(event.interaction, command, requires_connection=command.requires_connection): return
+                if not await interaction_permissions_check(event.interaction, requires_connection=command.requires_connection, requires_entitlements=command.requires_entitlement, kind_upsell=command.kind_upsell): return
                 await command.wrapper(event.interaction, *args, **kwargs)
             except Exception as e: await handle_error(e, event, command.name, shard, command.context)
-    except Exception as e:
-        raise e
+    except Exception as e: raise e
