@@ -1,9 +1,6 @@
 import asyncio, subprocess, datetime, json, os, aiohttp, traceback, warnings
+from utils import logger
 warnings.filterwarnings("ignore", category=RuntimeWarning)
-if not os.path.exists("utils/logger.py"):
-    print("Missing utils/logger.py! RoWhoIs will not be able to initialize.")
-    exit(1)
-from utils import  logger
 
 if os.name != "nt":
     import uvloop
@@ -33,7 +30,6 @@ except subprocess.CalledProcessError:
 with open('config.json', 'r') as configfile:
     config = json.load(configfile)
     configfile.close()
-
 
 logger.display_banner(version, config['RoWhoIs']['production_mode'], modified)
 
@@ -72,7 +68,7 @@ for i in range(5): # Rerun server in event of a crash
     except ErrorDict.MissingRequiredConfigs: sync_logging("fatal", f"Missing or malformed configuration options detected!")
     except Exception as e:
         sync_logging("fatal", f"A fatal error occurred during runtime: {type(e)} | {traceback.format_exc()}")
-        if i < 4: sync_logging("warn", f"Server crash detected. Restarting server...")
+    if i < 4: sync_logging("warn", f"Server crash detected. Restarting server...")
 
 sync_logging("info", "RoWhoIs down")
 if productionMode: push_status(False, webhookToken)

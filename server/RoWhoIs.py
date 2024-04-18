@@ -62,9 +62,9 @@ async def input_listener() -> None:
             if command == "help": print("Commands: down, up, shards, servers, users, cache, cflush, lflush, flush, reload")
             if command == "down": raise KeyboardInterrupt
             if command == "up": await log_collector.info(f"Uptime: {await gUtils.ret_uptime(uptime)}", initiator="RoWhoIs.input_listener")
-            if command == "shards": await log_collector.info(f"Shards: {len(client.shards)}", initiator="RoWhoIs.input_listener")
-            if command == "servers": await log_collector.info(f"Servers: {len(client.guilds)}", initiator="RoWhoIs.input_listener")
-            if command == "users": await log_collector.info(f"Users: {sum(guild.member_count if guild.member_count is not None else 0 for guild in client.guilds)}", initiator="RoWhoIs.input_listener")
+            if command == "shards": await log_collector.info(f"Shards: {client.shard_count}", initiator="RoWhoIs.input_listener")
+            if command == "servers": await log_collector.info(f"Servers: {len(client.cache.get_guilds_view())}", initiator="RoWhoIs.input_listener")
+            if command == "users": await log_collector.info(f"Users: {sum(client.cache.get_guild(guild_id).member_count if client.cache.get_guild(guild_id).member_count is not None else 0 for guild_id in client.cache.get_guilds_view())}", initiator="RoWhoIs.input_listener")
             if command == "cache": await log_collector.info(f"Cache Size: {round(sum(f.stat().st_size for f in Path('cache/').glob('**/*') if f.is_file()) / 1048576, 1)} MB", initiator="RoWhoIs.input_listener")
             if command == "cflush":
                 if Path("cache/cursors.json").is_file(): Path("cache/cursors.json").unlink()
@@ -80,7 +80,9 @@ async def input_listener() -> None:
             if command == "reload":
                 load_config()
                 await log_collector.info("Configuration reloaded", initiator="RoWhoIs.input_listener")
-        except Exception as e: await log_collector.error(f"Error in input listener: {e}", initiator="RoWhoIs.input_listener")
+        except Exception as e:
+            if not isinstance(e, RuntimeError): await log_collector.error(f"Error in input listener: {type(e)}, {e}", initiator="RoWhoIs.input_listener") # RTE happens when invalid config, usually
+            else: return False
 
 @client.listen(hikari.GuildJoinEvent)
 async def guild_join(event: hikari.GuildJoinEvent):
