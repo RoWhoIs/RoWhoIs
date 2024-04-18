@@ -68,6 +68,8 @@ async def sync_app_commands(client: hikari.GatewayBot) -> None:
                 existingCommand = existingCommandsDict[command.name]
                 if existingCommand.description != command.description or existingCommand.options != command.options: await client.rest.edit_application_command(client.get_me().id, existingCommand.id, name=command.name, description=command.description, options=command.options)
             else: await client.rest.create_slash_command(application=client.get_me().id, name=command.name, description=command.description, options=command.options)
+        for command_name, command in existingCommandsDict.items():
+            if command_name not in command_tree: await client.rest.delete_application_command(client.get_me().id, command.id)
     except Exception as e: await log_collector.error(f"Error syncing app commands: {e}", initiator="RoWhoIs.sync_app_commands")
 
 class Command:
@@ -164,4 +166,8 @@ async def interaction_runner(event: hikari.InteractionCreateEvent):
                 if not await interaction_permissions_check(event.interaction, requires_connection=command.requires_connection, requires_entitlements=command.requires_entitlement, kind_upsell=command.kind_upsell): return
                 await command.wrapper(event.interaction, *args, **kwargs)
             except Exception as e: await handle_error(e, event, command.name, shard, command.context)
+        else:
+            await log_collector.error(f"Command '{command_name}' not found in command tree.", initiator="RoWhoIs.interaction_runner", shard_id=shard)
+            await event.interaction.create_initial_response(response_type=hikari.ResponseType.MESSAGE_CREATE, content="Whoops! I couldn't find this command.", flags=hikari.MessageFlag.EPHEMERAL)
+            return
     except Exception as e: raise e
