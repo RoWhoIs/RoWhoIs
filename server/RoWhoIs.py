@@ -468,6 +468,7 @@ async def group(interaction: hikari.CommandInteraction, group: int, download: bo
 async def checkusername(interaction: hikari.CommandInteraction, username: str, download: bool = False):
     """Check if a username is available"""
     embed = hikari.Embed(color=0xFF0000)
+    usernameInfo = await RoModules.check_username(username)
     if usernameInfo[0] == 0:
         embed.colour = 0x00FF00
         embed.description = "Username is available!"

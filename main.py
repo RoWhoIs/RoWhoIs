@@ -3,7 +3,7 @@ import asyncio, subprocess, datetime, json, os, aiohttp, traceback
 if not os.path.exists("utils/logger.py"):
     print("Missing utils/logger.py! RoWhoIs will not be able to initialize.")
     exit(1)
-from utils.logger import AsyncLogCollector
+from utils import  logger
 
 if os.name != "nt":
     import uvloop
@@ -12,7 +12,7 @@ setattr(asyncio.sslproto._SSLProtocolTransport, "_start_tls_compatible", True)
 for folder in ["logs", "cache", "cache/clothing", "cache/asset"]:
     if not os.path.exists(folder): os.makedirs(folder)
 
-logCollector, modified = AsyncLogCollector("logs/main.log"), True
+logCollector, modified = logger.AsyncLogCollector("logs/main.log"), True
 
 def sync_logging(errorlevel: str, errorcontent: str) -> None:
     """Allows for synchronous logging using https://github.com/aut-mn/AsyncLogger"""
@@ -30,16 +30,18 @@ except subprocess.CalledProcessError:
         version = short_commit_id.decode('utf-8')
     except subprocess.CalledProcessError: version = "0"  # Assume not part of a git workspace
 
-sync_logging("info", f"Initializing RoWhoIs on version {version}...")
+with open('config.json', 'r') as configfile:
+    config = json.load(configfile)
+    configfile.close()
+
+
+logger.display_banner(version, config['RoWhoIs']['production_mode'], modified)
 
 for file in ["server/Roquest.py", "server/RoWhoIs.py", "config.json", "utils/ErrorDict.py", "utils/gUtils.py"]:
     if not os.path.exists(file):
         sync_logging("fatal", f"Missing {file}! RoWhoIs will not be able to initialize.")
         exit(1)
 
-with open('config.json', 'r') as configfile:
-    config = json.load(configfile)
-    configfile.close()
 
 def push_status(enabling: bool, webhook_token: str) -> None:
     """Pushes to the webhook the initialization status of RoWhoIs"""
