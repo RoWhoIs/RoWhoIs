@@ -119,7 +119,7 @@ async def help(interaction: hikari.CommandInteraction):
     embed.add_field(name="robloxbadges", value="Shows what Roblox badges a player has", inline=True)
     embed.add_field(name="asset", value="Fetches an asset file from an asset ID. Not recommended for clothing textures", inline=True)
     embed.add_field(name="about", value="Shows a bit about RoWhoIs and advanced statistics", inline=True)
-    embed.set_footer(text=f"{'Get RoWhoIs+ to use + commands' if interaction.entitlements and productionMode else 'You have access to RoWhoIs+ features'}")
+    embed.set_footer(text=f"{'Get RoWhoIs+ to use + commands' if not (interaction.entitlements and productionMode) else 'You have access to RoWhoIs+ features'}")
     await interaction.create_initial_response(response_type=hikari.ResponseType.MESSAGE_CREATE, embed=embed)
 
 @app_commands.Command(context="Command", intensity="low", requires_connection=False)
@@ -140,7 +140,7 @@ async def about(interaction: hikari.CommandInteraction):
     embed.add_field(name="Shards", value=f"`{client.shard_count}`", inline=True)
     embed.add_field(name="Shard ID", value=f"`{shard}`", inline=True)
     embed.add_field(name="Cache Size", value=f"`{round(sum(f.stat().st_size for f in Path('cache/').glob('**/*') if f.is_file()) / 1048576, 1)} MB`", inline=True)
-    embed.add_field(name="RoWhoIs+", value=f"`{'Not Subscribed :(`' if interaction.entitlements and productionMode else 'Subscribed` ' + emojiTable.get('subscription')}", inline=True)
+    embed.add_field(name="RoWhoIs+", value=f"`{'Not Subscribed :(`' if not (interaction.entitlements and productionMode) else 'Subscribed` ' + emojiTable.get('subscription')}", inline=True)
     await interaction.create_initial_response(response_type=hikari.ResponseType.MESSAGE_CREATE, embed=embed)
 
 @app_commands.Command(context="User", intensity="low")
