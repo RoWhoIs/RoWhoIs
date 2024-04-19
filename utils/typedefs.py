@@ -52,3 +52,27 @@ class BaseAsset:
     def __init__(self, id: int, name: str):
         self.id = id
         self.name = name
+
+class Game:
+    def __init__(self, id: int, universe: int = None, creator: User = None, name: str = None, playable: bool = False, price: int = None, url: str = None, description: str = None, voice_chat: bool = False, max_players: int = None, genre: str = None, created: str = None, updated: str = None, visits: int = None, favorites: int = None, likes: int = None, dislikes: int = None, thumbnail: str = None, playing: int = None, video_enabled: bool = False, copy_protected: bool = False):
+        self.id = id
+        self.universe = universe
+        self.creator = creator
+        self.name = name
+        self.playable = playable
+        self.price = price
+        self.url = url
+        self.description = description
+        self.voice_chat = voice_chat
+        self.max_players = max_players
+        self.genre = genre
+        self.created = created
+        self.updated = updated
+        self.visits = visits
+        self.favorites = favorites
+        self.likes = likes
+        self.dislikes = dislikes
+        self.thumbnail = thumbnail
+        self.playing = playing
+        self.video_enabled = video_enabled
+        self.copy_protected = copy_protected

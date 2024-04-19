@@ -9,7 +9,7 @@ from utils import ErrorDict, gUtils, typedefs
 
 async def general_error_handler(data: int, expectedresponsecode: int = 200) -> None:
     """Will throw an error when data doesn't match requirements"""
-    if data == 403: raise ErrorDict.InvalidAuthorizationError
+    if data in [403, 401]: raise ErrorDict.InvalidAuthorizationError
     elif data in [404, 400]: raise ErrorDict.DoesNotExistError
     elif data == -1: raise ErrorDict.UndocumentedError
     elif data == 409: raise ErrorDict.MismatchedDataError
@@ -18,12 +18,9 @@ async def general_error_handler(data: int, expectedresponsecode: int = 200) -> N
 
 async def handle_usertype(user: Union[int, str], shard_id: int) -> typedefs.User:
     """Handles a user type and returns a User object containing id, name, nickname, and verified"""
-    if user.isdigit():
-        offload = await convert_to_username(user, shard_id)
-        return typedefs.User(id=int(user), username=offload[0], nickname=offload[1], verified=offload[2])
-    else:
-        offload = await convert_to_id(user, shard_id)
-        return typedefs.User(id=int(offload[0]), username=offload[1], nickname=offload[2], verified=offload[3])
+    user = str(user)
+    if user.isdigit(): return await convert_to_username(user, shard_id)
+    else: return await convert_to_id(user, shard_id)
 
 async def convert_to_id(username: str, shard_id: int) -> tuple[int, str, str, bool]:
     """Returns user id, username, display name, verified badge"""
@@ -31,17 +28,17 @@ async def convert_to_id(username: str, shard_id: int) -> tuple[int, str, str, bo
     await general_error_handler(data[0])
     if "data" in data[1] and data[1]["data"]:
         user_data = data[1]["data"][0]
-        if "id" in user_data and "name" in user_data: return user_data["id"], user_data["name"], user_data["displayName"], user_data["hasVerifiedBadge"]
+        if "id" in user_data and "name" in user_data: return typedefs.User(id=int(user_data["id"]), username=user_data["name"], nickname=user_data["displayName"], verified=user_data["hasVerifiedBadge"])
         else: raise ErrorDict.DoesNotExistError
     else: raise ErrorDict.DoesNotExistError
-        
+
 async def convert_to_username(user: int, shard_id: int) -> tuple[str, str, bool]:
     """Converts a user id into a username. Returns name, display name, and verified status."""
     data = await Roquest.Roquest("POST", "users", "v1/users", shard_id=shard_id, json={"userIds": [user], "excludeBannedUsers": False})
     await general_error_handler(data[0])
     if "data" in data[1] and data[1]["data"]:
         user_data = data[1]["data"][0]
-        if "id" in user_data: return user_data["name"], user_data["displayName"], user_data["hasVerifiedBadge"]
+        if "id" in user_data: return typedefs.User(id=int(user), username=user_data["name"], nickname=user_data["displayName"], verified=user_data["hasVerifiedBadge"])
         else: raise ErrorDict.DoesNotExistError
     else: raise ErrorDict.DoesNotExistError
 
@@ -131,6 +128,13 @@ async def get_group_emblem(group: int, size: str, shard_id: int):
 async def get_item_thumbnail(item_id: int, size: str, shard_id: int):
     """Retrieves the thumbnail of a given item"""
     thumbnail_url = await Roquest.Roquest("GET", "thumbnails", f"v1/assets?assetIds={item_id}&returnPolicy=PlaceHolder&size={size}&format=Png&isCircular=false", shard_id=shard_id, failretry=True)
+    if thumbnail_url[0] != 200: return "https://rowhois.com/not-available.png"
+    elif thumbnail_url[1]["data"][0]["state"] == "Blocked": return "https://rowhois.com/blocked.png"
+    else: return thumbnail_url[1]["data"][0]["imageUrl"]
+
+async def get_game_icon(universe_id: int, size: str, shard_id: int):
+    """Retrieves the icon of a given game"""
+    thumbnail_url = await Roquest.Roquest("GET", "thumbnails", f"v1/games/icons?universeIds={universe_id}&returnPolicy=PlaceHolder&size={size}&format=Png&isCircular=false", shard_id=shard_id, failretry=True)
     if thumbnail_url[0] != 200: return "https://rowhois.com/not-available.png"
     elif thumbnail_url[1]["data"][0]["state"] == "Blocked": return "https://rowhois.com/blocked.png"
     else: return thumbnail_url[1]["data"][0]["imageUrl"]
@@ -287,6 +291,27 @@ async def fetch_asset(asset_id: int, shard_id: int, filetype: str = "png", locat
             return asset_id
     except UnicodeDecodeError: raise ErrorDict.MismatchedDataError
 
-async def nil_pointer() -> int: 
+async def fetch_game(game: int, shard_id: int) -> typedefs.Game:
+    """Fetches a game"""
+    initRequest = await Roquest.Roquest("GET", "games", f"v1/games/multiget-place-details?placeIds={game}", shard_id=shard_id, bypass_proxy=True)
+    await general_error_handler(initRequest[0])
+    creator = typedefs.User(id=initRequest[1][0]['builderId'], username=initRequest[1][0]['builder'], verified=initRequest[1][0]['hasVerifiedBadge'])
+    game = typedefs.Game(id=game, universe=initRequest[1][0]['universeId'], creator=creator, name=initRequest[1][0]['name'], playable=initRequest[1][0]['isPlayable'], price=initRequest[1][0]['price'], url=initRequest[1][0]['url'], description=initRequest[1][0]['description'])
+    thumbnail, votes, additional_stats = await asyncio.gather(get_game_icon(game.universe, "420x420", shard_id), Roquest.Roquest("GET", "games", f"v1/games/votes?universeIds={game.universe}", shard_id=shard_id), Roquest.Roquest("GET", "games", f"v1/games?universeIds={game.universe}", shard_id=shard_id))
+    await asyncio.gather(general_error_handler(votes[0]), general_error_handler(additional_stats[0]))
+    game.thumbnail = thumbnail
+    game.visits = additional_stats[1]['data'][0]['visits']
+    game.favorites = additional_stats[1]['data'][0]['favoritedCount']
+    game.created = additional_stats[1]['data'][0]['created']
+    game.updated = additional_stats[1]['data'][0]['updated']
+    game.playing = additional_stats[1]['data'][0]['playing']
+    game.max_players = additional_stats[1]['data'][0]['maxPlayers']
+    game.likes = votes[1]['data'][0]['upVotes']
+    game.dislikes = votes[1]['data'][0]['downVotes']
+    game.copy_protected = not additional_stats[1]['data'][0]['copyingAllowed']
+    game.genre = additional_stats[1]['data'][0]['genre']
+    return game
+
+async def nil_pointer() -> int:
     """Returns nil data"""
     return 0

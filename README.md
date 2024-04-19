@@ -1,39 +1,56 @@
 # RoWhoIs
 
-An advanced Roblox lookup Discord bot utility.
+The most advanced Roblox lookup Discord bot.
 
 ![Demo of the whois command](https://rowhois.com/demo-whois-small.gif)
 
+![Internal Screenshot of a RoWhoIs Instance](https://rowhois.com/rowhois-internal.png)
+
 ## Commands
 
-|     Command     | Parameters             |                                                                                                                                                                                Description |
-|:---------------:|:-----------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|
-|      help       | None                   |                                                                                                                                                   Displays a list of commands RoWhoIs has. |
-|      whois      | `User`                 | Returns User ID, account status, joined, last online, description, previous usernames, verified email, total rap, total value, group count, friend count, follower count, following count. |
-| clothingtexture | `Clothing ID`          |                                                                                                                         Returns a PNG file containing the texture for a 2D clothing asset. |
-|    ownsitem     | `User`, `Item ID`      |                                                                                          Returns the item name, a count of the item owned and the unique asset ids for each item if owned. |
-|    ownsbadge    | `User`, `Badge ID`     |                                                                                                                                        Returns badge award date, name, and image if owned. |
-|  isfriendswith  | `User1`, `User`        |                                                                                                                                                                  Returns True/False embed. |
-|      group      | `Group ID`             |                                                                                         Returns the group name, ID, status, created, owner username, owner userid, shout, and description. |
-|    isingroup    | `User`, `Group ID`     |                                                                                                                                              Returns player's role and group name if True. |
-|     limited     | `Limited`              |                                                                                                                                               Returns the ID, RAP, and Value of a limited. |
-|   itemdetails   | `Item ID`              |                                                                                   Returns the creator username & id, description, created, updated, quantity, remaining, and lowest price. |
-|   membership    | `User`                 |                                                                                                                               Returns whether a player has Premium, or has had BC/TBC/OBC. |
-|  checkusername  | `Username`             |                                                                                                                                                    Checks whether a username is available. |
-|     userid      | `Username`             |                                                                                                                                                       Returns the User ID from a username. |
-|    username     | `User ID`              |                                                                                                                                                       Returns the username from a User ID. |
-|  robloxbadges   | `User`                 |                                                                                                                                         Returns a list of the Roblox badges a player owns. |
-|  groupclothing  | `Group ID`, `Page`     |                                                                                                   Fetches bulk clothing assets from a group. This command is restricted to a subscription. |
-|  userclothing   | `User`, `Page`         |                                                                                                    Fetches bulk clothing assets from a user. This command is restricted to a subscription. |
-|      about      | None                   |                                                                                                         Shows advanced statistics about RoWhoIs, including cache size, users, shards, etc. |
-|      asset      | `Asset ID`, `Version`  |                                                                                                  Fetches an asset file from Roblox. This command is not recommended for clothing textures. |
+|     Command     | Parameters            |                                                                                                                                                                                Description |
+|:---------------:|:----------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|
+|      help       | None                  |                                                                                                                                                   Displays a list of commands RoWhoIs has. |
+|      whois      | `User`                | Returns User ID, account status, joined, last online, description, previous usernames, verified email, total rap, total value, group count, friend count, follower count, following count. |
+| clothingtexture | `Clothing ID`         |                                                                                                                         Returns a PNG file containing the texture for a 2D clothing asset. |
+|    ownsitem     | `User`, `Item ID`     |                                                                                          Returns the item name, a count of the item owned and the unique asset ids for each item if owned. |
+|    ownsbadge    | `User`, `Badge ID`    |                                                                                                                                        Returns badge award date, name, and image if owned. |
+|  isfriendswith  | `User1`, `User`       |                                                                                                                                                                  Returns True/False embed. |
+|      game       | `Game ID`             |                                                                                               Returns game data like like/dislikes, favorites, players, max player count, copylocked, etc. |
+|      group      | `Group ID`            |                                                                                         Returns the group name, ID, status, created, owner username, owner userid, shout, and description. |
+|    isingroup    | `User`, `Group ID`    |                                                                                                                                              Returns player's role and group name if True. |
+|     limited     | `Limited`             |                                                                                                                                               Returns the ID, RAP, and Value of a limited. |
+|   itemdetails   | `Item ID`             |                                                                                   Returns the creator username & id, description, created, updated, quantity, remaining, and lowest price. |
+|   membership    | `User`                |                                                                                                                               Returns whether a player has Premium, or has had BC/TBC/OBC. |
+|  checkusername  | `Username`            |                                                                                                                                                    Checks whether a username is available. |
+|     userid      | `Username`            |                                                                                                                                                       Returns the User ID from a username. |
+|    username     | `User ID`             |                                                                                                                                                       Returns the username from a User ID. |
+|  robloxbadges   | `User`                |                                                                                                                                         Returns a list of the Roblox badges a player owns. |
+|  groupclothing  | `Group ID`, `Page`    |                                                                                                   Fetches bulk clothing assets from a group. This command is restricted to a subscription. |
+|  userclothing   | `User`, `Page`        |                                                                                                    Fetches bulk clothing assets from a user. This command is restricted to a subscription. |
+|      about      | None                  |                                                                                                         Shows advanced statistics about RoWhoIs, including cache size, users, shards, etc. |
+|      asset      | `Asset ID`, `Version` |                                                                                                  Fetches an asset file from Roblox. This command is not recommended for clothing textures. |
+
+
+## In-Console Commands
+|  Name   | Description                        |
+|:-------:|:-----------------------------------|
+|  down   | Shuts the server down              |
+|   up    | Prints the server uptime           |
+| shards  | Prints the server shard count      |
+| servers | Prints the server guild count      |
+|  cache  | Prints the cache size              |
+| cflush  | Flushes the cursors cache          |
+| lflush  | Flushes old logs                   |
+|  flush  | Flushes entire cache               |
+| reload  | Hot-reloads the configuration file |
 
 ## Dependencies
 
 RoWhoIs relies on a set of dependencies to function properly.
 The following are all external dependencies RoWhoIs relies on to work:
 
-`aiofiles, aiohttp, discord`
+`aioconsole, aiofiles, aiohttp, hikari, uvloop`
 
 These dependencies can be satisfied by pip:
 
@@ -94,32 +111,32 @@ All configuration options for this are optional. To disable any specific emoji, 
 
 To obtain these emojis, simply put a backslash behind the emoji in Discord then send it. An example output of this is: `<:verified:1186711315679563886>`
 
-| Emoji                | Use case                                                                                         |
-|:---------------------|:-------------------------------------------------------------------------------------------------|
-| verified             | Used for players who have the "verified" status on their profile.                                |
-| staff                | Used on the profile of RoWhoIs operators.                                                        |
-| subscription         | Used for RoWhoIs+, the subscription tier for RoWhoIs                                             |
-| donor                | Currently unused, placed on the profile of users who donate to RoWhoIs through GitHub or Bitcoin |
-| limited              | Applied to a limited item.                                                                       |
-| limitedu             | Applied to a limited-unique item.                                                                |
-| robux                | Used for symbolizing the virtual currency.                                                       |
-| collectible          | Used for user-generated limiteds.                                                                |
-| bc                   | Used for players who had Builders Club, a predecessor to Premium 450.                            |
-| tbc                  | Used for players who had Turbo Builders Club, a predecessor to Premium 1000.                     |
-| obc                  | Used for players who had Outrageous Builders Club, a predecessor to Premium 2200.                |
-| premium              | Used for players who have the Premium subscription.                                              |
-| administrator        | Part of the `robloxbadges` command.                                                              |
-| ambassador           | Part of the `robloxbadges` command.                                                              |
-| bloxxer              | Part of the `robloxbadges` command.                                                              |
-| bricksmith           | Part of the `robloxbadges` command.                                                              |
-| combat initiation    | Part of the `robloxbadges` command.                                                              |
-| homestead            | Part of the `robloxbadges` command.                                                              |
-| inviter              | Part of the `robloxbadges` command.                                                              |
-| official model maker | Part of the `robloxbadges` command.                                                              |
-| veteran              | Part of the `robloxbadges` command.                                                              |
-| warrior              | Part of the `robloxbadges` command.                                                              |
-| welcome to the club  | Part of the `robloxbadges` command.                                                              |
-| friendship           | Part of the `robloxbadges` command.                                                              |
+| Emoji                | Use case                                                                          |
+|:---------------------|:----------------------------------------------------------------------------------|
+| verified             | Used for players who have the "verified" status on their profile.                 |
+| staff                | Used on the profile of RoWhoIs operators.                                         |
+| subscription         | Used for RoWhoIs+, the subscription tier for RoWhoIs                              |
+| donor                | Placed on the profile of users who donate to RoWhoIs through GitHub or Bitcoin    |
+| limited              | Applied to a limited item.                                                        |
+| limitedu             | Applied to a limited-unique item.                                                 |
+| robux                | Used for symbolizing the virtual currency.                                        |
+| collectible          | Used for user-generated limiteds.                                                 |
+| bc                   | Used for players who had Builders Club, a predecessor to Premium 450.             |
+| tbc                  | Used for players who had Turbo Builders Club, a predecessor to Premium 1000.      |
+| obc                  | Used for players who had Outrageous Builders Club, a predecessor to Premium 2200. |
+| premium              | Used for players who have the Premium subscription.                               |
+| administrator        | Part of the `robloxbadges` command.                                               |
+| ambassador           | Part of the `robloxbadges` command.                                               |
+| bloxxer              | Part of the `robloxbadges` command.                                               |
+| bricksmith           | Part of the `robloxbadges` command.                                               |
+| combat initiation    | Part of the `robloxbadges` command.                                               |
+| homestead            | Part of the `robloxbadges` command.                                               |
+| inviter              | Part of the `robloxbadges` command.                                               |
+| official model maker | Part of the `robloxbadges` command.                                               |
+| veteran              | Part of the `robloxbadges` command.                                               |
+| warrior              | Part of the `robloxbadges` command.                                               |
+| welcome to the club  | Part of the `robloxbadges` command.                                               |
+| friendship           | Part of the `robloxbadges` command.                                               |
 
 ## Proxying
 
@@ -148,32 +165,19 @@ It's a general best practice to make sure the proxy is located within a close re
 
 RoWhoIs containerizes operation types by file. This eases development and makes the codebase easier to manage.
 
-`main.py` is used for initializing `RoWhoIs.py`, the main server. From there, `RoWhoIs.py` generally uses `RoModules.py`, a file containing modules for performing different API calls, to carry out command fulfillment. `RoModules.py` uses `Roquest.py`.
-`Roquest.py` is where all requests to APIs are handled, including proxying. `ErrorDict.py` is used as an error dictionary. If ever something were to go wrong with RoWhoIs, it'll be an error object defined by that. Next, `logger.py`, is the utility from [AsyncLogger](https://github.com/aut-mn/AsyncLogger) used to asynchronously log everything.
-Finally, `gUtils.py` is a utility file containing general functions that are used throughout the codebase. Any function that requires global variables or is used as a run_forever task should not be placed in this file.
+First and foremost, `main.py`. This initializes `server/Roquest.py` with the needed parameters to begin making API calls to Roblox. Next is `server/RoWhoIs.py`. This is instantiated in `main.py` and is the main class for RoWhoIs. It handles all the commands and interactions with the user. You can find every public-facing RoWhoIs command in this file.
 
-Logs that are live are written to main.log, and sessions that are gracefully closed have log files named `server-YYYY-MM-DD-HHmmSS.log`
+`server/app_commands.py` is the infrastructure for handling slash commands. This file is responsible for handling all the app commands RoWhoIs has. This not only serves as a wrapper to every command, it also validates user cooldowns, entitlements, and permissions. An added bonus of it being a wrapper is ease of error handling, as it's all done automatically.
 
-```
-.
-├── cache
-│   └── clothing
-│       └── 106779740.png
-├── logs
-│   └── server-2024-02-22-150004.log
-├── server
-│   └── RoModules.py
-│   └── Roquest.py
-│   └── RoWhoIs.py
-├── utils
-│   └── ErrorDict.py
-│   └── gUtils.py
-│   └── logger.py
-├── config.json
-└── main.py
-```
+`server/RoModules.py` essentially is an 'API-wrapper' for Roblox, providing useful automatation such as raw user input strings to proper User objects and other useful, common functions.
 
-<sub>Example filestructure for a RoWhoIs server</sub>
+`utils/typedefs.py` contains all the type definitions for RoWhoIs. This is useful for type hinting and ensuring that the codebase is consistent. It also makes it easier to understand what each function is returning by converting certain data types to classes.
+
+`utils/logger.py` is the logging infrastructure for RoWhoIs. It logs all the interactions, errors, and other important information.
+
+`utils/gUtils.py` contains general utilities that are used throughout the codebase. Generally this is for internal use, and does not interact with the API.
+
+`utils/ErrorDict.py` contains all the error messages that RoWhoIs can return. This is useful for ensuring that the error messages are consistent and easy to understand and makes handling exceptions far more intuitive.
 
 ## Caching
 
@@ -194,7 +198,13 @@ RoWhoIs operates under shards. There may be a performance drawback during initia
 
 While if some instances of RoWhoIs don't operate in more than 2,500+ guilds (the required amount to begin sharding), it's still a good idea to have sharding in place for future-proofing or larger instances.
 
-In the log outputs, each user-invoked call will have a shard ID. This is the shard that the user's guild is located on. An example output of this is `[SH1]`, meaning that that request was performed on shard 1.
+In the log outputs, each user-invoked call will have a shard ID. This is the shard that the user's guild is located on. An example output of this is `.1`, meaning that that request was performed on shard 1.
+
+A full example log output: 
+
+```
+I 2024-04-18 04:39:37,220 RoWhoIs.Roquest.0: http://168.181.229.86:50100;  GET friends | v1/users/5192280939/followers/count
+```
 
 This level of fine-grain logging allows for further performance optimizations in the future.
 

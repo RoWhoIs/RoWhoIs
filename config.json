@@ -9,6 +9,7 @@
   },
   "RoWhoIs": {
     "production_mode": false,
+    "shards": 1,
     "opt_out": [],
     "banned_users": [],
     "banned_assets": [],
