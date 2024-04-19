@@ -293,24 +293,26 @@ async def fetch_asset(asset_id: int, shard_id: int, filetype: str = "png", locat
 
 async def fetch_game(game: int, shard_id: int) -> typedefs.Game:
     """Fetches a game"""
-    initRequest = await Roquest.Roquest("GET", "games", f"v1/games/multiget-place-details?placeIds={game}", shard_id=shard_id, bypass_proxy=True)
-    await general_error_handler(initRequest[0])
-    creator = typedefs.User(id=initRequest[1][0]['builderId'], username=initRequest[1][0]['builder'], verified=initRequest[1][0]['hasVerifiedBadge'])
-    game = typedefs.Game(id=game, universe=initRequest[1][0]['universeId'], creator=creator, name=initRequest[1][0]['name'], playable=initRequest[1][0]['isPlayable'], price=initRequest[1][0]['price'], url=initRequest[1][0]['url'], description=initRequest[1][0]['description'])
-    thumbnail, votes, additional_stats = await asyncio.gather(get_game_icon(game.universe, "420x420", shard_id), Roquest.Roquest("GET", "games", f"v1/games/votes?universeIds={game.universe}", shard_id=shard_id), Roquest.Roquest("GET", "games", f"v1/games?universeIds={game.universe}", shard_id=shard_id))
-    await asyncio.gather(general_error_handler(votes[0]), general_error_handler(additional_stats[0]))
-    game.thumbnail = thumbnail
-    game.visits = additional_stats[1]['data'][0]['visits']
-    game.favorites = additional_stats[1]['data'][0]['favoritedCount']
-    game.created = additional_stats[1]['data'][0]['created']
-    game.updated = additional_stats[1]['data'][0]['updated']
-    game.playing = additional_stats[1]['data'][0]['playing']
-    game.max_players = additional_stats[1]['data'][0]['maxPlayers']
-    game.likes = votes[1]['data'][0]['upVotes']
-    game.dislikes = votes[1]['data'][0]['downVotes']
-    game.copy_protected = not additional_stats[1]['data'][0]['copyingAllowed']
-    game.genre = additional_stats[1]['data'][0]['genre']
-    return game
+    try:
+        initRequest = await Roquest.Roquest("GET", "games", f"v1/games/multiget-place-details?placeIds={game}", shard_id=shard_id, bypass_proxy=True)
+        await general_error_handler(initRequest[0])
+        creator = typedefs.User(id=initRequest[1][0]['builderId'], username=initRequest[1][0]['builder'], verified=initRequest[1][0]['hasVerifiedBadge'])
+        game = typedefs.Game(id=game, universe=initRequest[1][0]['universeId'], creator=creator, name=initRequest[1][0]['name'], playable=initRequest[1][0]['isPlayable'], price=initRequest[1][0]['price'], url=initRequest[1][0]['url'], description=initRequest[1][0]['description'])
+        thumbnail, votes, additional_stats = await asyncio.gather(get_game_icon(game.universe, "420x420", shard_id), Roquest.Roquest("GET", "games", f"v1/games/votes?universeIds={game.universe}", shard_id=shard_id), Roquest.Roquest("GET", "games", f"v1/games?universeIds={game.universe}", shard_id=shard_id))
+        await asyncio.gather(general_error_handler(votes[0]), general_error_handler(additional_stats[0]))
+        game.thumbnail = thumbnail
+        game.visits = additional_stats[1]['data'][0]['visits']
+        game.favorites = additional_stats[1]['data'][0]['favoritedCount']
+        game.created = additional_stats[1]['data'][0]['created']
+        game.updated = additional_stats[1]['data'][0]['updated']
+        game.playing = additional_stats[1]['data'][0]['playing']
+        game.max_players = additional_stats[1]['data'][0]['maxPlayers']
+        game.likes = votes[1]['data'][0]['upVotes']
+        game.dislikes = votes[1]['data'][0]['downVotes']
+        game.copy_protected = not additional_stats[1]['data'][0]['copyingAllowed']
+        game.genre = additional_stats[1]['data'][0]['genre']
+        return game
+    except IndexError: raise ErrorDict.DoesNotExistError
 
 async def nil_pointer() -> int:
     """Returns nil data"""

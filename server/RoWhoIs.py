@@ -91,9 +91,9 @@ async def guild_join(event: hikari.GuildJoinEvent):
         try:
             async with aiohttp.ClientSession() as session:
                 if botToken.get("topgg") != "":
-                    async with session.post(f"https://top.gg/api/bots/{client.user.id}/stats", headers={"Authorization": botToken.get("topgg")}, json={"server_count": len(client.guilds)}): pass
+                    async with session.post(f"https://top.gg/api/bots/{client.get_me().id}/stats", headers={"Authorization": botToken.get("topgg")}, json={"server_count": len(client.cache.get_guilds_view()), "shard_count": client.shard_count}): pass
                 if botToken.get("dbl") != "":
-                    async with session.post(f"https://discordbotlist.com/api/v1/bots/{client.user.id}/stats", headers={"Authorization": botToken.get("dbl")}, json={"guilds": len(client.guilds)}): pass
+                    async with session.post(f"https://discordbotlist.com/api/v1/bots/{client.get_me().id}/stats", headers={"Authorization": botToken.get("dbl")}, json={"guilds": len(client.cache.get_guilds_view())}): pass
         except Exception as e: await log_collector.error(f"Failed to update registries. {e}", initiator="RoWhoIs.guild_join")
 
 @app_commands.Command(context="Command", intensity="low", requires_connection=False)
@@ -119,7 +119,7 @@ async def help(interaction: hikari.CommandInteraction):
     embed.add_field(name="robloxbadges", value="Shows what Roblox badges a player has", inline=True)
     embed.add_field(name="asset", value="Fetches an asset file from an asset ID. Not recommended for clothing textures", inline=True)
     embed.add_field(name="about", value="Shows a bit about RoWhoIs and advanced statistics", inline=True)
-    embed.set_footer(text=f"{'Get RoWhoIs+ to use + commands' if not (interaction.entitlements and productionMode) else 'You have access to RoWhoIs+ features'}")
+    embed.set_footer(text="You have access to RoWhoIs+ features" if not productionMode or interaction.entitlements else "Get RoWhoIs+ to use + commands")
     await interaction.create_initial_response(response_type=hikari.ResponseType.MESSAGE_CREATE, embed=embed)
 
 @app_commands.Command(context="Command", intensity="low", requires_connection=False)
@@ -140,7 +140,7 @@ async def about(interaction: hikari.CommandInteraction):
     embed.add_field(name="Shards", value=f"`{client.shard_count}`", inline=True)
     embed.add_field(name="Shard ID", value=f"`{shard}`", inline=True)
     embed.add_field(name="Cache Size", value=f"`{round(sum(f.stat().st_size for f in Path('cache/').glob('**/*') if f.is_file()) / 1048576, 1)} MB`", inline=True)
-    embed.add_field(name="RoWhoIs+", value=f"`{'Not Subscribed :(`' if not (interaction.entitlements and productionMode) else 'Subscribed` ' + emojiTable.get('subscription')}", inline=True)
+    embed.add_field(name="RoWhoIs+", value=f"`{'Subscribed` ' + emojiTable.get('subscription')}" if not productionMode or interaction.entitlements else '`Not Subscribed :(`', inline=True)
     await interaction.create_initial_response(response_type=hikari.ResponseType.MESSAGE_CREATE, embed=embed)
 
 @app_commands.Command(context="User", intensity="low")
@@ -183,6 +183,7 @@ async def whois(interaction: hikari.CommandInteraction, user: str, download: boo
     embed = hikari.Embed(color=0xFF0000)
     shard = await gUtils.shard_metrics(interaction)
     user = await RoModules.handle_usertype(user, shard)
+    await interaction.create_initial_response(response_type=hikari.ResponseType.DEFERRED_MESSAGE_CREATE)
     if not (await app_commands.interaction_permissions_check(interaction, user_id=user.id)): return
     user.description, user.joined, user.banned = (await RoModules.get_player_profile(user.id, shard))[:3]
     if user.banned or user.id == 1: tasks = [RoModules.nil_pointer(), RoModules.nil_pointer(), gUtils.safe_wrapper(RoModules.get_player_thumbnail, user.id, "420x420", shard), gUtils.safe_wrapper(RoModules.last_online, user.id, shard), gUtils.safe_wrapper(RoModules.get_groups, user.id, shard), gUtils.safe_wrapper(RoModules.get_socials, user.id, shard), gUtils.safe_wrapper(RoModules.get_player_headshot, user.id, shard)]
@@ -211,7 +212,7 @@ async def whois(interaction: hikari.CommandInteraction, user: str, download: boo
     privateInventory, isEdited, nlChar = None, False, "\n"
     if previousUsernames: whoData = "id, username, nickname, verified, rowhois_staff, account_status, joined, last_online, verified_email, groups, friends, followers, following, previous_usernames, description\n" + ''.join([f"{user.id}, {user.username}, {user.nickname}, {user.verified}, {user.id in staffIds}, {'Terminated' if user.banned else 'Okay' if not user.banned else 'None'}, {user.joined}, {user.online}, {'None' if veriftype == -1 else 'None' if veriftype == 0 else 'Hat' if veriftype == 1 else 'Sign' if veriftype == 2 else 'Unverified' if veriftype == 3 else 'Both' if veriftype == 4 else 'None'}, {len(groups['data'])}, {user.friends}, {user.followers}, {user.following}, {name}, {user.description.replace(',', '').replace(nlChar, '     ')  if user.description else 'None'}{nlChar}" for name in previousUsernames])
     else: whoData = f"id, username, nickname, verified, rowhois_staff, account_status, joined, last_online, verified_email, groups, friends, followers, following, previous_usernames, description\n{user.id}, {user.username}, {user.nickname}, {user.verified}, {user.id in staffIds}, {'Terminated' if user.banned else 'Okay' if not user.banned else 'None'}, {user.joined}, {user.online}, {'None' if veriftype == -1 else 'None' if veriftype == 0 else 'Hat' if veriftype == 1 else 'Sign' if veriftype == 2 else 'Unverified' if veriftype == 3 else 'Both' if veriftype == 4 else 'None'}, {len(groups['data'])}, {user.friends}, {user.followers}, {user.following}, None, {user.description.replace(',', '').replace(nlChar, '     ') if user.description else 'None'}\n"
-    await interaction.create_initial_response(response_type=hikari.ResponseType.MESSAGE_CREATE, embed=embed, attachment=await gUtils.write_volatile_cache(f"whois-{user.id}-profile.csv", whoData) if download else hikari.undefined.UNDEFINED)
+    await interaction.edit_initial_response(embed=embed, attachment=await gUtils.write_volatile_cache(f"whois-{user.id}-profile.csv", whoData) if download else hikari.undefined.UNDEFINED)
     if not user.banned and user.id != 1:
         iniTS = time.time()
         try: privateInventory, totalRap, totalValue, limiteds = await RoModules.get_limiteds(user.id, globals.roliData, shard) # VERY slow when user has a lot of limiteds
