@@ -1,4 +1,4 @@
-FOREGROUND %{blue}
+FOREGROUND %{cyan}
 BACKGROUND %{darkgrey}
 $$$$$$$\            $$\      $$\ $$\                 $$$$$$\
 $$  __$$\           $$ | $\  $$ |$$ |                \_$$  _|

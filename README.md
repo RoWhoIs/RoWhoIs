@@ -4,6 +4,8 @@ The most advanced Roblox lookup Discord bot.
 
 ![Demo of the whois command](https://rowhois.com/demo-whois-small.gif)
 
+![Internal Screenshot of a RoWhoIs Instance](https://rowhois.com/rowhois-internal.png)
+
 ## Commands
 
 |     Command     | Parameters            |                                                                                                                                                                                Description |
