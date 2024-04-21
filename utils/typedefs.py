@@ -7,7 +7,7 @@ import aiohttp
 
 class User:
     """Used for defining a base user object"""
-    def __init__(self, id: int, username: str = None, nickname: str = None, verified: bool = None, description: str = None, joined: str = None, banned: bool = None, online: bool = None, friends: int = None, followers: int = None, following: int = None):
+    def __init__(self, id: int, username: str = None, nickname: str = None, verified: bool = None, description: str = None, joined: str = None, banned: bool = None, online: bool = None, friends: int = None, followers: int = None, following: int = None, thumbnail: str = None, headshot: str = None, bust: str = None):
         variables = [id, username, nickname, verified, description, joined, banned, online, friends, followers, following]
         for var in variables:
             if isinstance(var, BaseException): raise var
@@ -22,6 +22,9 @@ class User:
         self.friends = friends
         self.followers = followers
         self.following = following
+        self.thumbnail = thumbnail
+        self.headshot = headshot
+        self.bust = bust
 
 class UserAuth:
     """Used for defining a base authenticated user object"""
