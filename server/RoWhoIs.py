@@ -21,11 +21,11 @@ def run(version: str) -> bool:
     try:
         global shortHash, uptime
         shortHash = version
-        config_d = load_config()
+        load_config()
         loop.create_task(input_listener())
         uptime = time.time()
         globals.init()
-        client.run(close_loop=False, shard_count=config_d['RoWhoIs']['shards'])
+        client.run(close_loop=False)
         return True
     except KeyError: raise ErrorDict.MissingRequiredConfigs
     except asyncio.exceptions.CancelledError: return True
