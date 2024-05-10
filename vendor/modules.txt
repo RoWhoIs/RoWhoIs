@@ -1,0 +1,45 @@
+# github.com/disgoorg/disgo v0.18.5
+## explicit; go 1.21
+github.com/disgoorg/disgo
+github.com/disgoorg/disgo/bot
+github.com/disgoorg/disgo/cache
+github.com/disgoorg/disgo/discord
+github.com/disgoorg/disgo/events
+github.com/disgoorg/disgo/gateway
+github.com/disgoorg/disgo/handlers
+github.com/disgoorg/disgo/httpserver
+github.com/disgoorg/disgo/internal/flags
+github.com/disgoorg/disgo/internal/insecurerandstr
+github.com/disgoorg/disgo/internal/slicehelper
+github.com/disgoorg/disgo/internal/tokenhelper
+github.com/disgoorg/disgo/rest
+github.com/disgoorg/disgo/sharding
+github.com/disgoorg/disgo/voice
+# github.com/disgoorg/json v1.1.0
+## explicit; go 1.18
+github.com/disgoorg/json
+# github.com/disgoorg/snowflake/v2 v2.0.1
+## explicit; go 1.18
+github.com/disgoorg/snowflake/v2
+# github.com/gorilla/websocket v1.5.1
+## explicit; go 1.20
+github.com/gorilla/websocket
+# github.com/sasha-s/go-csync v0.0.0-20240107134140-fcbab37b09ad
+## explicit; go 1.16
+github.com/sasha-s/go-csync
+# golang.org/x/crypto v0.19.0
+## explicit; go 1.18
+golang.org/x/crypto/internal/alias
+golang.org/x/crypto/internal/poly1305
+golang.org/x/crypto/nacl/secretbox
+golang.org/x/crypto/salsa20/salsa
+# golang.org/x/net v0.21.0
+## explicit; go 1.18
+golang.org/x/net/internal/socks
+golang.org/x/net/proxy
+# golang.org/x/sys v0.17.0
+## explicit; go 1.18
+golang.org/x/sys/cpu
+# golang.org/x/time v0.5.0
+## explicit; go 1.18
+golang.org/x/time/rate
