@@ -4,10 +4,7 @@ go 1.21
 
 toolchain go1.22.2
 
-require (
-	github.com/disgoorg/disgo v0.18.5
-	golang.org/x/time v0.5.0
-)
+require github.com/disgoorg/disgo v0.18.5
 
 require (
 	github.com/disgoorg/json v1.1.0 // indirect
