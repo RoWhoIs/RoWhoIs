@@ -321,7 +321,7 @@ async def nil_pointer() -> int:
 async def get_full_player_profile(user: int, shard_id: int) -> Tuple[typedefs.User, int, List[str], List[dict[int, str]], int]:
     """Returns a User object, group count, previous usernames, Roblox badges, and verified email status."""
     tasks = [
-        gUtils.safe_wrapper(get_player_profile, user, shard_id),
+        get_player_profile(user, shard_id), # we WANT to propogate if this errors
         gUtils.safe_wrapper(get_player_headshot, user, shard_id),
         gUtils.safe_wrapper(get_player_thumbnail, user, "420x420", shard_id),
         gUtils.safe_wrapper(last_online, user, shard_id),

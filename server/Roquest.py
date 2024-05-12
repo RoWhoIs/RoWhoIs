@@ -154,8 +154,9 @@ async def RoliData():
 async def heartbeat() -> bool:
     """Determines if Roblox is OK by checking if the API is up, returns True if alive"""
     try:
-        data = await Roquest("GET", "users", "")
+        data = await Roquest("GET", "premiumfeatures", "v1/users/1/validate-membership", bypass_proxy=True)
         if data[0] == 200: return True
+        if data[0] == 403: return None
         return False
     except Exception as e:
         await log_collector.warn(f"Heartbeat error: {e}", initiator="RoWhoIs.heartbeat")
