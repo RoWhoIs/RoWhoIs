@@ -292,7 +292,7 @@ async def limited(interaction: hikari.CommandInteraction, limited: str, download
     embed.add_field(name="Projected", value=f"`{projected}`", inline=True)
     embed.add_field(name="Rare", value=f"`{rare}`", inline=True)
     if download: csv = "id, name, acronym, rap, value, demand, trend, projected, rare\n" + "\n".join([f"{limited_id}, {name.replace(',', '')}, {acronym.replace(',', '') if acronym else 'None'}, {rap}, {value}, {demand}, {trend}, {projected}, {rare}"])
-    await interaction.create_initial_response(response_type=hikari.ResponseType.MESSAGE_CREATE, embed=embed, attachment=await gUtils.write_volatile_cache(f'rowhois-limited-{user.id}.csv', csv) if download else hikari.undefined.UNDEFINED)
+    await interaction.create_initial_response(response_type=hikari.ResponseType.MESSAGE_CREATE, embed=embed, attachment=await gUtils.write_volatile_cache(f'rowhois-limited-{limited_id}.csv', csv) if download else hikari.undefined.UNDEFINED)
 
 @app_commands.Command(context="User", intensity="low")
 async def isfriendswith(interaction: hikari.CommandInteraction, user1: str, user2: str):
@@ -379,23 +379,23 @@ async def itemdetails(interaction: hikari.CommandInteraction, item: int, downloa
     if data["CollectibleItemId"] is not None: isCollectible = True
     else: isCollectible = False
     embed.title = f"{emojiTable.get('limited') if data['IsLimited'] else emojiTable.get('limitedu') if data['IsLimitedUnique'] else emojiTable.get('collectible') if isCollectible else ''} {data['Name']}"
-    embed.add_field(name="Creator:", value=f"`{data['Creator']['Name']}` (`{data['Creator']['CreatorTargetId']}`) {emojiTable.get('staff') if userid in staffIds else emojiTable.get('verified') if data['Creator']['HasVerifiedBadge'] else ''}")
-    if data['Description'] != "": embed.add_field(name="Description:", value=f"```{data['Description'].replace('```', '')}```", inline=False)
-    embed.add_field(name="Created:", value=f"{(await gUtils.fancy_time(data['Created']))}", inline=True)
-    embed.add_field(name="Updated:", value=f"{(await gUtils.fancy_time(data['Updated']))}", inline=True)
+    embed.add_field(name="Creator", value=f"`{data['Creator']['Name']}` (`{data['Creator']['CreatorTargetId']}`) {emojiTable.get('staff') if userid in staffIds else emojiTable.get('verified') if data['Creator']['HasVerifiedBadge'] else ''}")
+    if data['Description'] != "": embed.add_field(name="Description", value=f"```{data['Description'].replace('```', '')}```", inline=False)
+    embed.add_field(name="Created", value=f"{(await gUtils.fancy_time(data['Created']))}", inline=True)
+    embed.add_field(name="Updated", value=f"{(await gUtils.fancy_time(data['Updated']))}", inline=True)
     if isCollectible:
-        embed.add_field(name="Quantity:", value=f"`{data['CollectiblesItemDetails']['TotalQuantity']}`", inline=True)
-        if data['CollectiblesItemDetails']['CollectibleLowestResalePrice'] is not None and data['IsForSale']: embed.add_field(name="Lowest Price:", value=f"{emojiTable.get('robux')} `{data['CollectiblesItemDetails']['CollectibleLowestResalePrice']}`", inline=True)
-        elif data["IsForSale"]: embed.add_field(name="Lowest Price:", value=f"`No resellers`", inline=True)
+        embed.add_field(name="Quantity", value=f"`{data['CollectiblesItemDetails']['TotalQuantity']}`", inline=True)
+        if data['CollectiblesItemDetails']['CollectibleLowestResalePrice'] is not None and data['IsForSale']: embed.add_field(name="Lowest Price", value=f"{emojiTable.get('robux')} `{data['CollectiblesItemDetails']['CollectibleLowestResalePrice']}`", inline=True)
+        elif data["IsForSale"]: embed.add_field(name="Lowest Price", value=f"`No resellers`", inline=True)
     if data["IsForSale"]:
-        if data["Remaining"] is not None and data["Remaining"] != 0: embed.add_field(name="Remaining:", value=f"`{data['Remaining']}`", inline=True)
-        if not (data["IsLimited"] or data["Remaining"] == 0 or isCollectible): embed.add_field(name="Price:", value=f"{emojiTable.get('robux')} `{data['PriceInRobux']}`", inline=True)
+        if data["Remaining"] is not None and data["Remaining"] != 0: embed.add_field(name="Remaining", value=f"`{data['Remaining']}`", inline=True)
+        if not (data["IsLimited"] or data["Remaining"] == 0 or isCollectible): embed.add_field(name="Price", value=f"{emojiTable.get('robux')} `{data['PriceInRobux']}`", inline=True)
     embed.set_thumbnail(hikari.URL(await RoModules.get_item_thumbnail(item, "420x420", shard)))
     embed.colour = 0x00FF00
     if download:
         nlChar = "\n"
         csv = "id, name, creator_name, creator_id, verified, created, updated, is_limited, is_limited_unique, is_collectible, quantity, lowest_price, remaining, price, description\n" + f"{item}, {data['Name'].replace(',', '')}, {data['Creator']['Name']}, {data['Creator']['CreatorTargetId']}, {data['Creator']['HasVerifiedBadge']}, {data['Created']}, {data['Updated']}, {data['IsLimited']}, {data['IsLimitedUnique']}, {isCollectible}, {data['CollectiblesItemDetails']['TotalQuantity'] if isCollectible else 'None'}, {data['CollectiblesItemDetails']['CollectibleLowestResalePrice'] if isCollectible else 'None'}, {data['Remaining'] if data['Remaining'] is not None else 'None'}, {data['PriceInRobux'] if not (data['IsLimited'] or data['Remaining'] == 0 or isCollectible) else 'None'}, {data['Description'].replace(',', '').replace(nlChar, '    ') if data['Description'] != '' else 'None'}"
-    await interaction.create_initial_response(response_type=hikari.ResponseType.MESSAGE_CREATE, embed=embed, attachment=await gUtils.write_volatile_cache(f'rowhois-itemdetails-{user.id}.csv', csv) if download else hikari.undefined.UNDEFINED)
+    await interaction.create_initial_response(response_type=hikari.ResponseType.MESSAGE_CREATE, embed=embed, attachment=await gUtils.write_volatile_cache(f'rowhois-itemdetails-{item}.csv', csv) if download else hikari.undefined.UNDEFINED)
 
 @app_commands.Command(context="User", intensity="high")
 async def membership(interaction: hikari.CommandInteraction, user: str):
@@ -440,7 +440,7 @@ async def group(interaction: hikari.CommandInteraction, group: int, download: bo
     if download:
         nlChar = "\n"
         csv = "id, name, owner, created, members, joinable, locked, shout, shout_author, shout_author_id, shout_verified, description\n" + f"{group}, {groupInfo[0]}, {groupInfo[4][0] if groupInfo[4] is not None else 'None'}, {groupInfo[2]}, {groupInfo[6]}, {groupInfo[7]}, {groupInfo[8]}, {groupInfo[5][0] if groupInfo[5] is not None else 'None'}, {groupInfo[5][1] if groupInfo[5] is not None else 'None'}, {groupInfo[5][2] if groupInfo[5] is not None else 'None'}, {groupInfo[5][3] if groupInfo[5] is not None else 'None'}, {groupInfo[1].replace(',', '').replace(nlChar, '     ') if groupInfo[1] else 'None'}"
-    await interaction.create_initial_response(response_type=hikari.ResponseType.MESSAGE_CREATE, embed=embed, attachment=await gUtils.write_volatile_cache(f'rowhois-group-{user.id}.csv', csv) if download else hikari.undefined.UNDEFINED)
+    await interaction.create_initial_response(response_type=hikari.ResponseType.MESSAGE_CREATE, embed=embed, attachment=await gUtils.write_volatile_cache(f'rowhois-group-{group}.csv', csv) if download else hikari.undefined.UNDEFINED)
 
 @app_commands.Command(context="Username", intensity="medium")
 async def checkusername(interaction: hikari.CommandInteraction, username: str, download: bool = False):
