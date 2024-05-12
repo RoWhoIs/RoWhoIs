@@ -4,10 +4,11 @@ Pray to god nothing here breaks, soldier
 """
 import hikari, time, types, inspect
 from typing import Literal, get_origin, get_args
+from collections import defaultdict, deque
 from utils import logger, ErrorDict
 from server import globals
 
-command_tree, userCooldowns = {}, {}
+command_tree = {}
 log_collector = logger.AsyncLogCollector("logs/main.log")
 
 def init(productionmode: bool, optout, userblocklist, emojitable) -> None:
@@ -33,30 +34,31 @@ async def commandType_fetch(interaction: hikari.CommandInteraction) -> CommandTy
     if command_name in command_tree: return command_tree[command_name]
     else: return None
 
+userCooldowns = defaultdict(lambda: defaultdict(deque))
+cooldownValues = {
+    "extreme": {"premium": 5, "standard": 2},
+    "high": {"premium": 6, "standard": 3},
+    "medium": {"premium": 7, "standard": 4},
+    "low": {"premium": 8, "standard": 5},
+}
+
 async def check_cooldown(interaction: hikari.CommandInteraction, intensity: Literal["extreme", "high", "medium", "low"], commandName: str, cooldown_seconds: int = 60) -> bool:
     """Custom cooldown handler for user commands
     True = On cooldown, False = Not on cooldown
-    """
-    global userCooldowns
-    premiumCoolDict = {"extreme": 5, "high": 6, "medium": 7, "low": 8}
-    stdCoolDict = {"extreme": 2, "high": 3, "medium": 4, "low": 5}
-    try:
-        userId, current_time = interaction.user.id, time.time()
-        if commandName not in userCooldowns: userCooldowns[commandName] = {}
-        if userId not in userCooldowns[commandName]: userCooldowns[commandName][userId] = []
-        if interaction.entitlements and productionMode or not productionMode: maxCommands = premiumCoolDict.get(intensity)
-        else: maxCommands = stdCoolDict.get(intensity)
-        if all(current_time - timestamp >= cooldown_seconds for timestamp in userCooldowns[commandName][userId]): userCooldowns[commandName][userId] = []
-        if len(userCooldowns[commandName][userId]) >= maxCommands:
-            remainingSeconds = round(cooldown_seconds - int(current_time - userCooldowns[commandName][userId][0]))
-            if remainingSeconds <= 0: remainingSeconds = 1
-            await interaction.create_initial_response(response_type=hikari.ResponseType.MESSAGE_CREATE, content=f"Your enthusiasm is greatly appreciated, but please slow down! Try again in **{remainingSeconds}** second{'s' if remainingSeconds >= 2 else ''}.", flags=hikari.MessageFlag.EPHEMERAL)
-            return True
-        userCooldowns[commandName][userId].append(current_time)
-        return False
-    except Exception as e:
-        await log_collector.error(f"Error in cooldown handler: {e} | Command: {commandName} | User: {userId} | Returning False... ", initiator="RoWhoIs.check_cooldown")
-        return False
+    """ # Still somewhat glitchy, but it works and it's better than the old system
+    userId, current_time = interaction.user.id, time.time()
+    user_cooldowns = userCooldowns[commandName][userId]
+    if (interaction.entitlements and productionMode) or not productionMode: max_commands = cooldownValues[intensity]["premium"]
+    else: max_commands = cooldownValues[intensity]["standard"]
+    if len(user_cooldowns) >= max_commands and current_time - user_cooldowns[0] < cooldown_seconds:
+        remaining_seconds = round(cooldown_seconds - (current_time - user_cooldowns[0]))
+        if remaining_seconds <= 0: remaining_seconds = 1
+        await interaction.create_initial_response(response_type=hikari.ResponseType.MESSAGE_CREATE, content=f"Your enthusiasm is greatly appreciated, but please slow down! Try again in **{remaining_seconds}** second{'s' if remaining_seconds >= 2 else ''}.", flags=hikari.MessageFlag.EPHEMERAL)
+        return True
+    else:
+        user_cooldowns.append(current_time)
+        if len(user_cooldowns) > max_commands: user_cooldowns.popleft()
+    return False
 
 async def sync_app_commands(client: hikari.GatewayBot) -> None:
     """Syncs the global app command tree with the Discord API."""
@@ -133,7 +135,7 @@ async def interaction_permissions_check(interaction: hikari.CommandInteraction, 
     if command is None: command = await commandType_fetch(interaction)
     if (command.requires_entitlement or requires_entitlements) and not (interaction.entitlements or not productionMode):
         try:
-            if kind_upsell or command.kind_upsell:
+            if not (kind_upsell or command.kind_upsell):
                 await interaction.create_premium_required_response()
                 return False
         except hikari.errors.BadRequestError: pass
@@ -144,7 +146,7 @@ async def interaction_permissions_check(interaction: hikari.CommandInteraction, 
     elif user_id and user_id in optOut:
         await log_collector.warn(f"Blocklist user {user_id} was requested by {interaction.user.id} and denied!", initiator="RoWhoIs.interaction_permissions_check")
         embed.description = "This user has requested to opt-out of RoWhoIs."
-    elif not globals.heartBeat and requires_connection: embed.description = "Roblox is currently experiencing downtime. Please try again later."
+    elif globals.heartBeat is False and requires_connection: embed.description = "Roblox is currently experiencing downtime. Please try again later."
     else: return True
     try: await interaction.create_initial_response(response_type=hikari.ResponseType.MESSAGE_CREATE, embed=embed, flags=hikari.MessageFlag.EPHEMERAL)
     except hikari.errors.BadRequestError: await interaction.edit_initial_response(embed=embed)

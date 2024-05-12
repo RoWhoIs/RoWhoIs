@@ -1,3 +1,10 @@
+"""
+RoWhoIs
+The most advanced Discord-based Roblox lookup utility
+
+CONTRIBUTORS:
+https://github.com/aut-mn
+"""
 import asyncio, subprocess, datetime, json, os, aiohttp, traceback, warnings
 from utils import logger
 warnings.filterwarnings("ignore", category=RuntimeWarning)

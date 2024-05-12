@@ -3,7 +3,7 @@ RoWhoIs modules library. If a roquest is likely to be reused multiple times thro
 """
 # The general rule of thumb is that if it's a background task, not caused by user interaction, or doesn't require roquesting, it doesn't require a shard_id
 import asyncio, aiofiles, re, io
-from typing import Union, List, Dict
+from typing import Union, List, Dict, Tuple
 from server import Roquest
 from utils import ErrorDict, gUtils, typedefs
 
@@ -57,11 +57,11 @@ async def last_online(user_id: int, shard_id: int):
     return last_data[1]["lastOnlineTimestamps"][0]["lastOnline"]
 
 
-async def get_player_profile(user_id: int, shard_id: int) -> tuple[str, str, bool, str, str, bool]:
+async def get_player_profile(user_id: int, shard_id: int) -> typedefs.User:
     """Returns description, joined, banned, username, display name, verified"""
     desc = await Roquest.Roquest("GET", "users", f"v1/users/{user_id}", shard_id=shard_id)
     await general_error_handler(desc[0], 200)
-    return desc[1]["description"], desc[1]["created"], desc[1]["isBanned"], desc[1]["name"], desc[1]["displayName"], desc[1]["hasVerifiedBadge"]
+    return typedefs.User(id=user_id, username=desc[1]["name"], nickname=desc[1]["displayName"], verified=desc[1]["hasVerifiedBadge"], description=desc[1]["description"], joined=desc[1]["created"], banned=desc[1]["isBanned"])
 
 async def get_previous_usernames(user_id: int, shard_id: int):
     """Returns a player's previous usernames"""
@@ -293,25 +293,44 @@ async def fetch_asset(asset_id: int, shard_id: int, filetype: str = "png", locat
 
 async def fetch_game(game: int, shard_id: int) -> typedefs.Game:
     """Fetches a game"""
-    initRequest = await Roquest.Roquest("GET", "games", f"v1/games/multiget-place-details?placeIds={game}", shard_id=shard_id, bypass_proxy=True)
-    await general_error_handler(initRequest[0])
-    creator = typedefs.User(id=initRequest[1][0]['builderId'], username=initRequest[1][0]['builder'], verified=initRequest[1][0]['hasVerifiedBadge'])
-    game = typedefs.Game(id=game, universe=initRequest[1][0]['universeId'], creator=creator, name=initRequest[1][0]['name'], playable=initRequest[1][0]['isPlayable'], price=initRequest[1][0]['price'], url=initRequest[1][0]['url'], description=initRequest[1][0]['description'])
-    thumbnail, votes, additional_stats = await asyncio.gather(get_game_icon(game.universe, "420x420", shard_id), Roquest.Roquest("GET", "games", f"v1/games/votes?universeIds={game.universe}", shard_id=shard_id), Roquest.Roquest("GET", "games", f"v1/games?universeIds={game.universe}", shard_id=shard_id))
-    await asyncio.gather(general_error_handler(votes[0]), general_error_handler(additional_stats[0]))
-    game.thumbnail = thumbnail
-    game.visits = additional_stats[1]['data'][0]['visits']
-    game.favorites = additional_stats[1]['data'][0]['favoritedCount']
-    game.created = additional_stats[1]['data'][0]['created']
-    game.updated = additional_stats[1]['data'][0]['updated']
-    game.playing = additional_stats[1]['data'][0]['playing']
-    game.max_players = additional_stats[1]['data'][0]['maxPlayers']
-    game.likes = votes[1]['data'][0]['upVotes']
-    game.dislikes = votes[1]['data'][0]['downVotes']
-    game.copy_protected = not additional_stats[1]['data'][0]['copyingAllowed']
-    game.genre = additional_stats[1]['data'][0]['genre']
-    return game
+    try:
+        initRequest = await Roquest.Roquest("GET", "games", f"v1/games/multiget-place-details?placeIds={game}", shard_id=shard_id, bypass_proxy=True)
+        await general_error_handler(initRequest[0])
+        creator = typedefs.User(id=initRequest[1][0]['builderId'], username=initRequest[1][0]['builder'], verified=initRequest[1][0]['hasVerifiedBadge'])
+        game = typedefs.Game(id=game, universe=initRequest[1][0]['universeId'], creator=creator, name=initRequest[1][0]['name'], playable=initRequest[1][0]['isPlayable'], price=initRequest[1][0]['price'], url=initRequest[1][0]['url'], description=initRequest[1][0]['description'])
+        thumbnail, votes, additional_stats = await asyncio.gather(get_game_icon(game.universe, "420x420", shard_id), Roquest.Roquest("GET", "games", f"v1/games/votes?universeIds={game.universe}", shard_id=shard_id), Roquest.Roquest("GET", "games", f"v1/games?universeIds={game.universe}", shard_id=shard_id))
+        await asyncio.gather(general_error_handler(votes[0]), general_error_handler(additional_stats[0]))
+        game.thumbnail = thumbnail
+        game.visits = additional_stats[1]['data'][0]['visits']
+        game.favorites = additional_stats[1]['data'][0]['favoritedCount']
+        game.created = additional_stats[1]['data'][0]['created']
+        game.updated = additional_stats[1]['data'][0]['updated']
+        game.playing = additional_stats[1]['data'][0]['playing']
+        game.max_players = additional_stats[1]['data'][0]['maxPlayers']
+        game.likes = votes[1]['data'][0]['upVotes']
+        game.dislikes = votes[1]['data'][0]['downVotes']
+        game.copy_protected = not additional_stats[1]['data'][0]['copyingAllowed']
+        game.genre = additional_stats[1]['data'][0]['genre']
+        return game
+    except IndexError: raise ErrorDict.DoesNotExistError
 
 async def nil_pointer() -> int:
     """Returns nil data"""
     return 0
+
+async def get_full_player_profile(user: int, shard_id: int) -> Tuple[typedefs.User, int, List[str], List[dict[int, str]], int]:
+    """Returns a User object, group count, previous usernames, Roblox badges, and verified email status."""
+    tasks = [
+        get_player_profile(user, shard_id), # we WANT to propogate if this errors
+        gUtils.safe_wrapper(get_player_headshot, user, shard_id),
+        gUtils.safe_wrapper(get_player_thumbnail, user, "420x420", shard_id),
+        gUtils.safe_wrapper(last_online, user, shard_id),
+        gUtils.safe_wrapper(get_socials, user, shard_id),
+        gUtils.safe_wrapper(get_groups, user, shard_id),
+        gUtils.safe_wrapper(get_previous_usernames, user, shard_id),
+        gUtils.safe_wrapper(roblox_badges, user, shard_id),
+        gUtils.safe_wrapper(check_verification, user, shard_id)
+    ]
+    profile, headshot, thumbnail, online, socials, groups, usernames, badges, email_verification = await asyncio.gather(*tasks)
+    user = typedefs.User(id=user, username=profile.username, nickname=profile.nickname, verified=profile.verified, description=profile.description, joined=profile.joined, online=online, banned=profile.banned, friends=socials[0], followers=socials[1], following=socials[2], thumbnail=thumbnail, headshot=headshot)
+    return user, len(groups['data']), usernames, badges, email_verification

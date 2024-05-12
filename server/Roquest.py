@@ -11,9 +11,9 @@ log_collector = AsyncLogCollector("logs/main.log")
 def initialize(config, version: str, modded: bool):
     """Sets configurations for proxying. Needs to be ran before running any other function."""
     try:
-        global rsec, productionMode, globProxies, BaseUserAuth, currentProxy, poolProxies, uasString
+        global productionMode, globProxies, BaseUserAuth, currentProxy, poolProxies, uasString
         globProxies = typedefs.Proxies(config["Proxying"]["proxying_enabled"], config["Proxying"]["proxy_urls"], config["Proxying"]["username"], config["Proxying"]["password"], config["Proxying"]["log_proxying"])
-        rsec, productionMode = config["Authentication"]["roblosecurity"], config["RoWhoIs"]["production_mode"]
+        productionMode = config["RoWhoIs"]["production_mode"]
         BaseUserAuth = typedefs.UserAuth(config["Authentication"]["roblosecurity"], "")
         uasString = f"RoWhoIs-server/{version}; {'modified' if modded else 'genuine'} ({'prod-mode' if productionMode else 'testing-mode'})"
         currentProxy, poolProxies = typedefs.Proxy(None), typedefs.Proxies(globProxies.enabled, [])
@@ -154,8 +154,9 @@ async def RoliData():
 async def heartbeat() -> bool:
     """Determines if Roblox is OK by checking if the API is up, returns True if alive"""
     try:
-        data = await Roquest("GET", "users", "")
+        data = await Roquest("GET", "premiumfeatures", "v1/users/1/validate-membership", bypass_proxy=True)
         if data[0] == 200: return True
+        if data[0] == 403: return None
         return False
     except Exception as e:
         await log_collector.warn(f"Heartbeat error: {e}", initiator="RoWhoIs.heartbeat")
