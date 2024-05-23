@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"log/slog"
@@ -14,6 +15,9 @@ import (
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/events"
 )
+
+const Red = 0xFF0000
+const Green = 0x00FF00
 
 type RoWhoIsSlashCommand struct {
 	discord.SlashCommandCreate
@@ -91,7 +95,7 @@ func slashCommands(pool *proxypool.ProxyPool) []RoWhoIsSlashCommand {
 				Name:        "username",
 				Description: "Get a username from a User ID",
 				Options: []discord.ApplicationCommandOption{
-					discord.ApplicationCommandOptionString{
+					discord.ApplicationCommandOptionInt{
 						Name:        "userid",
 						Description: "userid of a player",
 						Required:    true,
@@ -118,22 +122,59 @@ func whois(pool *proxypool.ProxyPool) func(event *events.ApplicationCommandInter
 
 func username(pool *proxypool.ProxyPool) func(event *events.ApplicationCommandInteractionCreate) {
 	return func(event *events.ApplicationCommandInteractionCreate) {
-		log.Println("about to fetch img at : ", time.Now())
-		img, err := roblox.GetPlayerBust(context.Background(), pool, "12345", "60x60")
+		userID, ok := event.SlashCommandInteractionData().OptInt("userid") // TODO: get keyname from SSOT
+		if !ok {
+			log.Println("no user id provided")
+		}
+
+		user, err := roblox.UserIDToUser(context.TODO(), pool, userID)
 		if err != nil {
-			log.Printf("err getting player bust: %v", err)
+			log.Printf("problem getting username %v", err) // TODO: log error to db
+			embed := discord.NewEmbedBuilder().SetColor(Red).SetDescription("User doesn't exist.").Build()
+			event.CreateMessage(discord.NewMessageCreateBuilder().SetEmbeds(embed).Build())
 			return
 		}
-		log.Println("got player bust, responding to discord message: ", time.Now())
-		data := event.SlashCommandInteractionData()
-		err = event.CreateMessage(discord.NewMessageCreateBuilder().
-			SetContent(img).
-			SetEphemeral(data.Bool("ephemeral")).
-			Build(),
-		)
-		if err != nil {
-			slog.Error("error on sending response", slog.Any("err", err))
+
+		headshot, err := roblox.GetPlayerHeadShot(context.TODO(), pool, userID)
+		switch {
+		case errors.As(err, &roblox.BlockedErr{}):
+			headshot = "https://rowhois.com/blocked.png"
+		case errors.As(err, &roblox.NotOKErr{}) || err != nil:
+			headshot = "https://rowhois.com/not-available.png"
 		}
-		log.Println("successful response: ", time.Now())
+
+		bust, err := roblox.GetPlayerBust(context.Background(), pool, userID)
+		switch {
+		case errors.As(err, &roblox.BlockedErr{}):
+			bust = "https://rowhois.com/blocked.png"
+		case errors.As(err, &roblox.NotOKErr{}) || err != nil:
+			bust = "https://rowhois.com/not-available.png"
+		}
+
+		// Show both names if username is not the display/nick name
+		authorName := user.Name
+		if user.Name != user.DisplayName {
+			authorName = fmt.Sprintf("%s (%s)", user.Name, user.DisplayName)
+		}
+
+		inline := false
+		linkToProfile := fmt.Sprintf("https://www.roblox.com/users/%d/profile", userID)
+		embed := discord.NewEmbedBuilder().
+			SetAuthor(authorName, linkToProfile, headshot).
+			SetThumbnail(bust).
+			SetColor(Green).
+			SetFields(discord.EmbedField{
+				Name:   "Username:",
+				Value:  fmt.Sprintf("`%s`", user.Name),
+				Inline: &inline,
+			}).
+			Build()
+		err = event.CreateMessage(
+			discord.NewMessageCreateBuilder().
+				SetEmbeds(embed).
+				Build())
+		if err != nil {
+			log.Printf("could not create message: %v", err) // TODO: log to db
+		}
 	}
 }
