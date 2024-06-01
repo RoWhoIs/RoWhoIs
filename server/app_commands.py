@@ -116,7 +116,7 @@ async def handle_error(error, interaction: hikari.CommandInteraction, command: s
     if isinstance(error, ErrorDict.InvalidAuthorizationError): embed.description = f"Hm.. Looks like we can't access this {context.lower()} right now. Please try again later."
     elif isinstance(error, ErrorDict.DoesNotExistError): embed.description = f"{context} doesn't exist."
     elif isinstance(error, ErrorDict.MismatchedDataError): embed.description = f"{context} is invalid."
-    elif isinstance(error, ErrorDict.RatelimitedError): embed.description = "RoWhoIs is experienceing unusually high demand. Please try again later."
+    elif isinstance(error, ErrorDict.RatelimitedError): embed.description = "RoWhoIs is experiencing unusually high demand and your command couldn't be fulfilled. Please try again later."
     elif isinstance(error, hikari.errors.NotFoundError): return True
     else:
         await log_collector.error(f"Error in the {command} command: {type(error)}, {error}", initiator="RoWhoIs.handle_error", shard_id=shard_id)
