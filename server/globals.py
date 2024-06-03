@@ -1,7 +1,8 @@
+from typing import List, Tuple
+
 from utils import logger, ErrorDict
 from pathlib import Path
 from server import Roquest
-from typing import Tuple
 import asyncio, time
 
 heartBeat,  roliData, lastRoliUpdate = False, {}, 0
@@ -39,6 +40,9 @@ async def coro_flush_volatile_cache() -> None:
 async def init() -> None:
     """Estantiates the global coroutines"""
     return
+
+async def returnProxies() -> list[tuple[str, str]]:
+    return [await Roquest.ret_on_prox(), await Roquest.ret_glob_proxies()]
 
 loop = asyncio.get_event_loop()
 loop.create_task(coro_heartbeat())

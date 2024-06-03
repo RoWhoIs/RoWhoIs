@@ -80,6 +80,12 @@ async def input_listener() -> None:
             if command == "reload":
                 load_config()
                 await log_collector.info("Configuration reloaded", initiator="RoWhoIs.input_listener")
+            if command == "proxies":
+                enabled_proxies, all_proxies = await globals.returnProxies()
+                print("Proxies:")
+                for proxy in all_proxies:
+                    if proxy in enabled_proxies: print(f"\033[42m\033[37mON\033[0m  {proxy}")
+                    else: print(f"\033[41m\033[37mOFF\033[0m {proxy}")
         except Exception as e:
             if not isinstance(e, RuntimeError): await log_collector.error(f"Error in input listener: {type(e)}, {e}", initiator="RoWhoIs.input_listener") # RTE happens when invalid config, usually
             else: return False
