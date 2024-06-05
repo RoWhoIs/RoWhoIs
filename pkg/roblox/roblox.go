@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 
 	"github.com/RoWhoIs/RoWhoIs/pkg/proxypool"
@@ -129,8 +128,6 @@ func postRequestWithJSON(ctx context.Context, url string, v any) (*http.Request,
 	if err != nil {
 		return nil, fmt.Errorf("marshalling JSON: %v", err)
 	}
-	log.Println("rawJSON")
-	log.Println(string(rawJSON))
 	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(rawJSON))
 	if err != nil {
 		return nil, fmt.Errorf("creating request: %v", err)

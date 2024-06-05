@@ -47,7 +47,6 @@ func slashCommandHandler(slashCommands []RoWhoIsSlashCommand) func(event *events
 	}
 
 	return func(event *events.ApplicationCommandInteractionCreate) {
-		log.Println("start: ", time.Now())
 		data := event.SlashCommandInteractionData()
 		commandName := data.CommandName()
 		command, ok := slashCommandsMap[commandName]
@@ -56,7 +55,7 @@ func slashCommandHandler(slashCommands []RoWhoIsSlashCommand) func(event *events
 			return
 		}
 		command.Handler(event)
-		log.Println("done: ", time.Now())
+		// TODO: capture start/finish time for command in db
 	}
 }
 

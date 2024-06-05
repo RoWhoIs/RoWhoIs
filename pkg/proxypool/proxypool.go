@@ -55,7 +55,6 @@ func (p *ProxyPool) getProxy(id string) (*Proxy, error) {
 	nextProxy := p.nextProxyForID[id]
 	proxy := &p.proxies[nextProxy]
 	p.nextProxyForID[id] = (nextProxy + 1) % len(p.proxies)
-	log.Println(proxy.Config)
 	return proxy, nil
 }
 
@@ -69,6 +68,7 @@ func (p *ProxyPool) Do(request *http.Request) (*http.Response, error) {
 	if err != nil {
 		return nil, fmt.Errorf("getting proxy: %v", err)
 	}
+	log.Printf("[PROXY] %s for %s", proxy.Config.Host, path)
 
 	// Add proxy auth headers
 	auth := fmt.Sprintf("%s:%s", proxy.Config.Username, proxy.Config.Password)
