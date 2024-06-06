@@ -8,16 +8,18 @@
     "dbl": ""
   },
   "RoWhoIs": {
-    "production_mode": false,
+    "production_mode": true,
+    "easter_egg_enabled": true,
     "opt_out": [],
     "banned_users": [],
     "banned_assets": [],
     "admin_ids": [],
-    "donors": []
+    "donors": [],
+    "subscription_bypass": []
   },
   "Proxying": {
-    "proxying_enabled": false,
-    "log_proxying":false,
+    "proxying_enabled": true,
+    "log_proxying": true,
     "proxy_urls": [],
     "username": "",
     "password": ""
@@ -25,8 +27,8 @@
   "Emojis": {
     "verified": "",
     "staff": "",
-    "subscription": "",
     "donor": "",
+    "subscription": "",
     "limited": "",
     "limitedu": "",
     "robux": "",

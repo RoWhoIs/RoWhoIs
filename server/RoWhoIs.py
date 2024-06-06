@@ -6,14 +6,14 @@ from typing import Any, Optional, Literal
 
 
 def load_config():
-    global staffIds, optOut, userBlocklist, emojiTable, assetBlocklist, whoIsDonors, productionMode, botToken
+    global staffIds, optOut, userBlocklist, emojiTable, assetBlocklist, whoIsDonors, productionMode, botToken, eggEnabled, subscriptionBypass
     with open('config.json', 'r') as configfile:
         config = json.load(configfile)
         configfile.close()
-    productionMode, staffIds, optOut, userBlocklist, assetBlocklist, whoIsDonors = config['RoWhoIs']['production_mode'], config['RoWhoIs']['admin_ids'], config['RoWhoIs']['opt_out'], config['RoWhoIs']['banned_users'], config['RoWhoIs']['banned_assets'], config['RoWhoIs']['donors']
+    productionMode, staffIds, optOut, userBlocklist, assetBlocklist, whoIsDonors, eggEnabled, subscriptionBypass = config['RoWhoIs']['production_mode'], config['RoWhoIs']['admin_ids'], config['RoWhoIs']['opt_out'], config['RoWhoIs']['banned_users'], config['RoWhoIs']['banned_assets'], config['RoWhoIs']['donors'], config['RoWhoIs']['easter_egg_enabled'], config['RoWhoIs']['subscription_bypass']
     botToken = {"topgg": config['Authentication']['topgg'], "dbl": config['Authentication']['dbl']}
     emojiTable = {key: config['Emojis'][key] for key in config['Emojis']}
-    app_commands.init(productionmode=productionMode, optout=optOut, userblocklist=userBlocklist, emojitable=emojiTable)
+    app_commands.init(productionmode=productionMode, optout=optOut, userblocklist=userBlocklist, emojitable=emojiTable, subscription_bypass=subscriptionBypass)
     return config
 
 def run(version: str) -> bool:
@@ -24,7 +24,7 @@ def run(version: str) -> bool:
         load_config()
         loop.create_task(input_listener())
         uptime = time.time()
-        globals.init()
+        globals.init(eggEnabled=eggEnabled)
         client.run(close_loop=False)
         return True
     except KeyError: raise ErrorDict.MissingRequiredConfigs
@@ -48,6 +48,7 @@ async def wrapped_on_interaction_create(event: hikari.InteractionCreateEvent): a
 async def start(event: hikari.StartedEvent):
     await log_collector.info(f"Initialized! Syncing global command tree", initiator="RoWhoIs.start")
     await app_commands.sync_app_commands(client)
+
 @client.listen(hikari.ShardConnectedEvent)
 async def connect(event: hikari.ShardConnectedEvent):
     await log_collector.info(f"Shard {event.shard.id} connected to gateway", initiator="RoWhoIs.connect")
@@ -124,7 +125,7 @@ async def help(interaction: hikari.CommandInteraction):
     embed.add_field(name="checkusername", value="Check if a username is available", inline=True)
     embed.add_field(name="asset", value="Fetches an asset file from an asset ID. Not recommended for clothing textures", inline=True)
     embed.add_field(name="about", value="Shows a bit about RoWhoIs and advanced statistics", inline=True)
-    embed.set_footer(text="You have access to RoWhoIs+ features" if not productionMode or interaction.entitlements else "Get RoWhoIs+ to use + commands")
+    embed.set_footer(text="You have access to RoWhoIs+ features" if (interaction.entitlements or not productionMode) or (interaction.user.id in subscriptionBypass) else "Get RoWhoIs+ to use + commands")
     await interaction.create_initial_response(response_type=hikari.ResponseType.MESSAGE_CREATE, embed=embed)
 
 @app_commands.Command(context="Command", intensity="low", requires_connection=False)
@@ -145,7 +146,8 @@ async def about(interaction: hikari.CommandInteraction):
     embed.add_field(name="Shards", value=f"`{client.shard_count}`", inline=True)
     embed.add_field(name="Shard ID", value=f"`{shard}`", inline=True)
     embed.add_field(name="Cache Size", value=f"`{round(sum(f.stat().st_size for f in Path('cache/').glob('**/*') if f.is_file()) / 1048576, 1)} MB`", inline=True)
-    embed.add_field(name="RoWhoIs+", value=f"`{'Subscribed` ' + emojiTable.get('subscription')}" if not productionMode or interaction.entitlements else '`Not Subscribed :(`', inline=True)
+    embed.add_field(name="RoWhoIs+", value=f"`{'Subscribed` ' + emojiTable.get('subscription')}" if (interaction.entitlements or not productionMode) or (interaction.user.id in subscriptionBypass) else  '`Not Subscribed :(`', inline=True)
+    if eggEnabled: embed.set_footer(text="Follow @autumnated on Roblox for a surprise on your whois profile ;-)")
     await interaction.create_initial_response(response_type=hikari.ResponseType.MESSAGE_CREATE, embed=embed)
 
 @app_commands.Command(context="User", intensity="low")
@@ -196,7 +198,7 @@ async def whois(interaction: hikari.CommandInteraction, user: str, download: boo
     embed.set_author(name=f"@{user.username} { '(' + user.nickname + ')' if user.username != user.nickname else ''}", icon=user.headshot, url=f"https://www.roblox.com/users/{user.id}/profile" if not user.banned else '')
     embed.description = f"{emojiTable.get('staff') if user.id in staffIds else ''} {emojiTable.get('donor') if user.id in whoIsDonors else ''} {emojiTable.get('verified') if user.verified else ''}"
     embed.add_field(name="User ID", value=f"`{user.id}`", inline=True)
-    embed.add_field(name="Account Status", value=f"{'`Terminated`' if user.banned else '`Okay`'}", inline=True)
+    embed.add_field(name="Account Status", value=f"{'`Terminated/Deactivated`' if user.banned else '`Okay`'}", inline=True)
     if robloxbadges[0]: embed.add_field(name="Badges", value=f"{''.join([f'{emojiTable.get(str(robloxbadges[1].get(badge)).lower())}' for badge in robloxbadges[0]])}", inline=True)
     if not user.banned:
         embed.add_field(name="Email", value=f"`{'Unverified' if email_verification == 3 else 'Verified'}{', Hat & Sign' if email_verification == 4 else ', Sign' if email_verification == 2 else ', Hat' if email_verification == 1 else ', Hat & Sign' if email_verification != 3 else ''}`", inline=True)
@@ -210,10 +212,11 @@ async def whois(interaction: hikari.CommandInteraction, user: str, download: boo
     if user.description is not None and user.description != '': embed.add_field(name="Description", value=f"```{user.description.replace('```', '') if user.description else 'None'}```", inline=False)
     embed.colour = 0x00FF00
     nlChar = "\n"
+    if eggEnabled and user.id in globals.eggFollowers: embed.set_footer(text="This user is certifiably cool")
     if download:
-        if isinstance(usernames, list) and usernames: whoData = "id, username, nickname, verified, rowhois_staff, account_status, joined, last_online, verified_email, groups, friends, followers, following, previous_usernames, description\n" + ''.join([f"{user.id}, {user.username}, {user.nickname}, {user.verified}, {user.id in staffIds}, {'Terminated' if user.banned else 'Okay' if not user.banned else 'None'}, {user.joined}, {user.online}, {('None' if email_verification == -1 else 'None' if email_verification == 0 else 'Hat' if email_verification == 1 else 'Sign' if email_verification == 2 else 'Unverified' if email_verification == 3 else 'Both' if email_verification == 4 else 'None') if str(email_verification).isdigit() else 'None'}, {groups}, {user.friends}, {user.followers}, {user.following}, {name}, {user.description.replace(',', '').replace(nlChar, '     ') if user.description else 'None'}\n" for name in usernames])
-        elif user.banned: whoData = f"id, username, nickname, verified, rowhois_staff, account_status, joined, last_online, groups, friends, followers, following, description\n{user.id}, {user.username}, {user.nickname}, {user.verified}, {user.id in staffIds}, {'Terminated' if user.banned else 'Okay' if not user.banned else 'None'}, {user.joined}, {user.online}, {groups}, {user.friends}, {user.followers}, {user.following}, None, None\n"
-        else: whoData = f"id, username, nickname, verified, rowhois_staff, account_status, joined, last_online, verified_email, groups, friends, followers, following, previous_usernames, description\n{user.id}, {user.username}, {user.nickname}, {user.verified}, {user.id in staffIds}, {'Terminated' if user.banned else 'Okay' if not user.banned else 'None'}, {user.joined}, {user.online}, {('None' if email_verification == -1 else 'None' if email_verification == 0 else 'Hat' if email_verification == 1 else 'Sign' if email_verification == 2 else 'Unverified' if email_verification == 3 else 'Both' if email_verification == 4 else 'None') if str(email_verification).isdigit() else 'None'}, {groups}, {user.friends}, {user.followers}, {user.following}, None, {user.description.replace(',', '').replace(nlChar, '     ') if user.description else 'None'}\n"
+        if isinstance(usernames, list) and usernames: whoData = "id, username, nickname, verified, rowhois_staff, account_status, joined, last_online, verified_email, groups, friends, followers, following, previous_usernames, description\n" + ''.join([f"{user.id}, {user.username}, {user.nickname}, {user.verified}, {user.id in staffIds}, {'Terminated/Deactivated' if user.banned else 'Okay' if not user.banned else 'None'}, {user.joined}, {user.online}, {('None' if email_verification == -1 else 'None' if email_verification == 0 else 'Hat' if email_verification == 1 else 'Sign' if email_verification == 2 else 'Unverified' if email_verification == 3 else 'Both' if email_verification == 4 else 'None') if str(email_verification).isdigit() else 'None'}, {groups}, {user.friends}, {user.followers}, {user.following}, {name}, {user.description.replace(',', '').replace(nlChar, '     ') if user.description else 'None'}\n" for name in usernames])
+        elif user.banned: whoData = f"id, username, nickname, verified, rowhois_staff, account_status, joined, last_online, groups, friends, followers, following, description\n{user.id}, {user.username}, {user.nickname}, {user.verified}, {user.id in staffIds}, {'Terminated/Deactivated' if user.banned else 'Okay' if not user.banned else 'None'}, {user.joined}, {user.online}, {groups}, {user.friends}, {user.followers}, {user.following}, None, None\n"
+        else: whoData = f"id, username, nickname, verified, rowhois_staff, account_status, joined, last_online, verified_email, groups, friends, followers, following, previous_usernames, description\n{user.id}, {user.username}, {user.nickname}, {user.verified}, {user.id in staffIds}, {'Terminated/Deactivated' if user.banned else 'Okay' if not user.banned else 'None'}, {user.joined}, {user.online}, {('None' if email_verification == -1 else 'None' if email_verification == 0 else 'Hat' if email_verification == 1 else 'Sign' if email_verification == 2 else 'Unverified' if email_verification == 3 else 'Both' if email_verification == 4 else 'None') if str(email_verification).isdigit() else 'None'}, {groups}, {user.friends}, {user.followers}, {user.following}, None, {user.description.replace(',', '').replace(nlChar, '     ') if user.description else 'None'}\n"
     initialResponse = time.time()
     await interaction.edit_initial_response(embed=embed, attachments=[await gUtils.write_volatile_cache(f'rowhois-{user.id}.csv', whoData)] if download else hikari.undefined.UNDEFINED)
     if not user.banned and user.id != 1:
