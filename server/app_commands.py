@@ -11,9 +11,9 @@ from server import globals
 command_tree = {}
 log_collector = logger.AsyncLogCollector("logs/main.log")
 
-def init(productionmode: bool, optout, userblocklist, emojitable) -> None:
-    global productionMode, optOut, userBlocklist, assetBlock, emojiTable
-    productionMode, optOut, userBlocklist, emojiTable = productionmode, optout, userblocklist, emojitable
+def init(productionmode: bool, optout, userblocklist, emojitable, subscription_bypass) -> None:
+    global productionMode, optOut, userBlocklist, assetBlock, emojiTable, subscriptionBypass
+    productionMode, optOut, userBlocklist, emojiTable, subscriptionBypass = productionmode, optout, userblocklist, emojitable, subscription_bypass
 
 class CommandType:
     """Class for defining command objects"""
@@ -48,7 +48,7 @@ async def check_cooldown(interaction: hikari.CommandInteraction, intensity: Lite
     """ # Still somewhat glitchy, but it works and it's better than the old system
     userId, current_time = interaction.user.id, time.time()
     user_cooldowns = userCooldowns[commandName][userId]
-    if (interaction.entitlements and productionMode) or not productionMode: max_commands = cooldownValues[intensity]["premium"]
+    if (interaction.entitlements and productionMode) or not productionMode or (interaction.user.id in subscriptionBypass): max_commands = cooldownValues[intensity]["premium"]
     else: max_commands = cooldownValues[intensity]["standard"]
     if len(user_cooldowns) >= max_commands and current_time - user_cooldowns[0] < cooldown_seconds:
         remaining_seconds = round(cooldown_seconds - (current_time - user_cooldowns[0]))
@@ -116,7 +116,7 @@ async def handle_error(error, interaction: hikari.CommandInteraction, command: s
     if isinstance(error, ErrorDict.InvalidAuthorizationError): embed.description = f"Hm.. Looks like we can't access this {context.lower()} right now. Please try again later."
     elif isinstance(error, ErrorDict.DoesNotExistError): embed.description = f"{context} doesn't exist."
     elif isinstance(error, ErrorDict.MismatchedDataError): embed.description = f"{context} is invalid."
-    elif isinstance(error, ErrorDict.RatelimitedError): embed.description = "RoWhoIs is experienceing unusually high demand. Please try again later."
+    elif isinstance(error, ErrorDict.RatelimitedError): embed.description = "RoWhoIs is experiencing unusually high demand and your command couldn't be fulfilled. Please try again later."
     elif isinstance(error, hikari.errors.NotFoundError): return True
     else:
         await log_collector.error(f"Error in the {command} command: {type(error)}, {error}", initiator="RoWhoIs.handle_error", shard_id=shard_id)
@@ -133,7 +133,7 @@ async def interaction_permissions_check(interaction: hikari.CommandInteraction, 
     """Checks if the user has the required entitlements to run the command. Returns False if the user does not have the required entitlements."""
     embed = hikari.Embed(color=0xFF0000)
     if command is None: command = await commandType_fetch(interaction)
-    if (command.requires_entitlement or requires_entitlements) and not (interaction.entitlements or not productionMode):
+    if (command.requires_entitlement or requires_entitlements) and productionMode and (interaction.user.id not in subscriptionBypass) and not interaction.entitlements:
         try:
             if not (kind_upsell or command.kind_upsell):
                 await interaction.create_premium_required_response()

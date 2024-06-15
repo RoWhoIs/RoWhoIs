@@ -45,6 +45,14 @@ async def proxy_handler() -> None:
         await log_collector.error(f"proxy_handler encountered a severe error while refreshing proxy pool: {e}", initiator="RoWhoIs.proxy_handler")
         pass
 
+async def ret_on_prox() -> tuple[str, str]:
+    """Returns list of usable proxies"""
+    return poolProxies.ips
+
+async def ret_glob_proxies() -> tuple[str, str]:
+    """Returns the global proxy pool"""
+    return globProxies.ips
+
 async def proxy_picker(diderror: bool = False):
     """Chronologically picks a usable proxy from the proxy pool"""
     global poolProxies, currentProxy
