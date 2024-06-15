@@ -13,7 +13,7 @@ if os.name != "nt":
     import uvloop
     asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 setattr(asyncio.sslproto._SSLProtocolTransport, "_start_tls_compatible", True)
-for folder in ["logs", "cache", "cache/clothing", "cache/asset", "cache/volatile"]:
+for folder in ["logs", "cache", "cache/clothing", "cache/asset"]:
     if not os.path.exists(folder): os.makedirs(folder)
 
 logCollector, modified = logger.AsyncLogCollector("logs/main.log"), True

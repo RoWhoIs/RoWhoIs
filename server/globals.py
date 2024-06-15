@@ -28,13 +28,6 @@ async def coro_update_rolidata() -> None:
         except Exception as e: await log_collector.error(f"Error updating Rolimons data: {e}", initiator="RoWhoIs.coro_update_rolidata")
         await asyncio.sleep(3600)
 
-async def coro_flush_volatile_cache() -> None:
-    """Flushes volatile cache every minute"""
-    while True:
-        for file in Path("cache/volatile/").glob("**/*"):
-            if file.is_file(): file.unlink()
-        await asyncio.sleep(60)
-
 async def coro_fetch_followers() -> None:
     """Enable this coroutine if eggEnabled is True. Fetches followers from the RoWhoIs API every 35 seconds and updates the global eggFollowers list"""
     global eggFollowers
@@ -59,4 +52,3 @@ async def returnProxies() -> list[tuple[str, str]]:
 loop = asyncio.get_event_loop()
 loop.create_task(coro_heartbeat())
 loop.create_task(coro_update_rolidata())
-loop.create_task(coro_flush_volatile_cache())
