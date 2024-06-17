@@ -194,7 +194,7 @@ async def whois(interaction: hikari.CommandInteraction, user: str, download: boo
     if not (await app_commands.interaction_permissions_check(interaction, user_id=user.id)): return
     user, groups, usernames, robloxbadges, email_verification = await RoModules.get_full_player_profile(user.id, shard)
     embed.set_thumbnail(user.thumbnail)
-    embed.set_author(name=f"@{user.username} { '(' + user.nickname + ')' if user.username != user.nickname else ''}", icon=user.headshot, url=f"https://www.roblox.com/users/{user.id}/profile" if not user.banned else '')
+    embed.set_author(name=f"@{user.username} { '(' + user.nickname + ')' if user.username != user.nickname else ''}", icon=user.headshot, url=f"https://www.roblox.com/users/{user.id}/profile" if not user.banned else None)
     embed.description = f"{emojiTable.get('staff') if user.id in staffIds else ''} {emojiTable.get('donor') if user.id in whoIsDonors else ''} {emojiTable.get('verified') if user.verified else ''} {emojiTable.get('epic') if user.id in globals.eggFollowers else ''}"
     embed.add_field(name="User ID", value=f"`{user.id}`", inline=True)
     embed.add_field(name="Account Status", value=f"{'`Terminated/Deactivated`' if user.banned else '`Okay`'}", inline=True)
