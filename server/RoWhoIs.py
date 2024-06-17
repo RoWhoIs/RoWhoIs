@@ -152,6 +152,7 @@ async def about(interaction: hikari.CommandInteraction):
 @app_commands.Command(context="User", intensity="low")
 async def userid(interaction: hikari.CommandInteraction, username: str, download: bool = False):
     """Get a User ID from a username"""
+    initialCalcTime = time.time()
     if not (await app_commands.interaction_permissions_check(interaction, requires_entitlements=download)): return
     embed = hikari.Embed(color=0xFF0000)
     shard = await gUtils.shard_metrics(interaction)
@@ -164,11 +165,13 @@ async def userid(interaction: hikari.CommandInteraction, username: str, download
     embed.add_field(name="User ID:", value=f"`{user.id}`", inline=True)
     embed.colour = 0x00FF00
     if download: csv = "username, id, nickname, verified\n" + "\n".join([f"{user.username}, {user.id}, {user.nickname}, {user.verified}"])
+    embed.set_footer(text=f"Fetched just for you in {round((time.time() - initialCalcTime) * 1000)}ms")
     await interaction.create_initial_response(response_type=hikari.ResponseType.MESSAGE_CREATE, embed=embed, attachment=hikari.Bytes(csv, f"rowhois-userid-{user.id}.csv") if download else hikari.undefined.UNDEFINED)
 
 @app_commands.Command(context="User", intensity="low")
 async def username(interaction: hikari.CommandInteraction, userid: int, download: bool = False):
     """Get a username from a User ID"""
+    initialCalcTime = time.time()
     if not (await app_commands.interaction_permissions_check(interaction, user_id=userid, requires_entitlements=download)): return
     embed = hikari.Embed(color=0xFF0000)
     shard = await gUtils.shard_metrics(interaction)
@@ -180,11 +183,13 @@ async def username(interaction: hikari.CommandInteraction, userid: int, download
     embed.add_field(name="Username:", value=f"`{user.username}`", inline=True)
     embed.colour = 0x00FF00
     if download: csv = "username, id, nickname, verified\n" + "\n".join([f"{user.username}, {user.id}, {user.nickname}, {user.verified}"])
+    embed.set_footer(text=f"Fetched just for you in {round((time.time() - initialCalcTime) * 1000)}ms")
     await interaction.create_initial_response(response_type=hikari.ResponseType.MESSAGE_CREATE, embed=embed, attachment=hikari.Bytes(csv, f'rowhois-username-{user.id}.csv') if download else hikari.undefined.UNDEFINED)
 
 @app_commands.Command(context="User", intensity="high")
 async def whois(interaction: hikari.CommandInteraction, user: str, download: bool = False):
     """Get detailed profile information from a User ID/Username"""
+    initialCalcTime = time.time()
     if not (await app_commands.interaction_permissions_check(interaction, requires_entitlements=download)): return
     embed = hikari.Embed(color=0xFF0000)
     shard = await gUtils.shard_metrics(interaction)
@@ -211,7 +216,7 @@ async def whois(interaction: hikari.CommandInteraction, user: str, download: boo
     if user.description is not None and user.description != '': embed.add_field(name="Description", value=f"```{user.description.replace('```', '') if user.description else 'None'}```", inline=False)
     embed.colour = 0x00FF00
     nlChar, limData = "\n", None
-    if eggEnabled and user.id in globals.eggFollowers: embed.set_footer(text="This user is certifiably cool")
+    embed.set_footer(text=f"Fetched just for you in {round((time.time() - initialCalcTime) * 1000)}ms")
     if download:
         if isinstance(usernames, list) and usernames: whoData = "id, username, nickname, verified, rowhois_staff, account_status, joined, last_online, verified_email, groups, friends, followers, following, previous_usernames, description\n" + ''.join([f"{user.id}, {user.username}, {user.nickname}, {user.verified}, {user.id in staffIds}, {'Terminated/Deactivated' if user.banned else 'Okay' if not user.banned else 'None'}, {user.joined}, {user.online}, {('None' if email_verification == -1 else 'None' if email_verification == 0 else 'Hat' if email_verification == 1 else 'Sign' if email_verification == 2 else 'Unverified' if email_verification == 3 else 'Both' if email_verification == 4 else 'None') if str(email_verification).isdigit() else 'None'}, {groups}, {user.friends}, {user.followers}, {user.following}, {name}, {user.description.replace(',', '').replace(nlChar, '     ') if user.description else 'None'}\n" for name in usernames])
         elif user.banned: whoData = f"id, username, nickname, verified, rowhois_staff, account_status, joined, last_online, groups, friends, followers, following, description\n{user.id}, {user.username}, {user.nickname}, {user.verified}, {user.id in staffIds}, {'Terminated/Deactivated' if user.banned else 'Okay' if not user.banned else 'None'}, {user.joined}, {user.online}, {groups}, {user.friends}, {user.followers}, {user.following}, None, None\n"
@@ -232,6 +237,7 @@ async def whois(interaction: hikari.CommandInteraction, user: str, download: boo
 @app_commands.Command(context="Item", intensity="medium")
 async def ownsitem(interaction: hikari.CommandInteraction, user: str, item: int, download: bool = False):
     """Check if a player owns a specific item"""
+    initialCalcTime = time.time()
     if not (await app_commands.interaction_permissions_check(interaction, requires_entitlements=download)): return
     embed = hikari.Embed(color=0xFF0000)
     shard = await gUtils.shard_metrics(interaction)
@@ -258,11 +264,13 @@ async def ownsitem(interaction: hikari.CommandInteraction, user: str, item: int,
     if download:
         if data[0]: csv = "username, id, item, owned, uaid\n" + "\n".join([f"{user.username}, {user.id}, {item}, {bool(data[0])}, {uaid}" for uaid in data[3]])
         else: csv = f"username, id, item, owned, uaid\n{user.username}, {user.id}, {item}, {bool(data[0])}, None"
+    embed.set_footer(text=f"Fetched just for you in {round((time.time() - initialCalcTime) * 1000)}ms")
     await interaction.create_initial_response(response_type=hikari.ResponseType.MESSAGE_CREATE, embed=embed, attachment=hikari.Bytes(csv, f'rowhois-ownsitem-{user.id}.csv') if download else hikari.undefined.UNDEFINED)
 
 @app_commands.Command(context="Badge", intensity="low")
 async def ownsbadge(interaction: hikari.CommandInteraction, user: str, badge: int, download: bool = False):
     """Check if a player owns a specified badge and return it's award date"""
+    initialCalcTime = time.time()
     if not (await app_commands.interaction_permissions_check(interaction, requires_entitlements=download)): return
     embed = hikari.Embed(color=0xFF0000)
     shard = await gUtils.shard_metrics(interaction)
@@ -280,11 +288,13 @@ async def ownsbadge(interaction: hikari.CommandInteraction, user: str, badge: in
     if download:
         if ownsBadge[0]: csv = "username, id, badge, owned, awarded\n" + "\n".join([f"{user.username}, {user.id}, {badge}, {ownsBadge[0]}, {ownsBadge[1]}"])
         else: csv = f"username, id, badge, owned, awarded\n{user.username}, {user.id}, {badge}, {ownsBadge[0]}, None"
+    embed.set_footer(text=f"Fetched just for you in {round((time.time() - initialCalcTime) * 1000)}ms")
     await interaction.create_initial_response(response_type=hikari.ResponseType.MESSAGE_CREATE, embed=embed, attachment=hikari.Bytes(csv, f'rowhois-ownsbadge-{user.id}.csv') if download else hikari.undefined.UNDEFINED)
 
 @app_commands.Command(context="Limited", intensity="medium")
 async def limited(interaction: hikari.CommandInteraction, limited: str, download: bool = False):
     """Returns a limited ID, the rap, and value of a specified limited"""
+    initialCalcTime = time.time()
     if not (await app_commands.interaction_permissions_check(interaction, requires_entitlements=download)): return
     embed = hikari.Embed(color=0xFF0000)
     shard = await gUtils.shard_metrics(interaction)
@@ -301,12 +311,14 @@ async def limited(interaction: hikari.CommandInteraction, limited: str, download
     embed.add_field(name="Projected", value=f"`{projected}`", inline=True)
     embed.add_field(name="Rare", value=f"`{rare}`", inline=True)
     if download: csv = "id, name, acronym, rap, value, demand, trend, projected, rare\n" + "\n".join([f"{limited_id}, {name.replace(',', '')}, {acronym.replace(',', '') if acronym else 'None'}, {rap}, {value}, {demand}, {trend}, {projected}, {rare}"])
+    embed.set_footer(text=f"Fetched just for you in {round((time.time() - initialCalcTime) * 1000)}ms")
     await interaction.create_initial_response(response_type=hikari.ResponseType.MESSAGE_CREATE, embed=embed, attachment=hikari.Bytes(csv, f'rowhois-limited-{limited_id}.csv') if download else hikari.undefined.UNDEFINED)
 
 @app_commands.Command(context="User", intensity="low")
 async def isfriendswith(interaction: hikari.CommandInteraction, user1: str, user2: str):
     """Check whether a user is friended to another user"""
     # Technically we only have to check through one player as it's a mutual relationship
+    initialCalcTime = time.time()
     embed = hikari.Embed(color=0xFF0000)
     shard = await gUtils.shard_metrics(interaction)
     user1 = await RoModules.handle_usertype(user1, shard)
@@ -330,11 +342,13 @@ async def isfriendswith(interaction: hikari.CommandInteraction, user1: str, user
         embed.colour = 0x00FF00
         embed.description = f"{user1.username} is friends with {friend_name}!"
     else: embed.description = f"{user1.username} does not have this user friended."
+    embed.set_footer(text=f"Fetched just for you in {round((time.time() - initialCalcTime) * 1000)}ms")
     await interaction.create_initial_response(response_type=hikari.ResponseType.MESSAGE_CREATE, embed=embed)
 
 @app_commands.Command(context="Group", intensity="low")
 async def isingroup(interaction: hikari.CommandInteraction, user: str, group: int):
     """Check whether a user is in a group or not"""
+    initialCalcTime = time.time()
     embed = hikari.Embed(color=0xFF0000)
     shard = await gUtils.shard_metrics(interaction)
     try: user = await RoModules.handle_usertype(user, shard)
@@ -357,6 +371,7 @@ async def isingroup(interaction: hikari.CommandInteraction, user: str, group: in
         embed.title = f"{user.username} is in group `{groupname}`!"
         embed.description = f"Role: `{grouprole}`"
     else: embed.description = f"{user.username} is not in this group."
+    embed.set_footer(text=f"Fetched just for you in {round((time.time() - initialCalcTime) * 1000)}ms")
     await interaction.create_initial_response(response_type=hikari.ResponseType.MESSAGE_CREATE, embed=embed)
 
 @app_commands.Command(context="Clothing Asset", intensity="extreme")
@@ -380,6 +395,7 @@ async def clothingtexture(interaction: hikari.CommandInteraction, clothing_id: i
 @app_commands.Command(context="Item", intensity="high")
 async def itemdetails(interaction: hikari.CommandInteraction, item: int, download: bool = False):
     """Get advanced details about a catalog item"""
+    initialCalcTime = time.time()
     if not (await app_commands.interaction_permissions_check(interaction, requires_entitlements=download)): return
     embed = hikari.Embed(color=0xFF0000)
     shard = await gUtils.shard_metrics(interaction)
@@ -404,11 +420,13 @@ async def itemdetails(interaction: hikari.CommandInteraction, item: int, downloa
     if download:
         nlChar = "\n"
         csv = "id, name, creator_name, creator_id, verified, created, updated, is_limited, is_limited_unique, is_collectible, quantity, lowest_price, remaining, price, description\n" + f"{item}, {data['Name'].replace(',', '')}, {data['Creator']['Name']}, {data['Creator']['CreatorTargetId']}, {data['Creator']['HasVerifiedBadge']}, {data['Created']}, {data['Updated']}, {data['IsLimited']}, {data['IsLimitedUnique']}, {isCollectible}, {data['CollectiblesItemDetails']['TotalQuantity'] if isCollectible else 'None'}, {data['CollectiblesItemDetails']['CollectibleLowestResalePrice'] if isCollectible else 'None'}, {data['Remaining'] if data['Remaining'] is not None else 'None'}, {data['PriceInRobux'] if not (data['IsLimited'] or data['Remaining'] == 0 or isCollectible) else 'None'}, {data['Description'].replace(',', '').replace(nlChar, '    ') if data['Description'] != '' else 'None'}"
+    embed.set_footer(text=f"Fetched just for you in {round((time.time() - initialCalcTime) * 1000)}ms")
     await interaction.create_initial_response(response_type=hikari.ResponseType.MESSAGE_CREATE, embed=embed, attachment=hikari.Bytes(csv, f'rowhois-itemdetails-{item}.csv') if download else hikari.undefined.UNDEFINED)
 
 @app_commands.Command(context="User", intensity="high")
 async def membership(interaction: hikari.CommandInteraction, user: str):
     """Checks whether a user has premium and if they had Builders Club"""
+    initialCalcTime = time.time()
     embed = hikari.Embed(color=0xFF0000)
     shard = await gUtils.shard_metrics(interaction)
     user = await RoModules.handle_usertype(user, shard)
@@ -424,11 +442,13 @@ async def membership(interaction: hikari.CommandInteraction, user: str):
     embed.title = f"{user.username}'s memberships:"
     embed.description = f"{(emojiTable.get('premium') + ' `Premium`' + newline) if data[0] else ''}{(emojiTable.get('bc') + ' `Builders Club`' + newline) if data[1] else ''}{(emojiTable.get('tbc') + '`Turbo Builders Club`' + newline) if data[2] else ''}{(emojiTable.get('obc') + ' `Outrageous Builders Club`' + newline) if data[3] else ''}{(str(user.username) + ' has no memberships.') if noTiers and not data[0] else ''}"
     embed.colour = 0x00FF00
+    embed.set_footer(text=f"Fetched just for you in {round((time.time() - initialCalcTime) * 1000)}ms")
     await interaction.create_initial_response(response_type=hikari.ResponseType.MESSAGE_CREATE, embed=embed)
 
 @app_commands.Command(context="Group", intensity="medium")
 async def group(interaction: hikari.CommandInteraction, group: int, download: bool = False):
     """Get detailed group information from a Group ID"""
+    initialCalcTime = time.time()
     if not (await app_commands.interaction_permissions_check(interaction, requires_entitlements=download)): return
     embed = hikari.Embed(color=0xFF0000)
     shard = await gUtils.shard_metrics(interaction)
@@ -449,11 +469,13 @@ async def group(interaction: hikari.CommandInteraction, group: int, download: bo
     if download:
         nlChar = "\n"
         csv = "id, name, owner, created, members, joinable, locked, shout, shout_author, shout_author_id, shout_verified, description\n" + f"{group}, {groupInfo[0]}, {groupInfo[4][0] if groupInfo[4] is not None else 'None'}, {groupInfo[2]}, {groupInfo[6]}, {groupInfo[7]}, {groupInfo[8]}, {groupInfo[5][0] if groupInfo[5] is not None else 'None'}, {groupInfo[5][1] if groupInfo[5] is not None else 'None'}, {groupInfo[5][2] if groupInfo[5] is not None else 'None'}, {groupInfo[5][3] if groupInfo[5] is not None else 'None'}, {groupInfo[1].replace(',', '').replace(nlChar, '     ') if groupInfo[1] else 'None'}"
+    embed.set_footer(text=f"Fetched just for you in {round((time.time() - initialCalcTime) * 1000)}ms")
     await interaction.create_initial_response(response_type=hikari.ResponseType.MESSAGE_CREATE, embed=embed, attachment=hikari.Bytes(csv, f'rowhois-group-{group}.csv') if download else hikari.undefined.UNDEFINED)
 
 @app_commands.Command(context="Username", intensity="medium")
 async def checkusername(interaction: hikari.CommandInteraction, username: str, download: bool = False):
     """Check if a username is available"""
+    initialCalcTime = time.time()
     if not (await app_commands.interaction_permissions_check(interaction, requires_entitlements=download)): return
     embed = hikari.Embed(color=0xFF0000)
     shard = await gUtils.shard_metrics(interaction)
@@ -464,6 +486,7 @@ async def checkusername(interaction: hikari.CommandInteraction, username: str, d
     elif usernameInfo[0] == 1: embed.description = "Username is taken."
     else: embed.description = f"Username not available.\n**Reason:** {usernameInfo[1]}"
     if download: csv = "username, code\n" + "\n".join([f"{username.replace(',', '')}, {usernameInfo[0]}"])
+    embed.set_footer(text=f"Fetched just for you in {round((time.time() - initialCalcTime) * 1000)}ms")
     await interaction.create_initial_response(response_type=hikari.ResponseType.MESSAGE_CREATE, embed=embed, attachment=hikari.Bytes(csv, f"checkusername-{username}.csv") if download else hikari.undefined.UNDEFINED)
 
 @app_commands.Command(context="Group", intensity="extreme", requires_entitlement=True, kind_upsell=False)
@@ -549,6 +572,7 @@ async def asset(interaction: hikari.CommandInteraction, asset: int, filetype: Li
 @app_commands.Command(context="Game", intensity="extreme")
 async def game(interaction: hikari.CommandInteraction, game: int):
     """Get detailed game information from a game ID"""
+    initialCalcTime = time.time()
     embed = hikari.Embed(color=0xFF0000)
     shard = await gUtils.shard_metrics(interaction)
     data = await RoModules.fetch_game(game, shard)
@@ -569,4 +593,5 @@ async def game(interaction: hikari.CommandInteraction, game: int):
     embed.add_field(name="Playing", value=f"`{data.playing}`", inline=True)
     if data.description != "": embed.add_field(name="Description", value=f"```{data.description.replace('```', '')}```", inline=False)
     embed.colour = 0x00FF00
+    embed.set_footer(text=f"Fetched just for you in {round((time.time() - initialCalcTime) * 1000)}ms")
     await interaction.create_initial_response(response_type=hikari.ResponseType.MESSAGE_CREATE, embed=embed)
