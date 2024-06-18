@@ -161,7 +161,7 @@ async def get_membership(user: int, shard_id: int) -> tuple[bool, bool, bool, bo
     """Returns hasPremium, ownedBc, ownedTbc, and ownedObc"""
     checkBc = await Roquest.Roquest("GET", "inventory", f"v1/users/{user}/items/4/24814192", shard_id=shard_id)
     await general_error_handler(checkBc[0])
-    checkPremium, checkTbc, checkObc = await asyncio.gather(Roquest.Roquest("GET", "premiumfeatures", f"v1/users/{user}/validate-membership", shard_id=shard_id, bypass_proxy=True), Roquest.Roquest("GET", "inventory", f"v1/users/{user}/items/4/11895536", shard_id=shard_id), Roquest.Roquest("GET", "inventory", f"v1/users/{user}/items/4/17407931", shard_id=shard_id))
+    checkPremium, checkTbc, checkObc = await asyncio.gather(Roquest.Roquest("GET", "premiumfeatures", f"v1/users/{user}/validate-membership", shard_id=shard_id), Roquest.Roquest("GET", "inventory", f"v1/users/{user}/items/4/11895536", shard_id=shard_id), Roquest.Roquest("GET", "inventory", f"v1/users/{user}/items/4/17407931", shard_id=shard_id))
     await asyncio.gather(general_error_handler(checkPremium[0]), general_error_handler(checkObc[0]), general_error_handler(checkTbc[0]))
     ownedBc = any("type" in item for item in checkBc[1].get("data", []))
     ownedTbc = any("type" in item for item in checkTbc[1].get("data", []))
@@ -190,7 +190,7 @@ async def get_group(group: int, shard_id: int) -> tuple[str, str, str, bool, lis
 
 async def validate_username(username: str, shard_id: int) -> tuple[int, str]:
     """Validate if a username is available"""
-    data = await Roquest.Roquest("POST", "auth", f"v2/usernames/validate", json={"username": username, "birthday": "2000-01-01T00:00:00.000Z", "context": 0}, shard_id=shard_id, bypass_proxy=True, failretry=True)
+    data = await Roquest.Roquest("POST", "auth", f"v2/usernames/validate", json={"username": username, "birthday": "2000-01-01T00:00:00.000Z", "context": 0}, shard_id=shard_id, failretry=True)
     await general_error_handler(data[0])
     return data[1]['code'], data[1]['message']
 
@@ -303,7 +303,7 @@ async def fetch_asset(asset_id: int, shard_id: int, filetype: str = "png", locat
 async def fetch_game(game: int, shard_id: int) -> typedefs.Game:
     """Fetches a game"""
     try:
-        initRequest = await Roquest.Roquest("GET", "games", f"v1/games/multiget-place-details?placeIds={game}", shard_id=shard_id, bypass_proxy=True)
+        initRequest = await Roquest.Roquest("GET", "games", f"v1/games/multiget-place-details?placeIds={game}", shard_id=shard_id)
         await general_error_handler(initRequest[0])
         creator = typedefs.User(id=initRequest[1][0]['builderId'], username=initRequest[1][0]['builder'], verified=initRequest[1][0]['hasVerifiedBadge'])
         game = typedefs.Game(id=game, universe=initRequest[1][0]['universeId'], creator=creator, name=initRequest[1][0]['name'], playable=initRequest[1][0]['isPlayable'], price=initRequest[1][0]['price'], url=initRequest[1][0]['url'], description=initRequest[1][0]['description'])
@@ -343,3 +343,9 @@ async def get_full_player_profile(user: int, shard_id: int) -> Tuple[typedefs.Us
     profile, headshot, thumbnail, online, socials, groups, usernames, badges, email_verification = await asyncio.gather(*tasks)
     user = typedefs.User(id=user, username=profile.username, nickname=profile.nickname, verified=profile.verified, description=profile.description, joined=profile.joined, online=online, banned=profile.banned, friends=socials[0], followers=socials[1], following=socials[2], thumbnail=thumbnail, headshot=headshot)
     return user, len(groups['data']), usernames, badges, email_verification
+
+async def xbox_to_roblox(xtag: str, shard_id: int) -> Tuple[str, int]:
+    """Converts an Xbox gamertag to a Roblox username"""
+    data = await Roquest.Roquest("POST", "auth", f"v1/xbox/translate", shard_id=shard_id, failretry=True, json={"ids": [xtag]})
+    await general_error_handler(data[0])
+    return data[1]['Users'][0]['Username'], data[1]['Users'][0]['UserId']

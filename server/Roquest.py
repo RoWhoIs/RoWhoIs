@@ -98,17 +98,16 @@ async def token_renewal(automated: bool = False) -> None:
 
 loop = asyncio.get_event_loop()
 
-async def Roquest(method: str, node: str, endpoint: str, shard_id: int = None, failretry=False, bypass_proxy: bool = False, **kwargs) -> tuple[int, Any]:
-    """Performs a request to the Roblox API. Returns a tuple with the status code and the response data.
-    bypass_proxy will override proxying and perform an authenticated roquest"""
+async def Roquest(method: str, node: str, endpoint: str, shard_id: int = None, failretry=False, **kwargs) -> tuple[int, Any]:
+    """Performs a request to the Roblox API. Returns a tuple with the status code and the response data"""
     for retry in range(3):
-        async with aiohttp.ClientSession(cookies={".roblosecurity": BaseUserAuth.token} if bypass_proxy else {}, headers={"x-csrf-token": BaseUserAuth.csrf, 'User-Agent': uasString} if bypass_proxy else {'User-Agent': uasString}) as main_session:
+        async with aiohttp.ClientSession(cookies={".roblosecurity": BaseUserAuth.token}, headers={"x-csrf-token": BaseUserAuth.csrf, 'User-Agent': uasString}) as main_session:
             try:
-                if not bypass_proxy: await proxy_picker()
-                logBlurb = f"{currentProxy.ip + ';' if currentProxy.ip is not None and not bypass_proxy else 'non-proxied;'}  {method.upper()} {node} {'| ' + endpoint if endpoint != '' else endpoint}"
+                await proxy_picker()
+                logBlurb = f"{currentProxy.ip + ';' if currentProxy.ip is not None else 'non-proxied;'}  {method.upper()} {node} {'| ' + endpoint if endpoint != '' else endpoint}"
                 if not productionMode: await log_collector.info(f"{logBlurb}", initiator="RoWhoIs.Roquest", shard_id=shard_id) # PRIVACY FILTER
                 try:
-                    async with main_session.request(method.lower(), f"https://{node}.roblox.com/{endpoint}", timeout=4, proxy=currentProxy.ip if not bypass_proxy else None, proxy_auth=globProxies.auth if not bypass_proxy else None, **kwargs) as resp:
+                    async with main_session.request(method.lower(), f"https://{node}.roblox.com/{endpoint}", timeout=4, proxy=currentProxy.ip, proxy_auth=globProxies.auth, **kwargs) as resp:
                         if resp.status == 200: return resp.status, await resp.json()
                         await log_collector.warn(f"{logBlurb}: {resp.status} {('- ' + str(retry + 1) + '/3')}", initiator="RoWhoIs.Roquest", shard_id=shard_id)
                         if resp.status in [404, 400]: return resp.status, await resp.json() # Standard not exist, disregard retries
@@ -162,7 +161,7 @@ async def RoliData():
 async def heartbeat() -> bool:
     """Determines if Roblox is OK by checking if the API is up, returns True if alive"""
     try:
-        data = await Roquest("GET", "premiumfeatures", "v1/users/1/validate-membership", bypass_proxy=True)
+        data = await Roquest("GET", "premiumfeatures", "v1/users/1/validate-membership")
         if data[0] == 200: return True
         if data[0] == 403: return None
         return False

@@ -29,7 +29,7 @@ The most advanced Roblox lookup Discord bot.
 |  userclothing   | `User`, `Page`        |                                                                                                    Fetches bulk clothing assets from a user. This command is restricted to a subscription. |
 |      about      | None                  |                                                                                                         Shows advanced statistics about RoWhoIs, including cache size, users, shards, etc. |
 |      asset      | `Asset ID`, `Version` |                                                                                                  Fetches an asset file from Roblox. This command is not recommended for clothing textures. |
-
+|   xbox2roblox   | `Xbox Gamertag`       |                                                                                                                                             Converts an Xbox Gamertag to a Roblox User ID. |
 
 ## In-Console Commands
 |  Name   | Description                        |
@@ -136,6 +136,7 @@ To obtain these emojis, simply put a backslash behind the emoji in Discord then 
 | warrior              | Part of the `robloxbadges` command.                                               |
 | welcome to the club  | Part of the `robloxbadges` command.                                               |
 | friendship           | Part of the `robloxbadges` command.                                               |
+| epic                 | An epic face for epic occasions                                                   |
 
 ## Proxying
 

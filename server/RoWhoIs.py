@@ -123,6 +123,7 @@ async def help(interaction: hikari.CommandInteraction):
     embed.add_field(name="itemdetails", value="Returns details about a catalog item", inline=True)
     embed.add_field(name="membership", value="Check if a player has Premium or has had Builders Club", inline=True)
     embed.add_field(name="checkusername", value="Check if a username is available", inline=True)
+    embed.add_field(name="xbox2roblox", value="Converts an Xbox gamertag to a Roblox username", inline=True)
     embed.add_field(name="asset", value="Fetches an asset file from an asset ID. Not recommended for clothing textures", inline=True)
     embed.add_field(name="about", value="Shows a bit about RoWhoIs and advanced statistics", inline=True)
     embed.set_footer(text="You have access to RoWhoIs+ features" if (interaction.entitlements or not productionMode) or (interaction.user.id in subscriptionBypass) else "Get RoWhoIs+ to use + commands")
@@ -593,5 +594,25 @@ async def game(interaction: hikari.CommandInteraction, game: int):
     embed.add_field(name="Playing", value=f"`{data.playing}`", inline=True)
     if data.description != "": embed.add_field(name="Description", value=f"```{data.description.replace('```', '')}```", inline=False)
     embed.colour = 0x00FF00
+    embed.set_footer(text=f"Fetched just for you in {round((time.time() - initialCalcTime) * 1000)}ms")
+    await interaction.create_initial_response(response_type=hikari.ResponseType.MESSAGE_CREATE, embed=embed)
+
+@app_commands.Command(context="Gamertag", intensity="extreme")
+async def xbox2roblox(interaction: hikari.CommandInteraction, gamer_tag: str):
+    """Converts an Xbox gamertag to a Roblox username - This is cAsE sEnSiTiVe"""
+    initialCalcTime = time.time()
+    embed = hikari.Embed(color=0xFF0000)
+    shard = await gUtils.shard_metrics(interaction)
+    try:
+        roblox = await RoModules.xbox_to_roblox(gamer_tag, shard)
+        if roblox[1] is None: raise ErrorDict.DoesNotExistError
+        embed.colour = 0x00FF00
+        embed.title = f"Xbox ⇢ Roblox"
+        embed.add_field("Xbox Gamertag", f"`{gamer_tag}`")
+        embed.add_field("Username", f"`{roblox[0]}`", inline=True)
+        embed.add_field("User ID", f"`{roblox[1]}`", inline=True)
+        embed.set_thumbnail(await RoModules.get_player_bust(roblox[1], "420x420", shard))
+    except ErrorDict.DoesNotExistError:
+        embed.description = "Tag is not associated with a Roblox player"
     embed.set_footer(text=f"Fetched just for you in {round((time.time() - initialCalcTime) * 1000)}ms")
     await interaction.create_initial_response(response_type=hikari.ResponseType.MESSAGE_CREATE, embed=embed)
