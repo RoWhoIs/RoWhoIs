@@ -21,4 +21,4 @@ export ROWHOIS_CONFIG='{
 }'
 ```
 
-Run the server with `go run cmd/server`
+Run the server with `go run cmd/server.go`
