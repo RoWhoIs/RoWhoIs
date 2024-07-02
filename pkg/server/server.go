@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/RoWhoIs/RoWhoIs/pkg/proxypool"
 	"github.com/disgoorg/disgo"
@@ -13,11 +14,18 @@ import (
 type Server struct {
 	Config        *Config
 	discordClient bot.Client
+	startedAt     time.Time
+	Pool          *proxypool.ProxyPool
 }
 
 func NewServer(config *Config) (*Server, error) {
 	pool := proxypool.NewProxyPool(config.Proxies)
-	commands := slashCommands(pool)
+	server := &Server{
+		Config:    config,
+		startedAt: time.Now(),
+		Pool:      pool,
+	}
+	commands := slashCommands(server)
 
 	client, err := disgo.New(config.DiscordToken,
 		bot.WithGatewayConfigOpts(
@@ -31,10 +39,8 @@ func NewServer(config *Config) (*Server, error) {
 	if err := registerSlashCommands(client, commands); err != nil {
 		return nil, fmt.Errorf("registering slash commands: %v", err)
 	}
-	return &Server{
-		Config:        config,
-		discordClient: client,
-	}, nil
+	server.discordClient = client
+	return server, nil
 }
 
 func (s *Server) Serve(ctx context.Context) error {

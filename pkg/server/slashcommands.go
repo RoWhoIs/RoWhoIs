@@ -8,7 +8,6 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/RoWhoIs/RoWhoIs/pkg/proxypool"
 	"github.com/RoWhoIs/RoWhoIs/pkg/roblox"
 	"github.com/disgoorg/disgo/bot"
 
@@ -68,10 +67,10 @@ var (
 	Extreme Intensity = "extreme"
 )
 
-func slashCommands(pool *proxypool.ProxyPool) []RoWhoIsSlashCommand {
+func slashCommands(server *Server) []RoWhoIsSlashCommand {
 	return []RoWhoIsSlashCommand{
 		{
-			Handler:     whois(pool),
+			Handler:     whois(server),
 			PremiumOnly: false,
 			Intensity:   High,
 			SlashCommandCreate: discord.SlashCommandCreate{
@@ -87,7 +86,7 @@ func slashCommands(pool *proxypool.ProxyPool) []RoWhoIsSlashCommand {
 			},
 		},
 		{
-			Handler:     username(pool),
+			Handler:     username(server),
 			PremiumOnly: false,
 			Intensity:   Low,
 			SlashCommandCreate: discord.SlashCommandCreate{
@@ -105,7 +104,7 @@ func slashCommands(pool *proxypool.ProxyPool) []RoWhoIsSlashCommand {
 	}
 }
 
-func whois(pool *proxypool.ProxyPool) func(event *events.ApplicationCommandInteractionCreate) {
+func whois(server *Server) func(event *events.ApplicationCommandInteractionCreate) {
 	return func(event *events.ApplicationCommandInteractionCreate) {
 		data := event.SlashCommandInteractionData()
 		err := event.CreateMessage(discord.NewMessageCreateBuilder().
@@ -119,7 +118,8 @@ func whois(pool *proxypool.ProxyPool) func(event *events.ApplicationCommandInter
 	}
 }
 
-func username(pool *proxypool.ProxyPool) func(event *events.ApplicationCommandInteractionCreate) {
+func username(server *Server) func(event *events.ApplicationCommandInteractionCreate) {
+	pool := server.Pool
 	return func(event *events.ApplicationCommandInteractionCreate) {
 		userID, ok := event.SlashCommandInteractionData().OptInt("userid") // TODO: get keyname from SSOT
 		if !ok {
