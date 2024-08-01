@@ -98,7 +98,7 @@ async def token_renewal(automated: bool = False) -> None:
 
 loop = asyncio.get_event_loop()
 
-async def Roquest(method: str, node: str, endpoint: str, shard_id: int = None, failretry=False, **kwargs) -> tuple[int, Any]:
+async def Roquest(method: str, node: str, endpoint: str, shard_id: int = None, failretry = True, **kwargs) -> tuple[int, Any]:
     """Performs a request to the Roblox API. Returns a tuple with the status code and the response data"""
     for retry in range(3):
         async with aiohttp.ClientSession(cookies={".roblosecurity": BaseUserAuth.token}, headers={"x-csrf-token": BaseUserAuth.csrf, 'User-Agent': uasString}) as main_session:
@@ -115,6 +115,7 @@ async def Roquest(method: str, node: str, endpoint: str, shard_id: int = None, f
                             if not failretry: return resp.status, await resp.json()
                             await token_renewal()
                         if not failretry and (resp.status not in [429, 500]): break
+                        else: await proxy_picker(True)
                 except Exception as e:
                     await proxy_picker(True)
                     await log_collector.error(f"{logBlurb}: {type(e)} |  {e if not isinstance(e, asyncio.exceptions.TimeoutError) else 'Timed out.'}", initiator="RoWhoIs.Roquest", shard_id=shard_id)

@@ -18,6 +18,8 @@ async def general_error_handler(data: int, expectedresponsecode: int = 200) -> N
     elif data == 429: raise ErrorDict.RatelimitedError
     elif data != expectedresponsecode: raise ErrorDict.UnexpectedServerResponseError
 
+# USER HANDLING ROUTES
+
 async def handle_usertype(user: Union[int, str], shard_id: int) -> typedefs.User:
     """Handles a user type and returns a User object containing id, name, nickname, and verified"""
     user = str(user)
@@ -79,7 +81,7 @@ async def get_previous_usernames(user_id: int, shard_id: int):
         next_page_cursor = data[1].get("nextPageCursor")
         if not next_page_cursor: break
     return usernames
-    
+
 async def get_socials(user_id: int, shard_id: int) -> tuple[int, int, int]:
     """Returns Friends, Followers, Following"""
     friend_count, following_count, follow_count = await asyncio.gather(Roquest.Roquest("GET", "friends", f"v1/users/{user_id}/friends/count", shard_id=shard_id), Roquest.Roquest("GET", "friends", f"v1/users/{user_id}/followings/count", shard_id=shard_id), Roquest.Roquest("GET", "friends", f"v1/users/{user_id}/followers/count", shard_id=shard_id))
@@ -95,7 +97,20 @@ async def get_groups(user_id: int, shard_id: int):
     group_data = await Roquest.Roquest("GET", "groups", f"v1/users/{user_id}/groups/roles", shard_id=shard_id)
     await general_error_handler(group_data[0])
     return group_data[1]
-    
+
+async def get_membership(user: int, shard_id: int) -> tuple[bool, bool, bool, bool]:
+    """Returns hasPremium, ownedBc, ownedTbc, and ownedObc"""
+    checkBc = await Roquest.Roquest("GET", "inventory", f"v1/users/{user}/items/4/24814192", shard_id=shard_id)
+    await general_error_handler(checkBc[0])
+    checkPremium, checkTbc, checkObc = await asyncio.gather(Roquest.Roquest("GET", "premiumfeatures", f"v1/users/{user}/validate-membership", shard_id=shard_id), Roquest.Roquest("GET", "inventory", f"v1/users/{user}/items/4/11895536", shard_id=shard_id), Roquest.Roquest("GET", "inventory", f"v1/users/{user}/items/4/17407931", shard_id=shard_id))
+    await asyncio.gather(general_error_handler(checkPremium[0]), general_error_handler(checkObc[0]), general_error_handler(checkTbc[0]))
+    ownedBc = any("type" in item for item in checkBc[1].get("data", []))
+    ownedTbc = any("type" in item for item in checkTbc[1].get("data", []))
+    ownedObc = any("type" in item for item in checkObc[1].get("data", []))
+    return checkPremium[1], ownedBc, ownedTbc, ownedObc
+
+# IMAGE ROUTES
+
 async def get_player_bust(user_id: int, size: str, shard_id: int):
     thumbnail_url = await Roquest.Roquest("GET", "thumbnails", f"v1/users/avatar-headshot?userIds={user_id}&size={size}&format=Png&isCircular=false", shard_id=shard_id, failretry=True)
     if thumbnail_url[0] != 200: return "https://rowhois.com/not-available.png"
@@ -148,6 +163,8 @@ async def get_game_icon(universe_id: int, size: str, shard_id: int):
     elif thumbnail_url[1]["data"][0]["state"] == "Pending": return "https://rowhois.com/pending.png"
     else: return thumbnail_url[1]["data"][0]["imageUrl"]
 
+# ITEM AND GROUP ROUTES
+
 async def get_rolidata_from_item(rolidata, item: str) -> tuple[int, str, int, int, str, str, str, str, bool]:
     """Returns limited id, name, acronym, rap, value, demand, trend, projected, and rare"""
     demandDict = {-1: None, 0: "Terrible", 1: "Low", 2: "Normal", 3: "High", 4: "Amazing"}
@@ -157,16 +174,6 @@ async def get_rolidata_from_item(rolidata, item: str) -> tuple[int, str, int, in
         if item.lower() in [item_data[0].lower(), item_data[1].lower(), limited_id]: return limited_id, item_data[0], item_data[1], item_data[2], item_data[4], demandDict.get(item_data[5]), trendDict.get(item_data[6]), True if item_data[7] != -1 else False, True if item_data[9] != -1 else False
     else: raise ErrorDict.DoesNotExistError
 
-async def get_membership(user: int, shard_id: int) -> tuple[bool, bool, bool, bool]:
-    """Returns hasPremium, ownedBc, ownedTbc, and ownedObc"""
-    checkBc = await Roquest.Roquest("GET", "inventory", f"v1/users/{user}/items/4/24814192", shard_id=shard_id)
-    await general_error_handler(checkBc[0])
-    checkPremium, checkTbc, checkObc = await asyncio.gather(Roquest.Roquest("GET", "premiumfeatures", f"v1/users/{user}/validate-membership", shard_id=shard_id), Roquest.Roquest("GET", "inventory", f"v1/users/{user}/items/4/11895536", shard_id=shard_id), Roquest.Roquest("GET", "inventory", f"v1/users/{user}/items/4/17407931", shard_id=shard_id))
-    await asyncio.gather(general_error_handler(checkPremium[0]), general_error_handler(checkObc[0]), general_error_handler(checkTbc[0]))
-    ownedBc = any("type" in item for item in checkBc[1].get("data", []))
-    ownedTbc = any("type" in item for item in checkTbc[1].get("data", []))
-    ownedObc = any("type" in item for item in checkObc[1].get("data", []))
-    return checkPremium[1], ownedBc, ownedTbc, ownedObc
 
 async def get_group(group: int, shard_id: int) -> tuple[str, str, str, bool, list[Union[str, int, bool]], list[Union[str, str, int, bool]], int, bool, bool]:
     """Returns name (0), description (1), created (2), verified (3), owner (4), shout (5), members (6), public (7), isLocked (8)"""

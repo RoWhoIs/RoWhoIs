@@ -60,7 +60,7 @@ async def input_listener() -> None:
     while True:
         try:
             command = await aioconsole.ainput("")
-            if command == "help": print("Commands: down, up, shards, servers, users, cache, cflush, lflush, flush, reload")
+            if command == "help": print("Commands: down, up, shards, servers, users, cache, cflush, lflush, flush, reload, proxies")
             if command == "down": raise KeyboardInterrupt
             if command == "up": await log_collector.info(f"Uptime: {await gUtils.ret_uptime(uptime)}", initiator="RoWhoIs.input_listener")
             if command == "shards": await log_collector.info(f"Shards: {client.shard_count}", initiator="RoWhoIs.input_listener")
