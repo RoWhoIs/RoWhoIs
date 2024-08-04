@@ -1,9 +1,15 @@
-from utils import errors
 from typing import Any
-from pathlib import Path
-from server import request
-import asyncio, time, aiohttp
+import asyncio
+import logging
+import time
 
+import aiohttp
+
+from utils import errors
+from server import request
+
+
+logs = logging.getLogger(__name__)
 heartBeat,  roliData, lastRoliUpdate, eggFollowers = False, {}, 0, []
 
 async def coro_heartbeat():
@@ -23,9 +29,9 @@ async def coro_update_rolidata() -> None:
             if newData is not None:
                 lastRoliUpdate = time.time()
                 roliData = newData
-            else: logs.error("Failed to update Rolimons data.", initiator="RoWhoIs.update_rolidata")
+            else: logs.error("Failed to update Rolimons data.")
         except errors.UnexpectedServerResponseError: pass
-        except Exception as e: logs.error(f"Error updating Rolimons data: {e}", initiator="RoWhoIs.coro_update_rolidata")
+        except Exception as e: logs.error(f"Error updating Rolimons data: {e}")
         await asyncio.sleep(3600)
 
 async def coro_fetch_followers() -> None:
@@ -38,7 +44,7 @@ async def coro_fetch_followers() -> None:
                     if response.status == 200:
                         data = await response.json()
                         eggFollowers = data.get("followerIds", 0)
-        except Exception as e: logs.error(f"Error fetching followers: {e}", initiator="RoWhoIs.coro_fetch_followers")
+        except Exception as e: logs.error(f"Error fetching followers: {e}")
         await asyncio.sleep(35)
 
 def init(eggEnabled: bool) -> None:

@@ -49,7 +49,7 @@ The most advanced Roblox lookup Discord bot.
 RoWhoIs relies on a set of dependencies to function properly.
 The following are all external dependencies RoWhoIs relies on to work:
 
-`aioconsole, aiofiles, aiohttp, hikari, uvloop`
+`aioconsole, aiofiles, aiohttp, hikari, hikari-crescent, uvloop`
 
 These dependencies can be satisfied by pip:
 
@@ -166,8 +166,6 @@ It's a general best practice to make sure the proxy is located within a close re
 RoWhoIs containerizes operation types by file. This eases development and makes the codebase easier to manage.
 
 First and foremost, `main.py`. This initializes `server/request.py` with the needed parameters to begin making API calls to Roblox. Next is `server/RoWhoIs.py`. This is instantiated in `main.py` and is the main class for RoWhoIs. It handles all the commands and interactions with the user. You can find every public-facing RoWhoIs command in this file.
-
-`server/commands.py` is the infrastructure for handling slash commands. This file is responsible for handling all the app commands RoWhoIs has. This not only serves as a wrapper to every command, it also validates user cooldowns, entitlements, and permissions. An added bonus of it being a wrapper is ease of error handling, as it's all done automatically.
 
 `server/modules.py` essentially is an 'API-wrapper' for Roblox, providing useful automatation such as raw user input strings to proper User objects and other useful, common functions.
 

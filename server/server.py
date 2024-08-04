@@ -1,16 +1,18 @@
 import asyncio
 import json
+import logging
 import time
 from pathlib import Path
 from typing import Literal
 
 import aiohttp
-import aioconsole
 import hikari
+import crescent
 
 from server import modules, commands, globals
-from utils import logger, errors, gtils, typedefs
+from utils import errors, gtils, typedefs
 
+logs = logging.getLogger(__name__)
 
 def load_config():
     global staffIds, optOut, userBlocklist, emojiTable, assetBlocklist, whoIsDonors, productionMode, botToken, eggEnabled, subscriptionBypass
@@ -27,55 +29,27 @@ def load_config():
     return config
 
 
-def run(version: str) -> bool:
-    """Runs the server"""
-    try:
-        global shortHash, uptime
-        shortHash = version
-        load_config()
-        loop.create_task(input_listener())
-        uptime = time.time()
-        globals.init(eggEnabled=eggEnabled)
-        client.run(close_loop=False)
-        return True
-    except KeyError:
-        raise errors.MissingRequiredConfigs
-    except asyncio.exceptions.CancelledError:
-        return True
-    except KeyboardInterrupt:
-        return True
+def create_instance(intents: hikari.Intents) -> hikari.GatewayBot:
+    config = load_config()
+    token = config['Authentication']['production' if productionMode else 'testing']
+    bot = hikari.GatewayBot(
+        intents=intents,
+        token=token,
+        banner=None,
+    )
+    return bot
 
 
-class RoWhoIs(hikari.GatewayBot):
-    def __init__(self, *, intents: hikari.Intents):
-        config = load_config()
-        super().__init__(
-            intents=intents,
-            token=config['Authentication']['production' if productionMode else 'testing'],
-            banner=None
-        )
-
-
-client = RoWhoIs(intents=hikari.Intents.ALL_UNPRIVILEGED)
+client = create_instance(intents=hikari.Intents.ALL_UNPRIVILEGED)
+bot = crescent.Client(client)
 shardAnalytics = gtils.ShardAnalytics(0, False)
 loop = asyncio.get_event_loop()
-
-
-@client.listen(hikari.InteractionCreateEvent)
-async def wrapped_on_interaction_create(event: hikari.InteractionCreateEvent):
-    await commands.interaction_runner(event)
-
-
-@client.listen(hikari.StartedEvent)
-async def start(event: hikari.StartedEvent):
-    logs.info(f"Initialized! Syncing global command tree", initiator="RoWhoIs.start")
-    await commands.sync_commands(client)
 
 
 @client.listen(hikari.ShardConnectedEvent)
 async def connect(event: hikari.ShardConnectedEvent):
     logs.info(
-        f"Shard {event.shard.id} connected to gateway", initiator="RoWhoIs.connect"
+        f"Shard {event.shard.id} connected to gateway"
     )
     await client.update_presence(
         activity=hikari.Activity(type=hikari.ActivityType.WATCHING, name="over Robloxia"),
@@ -83,70 +57,9 @@ async def connect(event: hikari.ShardConnectedEvent):
     )
 
 
-async def input_listener() -> bool | None:
-    """Allows for in-terminal commands while the server is running"""
-    while True:
-        try:
-            command = await aioconsole.ainput("")
-            if command == "help":
-                print("Commands: down, up, shards, servers, users, cache, cflush, lflush, flush, reload, proxies")
-            if command == "down":
-                raise KeyboardInterrupt
-            if command == "up":
-                logs.info(f"Uptime: {await gtils.ret_uptime(uptime)}", initiator="RoWhoIs.input_listener")
-            if command == "shards":
-                logs.info(f"Shards: {client.shard_count}", initiator="RoWhoIs.input_listener")
-            if command == "servers":
-                logs.info(f"Servers: {len(client.cache.get_guilds_view())}", initiator="RoWhoIs.input_listener")
-            if command == "users":
-                logs.info(f"Users: {sum(client.cache.get_guild(guild_id).member_count if client.cache.get_guild(guild_id).member_count is not None else 0 for guild_id in client.cache.get_guilds_view())}", initiator="RoWhoIs.input_listener")
-            if command == "cache":
-                logs.info(f"Cache Size: {round(sum(f.stat().st_size for f in Path('cache/').glob('**/*') if f.is_file()) / 1048576, 1)} MB", initiator="RoWhoIs.input_listener")
-            if command == "cflush":
-                if Path("cache/cursors.json").is_file():
-                    Path("cache/cursors.json").unlink()
-                logs.info(
-                    "Cursor Cache flushed", initiator="RoWhoIs.input_listener"
-                )
-            if command == "lflush":
-                for file in Path("logs/").glob("**/*"):
-                    if file.is_file() and file.name != "main.log":
-                        file.unlink()
-                logs.info("Logs flushed", initiator="RoWhoIs.input_listener")
-            if command == "flush":
-                for file in Path("cache/").glob("**/*"):
-                    if file.is_file():
-                        file.unlink()
-                logs.info("Cache flushed", initiator="RoWhoIs.input_listener")
-            if command == "reload":
-                load_config()
-                logs.info(
-                    "Configuration reloaded", initiator="RoWhoIs.input_listener"
-                )
-            if command == "proxies":
-                enabled_proxies, all_proxies = await globals.returnProxies()
-                logs.info("Proxies:", initiator="RoWhoIs.input_listener")
-                for proxy in all_proxies:
-                    if proxy in enabled_proxies:
-                        logs.info(
-                            f"\033[42m\033[37mON\033[0m  {proxy}", initiator="RoWhoIs.input_listener"
-                        )
-                    else:
-                        logs.info(
-                            f"\033[41m\033[37mOFF\033[0m {proxy}", initiator="RoWhoIs.input_listener"
-                        )
-        except Exception as e:
-            if not isinstance(e, RuntimeError):   # RTE happens when invalid config, usually
-                logs.error(
-                    f"Error in input listener: {type(e)}, {e}", initiator="RoWhoIs.input_listener"
-                )
-            else:
-                return False
-
-
 @client.listen(hikari.GuildJoinEvent)
 async def guild_join(event: hikari.GuildJoinEvent):
-    logs.info(f"RoWhoIs has joined a new server. Total servers: {len(client.cache.get_guilds_view())}. {'Updating registries...' if productionMode else ''}", initiator="RoWhoIs.guild_join")
+    logs.info(f"RoWhoIs has joined a new server. Total servers: {len(client.cache.get_guilds_view())}. {'Updating registries...' if productionMode else ''}")
     if productionMode:
         try:
             async with aiohttp.ClientSession() as session:
@@ -155,12 +68,12 @@ async def guild_join(event: hikari.GuildJoinEvent):
                 if botToken.get("dbl") != "":
                     async with session.post(f"https://discordbotlist.com/api/v1/bots/{client.get_me().id}/stats", headers={"Authorization": botToken.get("dbl")}, json={"guilds": len(client.cache.get_guilds_view())}): pass
         except Exception as e:
-            logs.error(f"Failed to update registries. {e}", initiator="RoWhoIs.guild_join")
+            logs.error(f"Failed to update registries. {e}")
 
 
-@commands.Command(context="Command", intensity="low", requires_connection=False)
-async def help(interaction: hikari.CommandInteraction):
-    """List all of the commands RoWhoIs supports & what they do"""
+@bot.include
+@crescent.command("help", "List all of the commands RoWhoIs supports & what they do")
+class Help:
     embed = hikari.Embed(title="RoWhoIs Commands", color=3451360)
     embed.add_field(name="whois", value="Get detailed profile information from a User ID/Username", inline=True)
     embed.add_field(name="clothingtexture", value="Retrieves the texture file for a 2D clothing asset", inline=True)
@@ -181,10 +94,9 @@ async def help(interaction: hikari.CommandInteraction):
     embed.add_field(name="xbox2roblox", value="Converts an Xbox gamertag to a Roblox username", inline=True)
     embed.add_field(name="asset", value="Fetches an asset file from an asset ID. Not recommended for clothing textures", inline=True)
     embed.add_field(name="about", value="Shows a bit about RoWhoIs and advanced statistics", inline=True)
-    embed.set_footer(text="You have access to RoWhoIs+ features" if (interaction.entitlements or not productionMode) or (interaction.user.id in subscriptionBypass) else "Get RoWhoIs+ to use + commands")
-    await interaction.create_initial_response(
-        response_type=hikari.ResponseType.MESSAGE_CREATE, embed=embed
-    )
+    async def callback(self, ctx: crescent.Context):
+        self.embed.set_footer(text="You have access to RoWhoIs+ features" if (ctx.entitlements or not productionMode) or (ctx.user.id in subscriptionBypass) else "Get RoWhoIs+ to use + commands")
+        await ctx.respond(embed=self.embed)
 
 
 @commands.Command(context="Command", intensity="low", requires_connection=False)
@@ -461,9 +373,8 @@ async def isfriendswith(interaction: hikari.CommandInteraction, user1: str, user
         if friends['id'] == secondUser or friendName == secondUser:
             if friends['id'] in optOut:
                 embed.description = "This user's friend has requested to opt-out of the RoWhoIs search."
-                logs.warn(
+                logs.warning(
                     f"Opt-out user {friends['id']} was called by {interaction.user.id} and denied!",
-                    initiator="RoWhoIs.isfriendswith"
                 )
                 await interaction.create_initial_response(
                     response_type=hikari.ResponseType.MESSAGE_CREATE, embed=embed

@@ -4,6 +4,7 @@ Any function that requires global vars or is a task should not go here
 RoWhoIs 2024
 """
 from dataclasses import dataclass
+import logging
 import datetime
 import json
 import os
@@ -13,7 +14,7 @@ import time
 import aiofiles
 import hikari
 
-
+logs = logging.getLogger(__name__)
 
 async def fancy_time(initstamp: str, ret_type: str = "R") -> str:
     """Converts a datetime string or a Unix timestamp to a Discord relative time format"""
@@ -34,7 +35,6 @@ async def fancy_time(initstamp: str, ret_type: str = "R") -> str:
     except Exception as e:  # noqa: W0718
         await logs.error(
             f"Error formatting time: {e} | Returning fallback data: {initstamp}",
-            initiator="RoWhoIs.fancy_time"
         )
         return str(initstamp)
 

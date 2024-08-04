@@ -4,27 +4,55 @@ Library used for defining custom data types
 RoWhoIs 2024
 """
 from dataclasses import dataclass
+from typing import List, Dict
 import datetime
-from typing import List
 
 
 @dataclass
-class User:
-    """Used for defining a base user object"""
-    id: int
+class Token:
+    """Used for defining an x-csrf token, can be found in Authentication"""
+    x_csrf: str
+    fetched: datetime.datetime = datetime.datetime.now()
+
+
+@dataclass
+class Authentication:
+    production: str
+    testing: str
+    webhook: str
+    roblosecurity: str
+    topgg: str
+    dbl: str
+    token: Token | None
+
+
+@dataclass
+class RoWhoIs:
+    easter_egg_enabled: bool
+    opt_out: List[str]
+    banned_users: List[str] 
+    banned_assets: List[str]
+    admin_ids: List[str]
+    donors: List[str]
+    subscription_bypass: List[str]
+
+@dataclass
+class Proxying:
+    proxying_enabled: bool
+    proxy_urls: List[str]
     username: str | None
-    nickname: str | None
-    description: str | None
-    joined: str | None
-    banned: bool | None
-    verified: bool | None
-    online: bool | None
-    friends: int | None
-    followers: int | None
-    following: int | None
-    thumbnail: str | None
-    headshot: str | None
-    bust: str | None
+    password: str | None
+
+
+@dataclass
+class Server:
+    """Used for storing server information"""
+    production_mode: bool
+    authentication: Authentication 
+    rowhois: RoWhoIs
+    proxying: Proxying 
+    emojis: Dict[str, str]
+    uptime: datetime.datetime = datetime.datetime.now()
 
 
 @dataclass
@@ -58,6 +86,26 @@ class BaseAsset:
     """
     id: int
     name: str
+
+
+@dataclass
+class User:
+    """Used for defining a base user object"""
+    id: int
+    username: str | None
+    nickname: str | None
+    description: str | None
+    joined: str | None
+    banned: bool | None
+    verified: bool | None
+    online: bool | None
+    friends: int | None
+    followers: int | None
+    following: int | None
+    thumbnail: str | None
+    headshot: str | None
+    bust: str | None
+
 
 
 @dataclass

@@ -19,7 +19,6 @@
   },
   "Proxying": {
     "proxying_enabled": true,
-    "log_proxying": true,
     "proxy_urls": [],
     "username": "",
     "password": ""
