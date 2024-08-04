@@ -156,7 +156,7 @@ It's a general best practice to make sure the proxy is located within a close re
     "proxy_urls": ["http://192.168.0.1:8080", "http://192.168.1.0:8080"],
     "username": "rowhois",
     "password": "password123"
-  }    
+  }
 ```
 
 <sub>Example structure for proxy configuration</sub>
@@ -165,19 +165,17 @@ It's a general best practice to make sure the proxy is located within a close re
 
 RoWhoIs containerizes operation types by file. This eases development and makes the codebase easier to manage.
 
-First and foremost, `main.py`. This initializes `server/Roquest.py` with the needed parameters to begin making API calls to Roblox. Next is `server/RoWhoIs.py`. This is instantiated in `main.py` and is the main class for RoWhoIs. It handles all the commands and interactions with the user. You can find every public-facing RoWhoIs command in this file.
+First and foremost, `main.py`. This initializes `server/request.py` with the needed parameters to begin making API calls to Roblox. Next is `server/RoWhoIs.py`. This is instantiated in `main.py` and is the main class for RoWhoIs. It handles all the commands and interactions with the user. You can find every public-facing RoWhoIs command in this file.
 
-`server/app_commands.py` is the infrastructure for handling slash commands. This file is responsible for handling all the app commands RoWhoIs has. This not only serves as a wrapper to every command, it also validates user cooldowns, entitlements, and permissions. An added bonus of it being a wrapper is ease of error handling, as it's all done automatically.
+`server/commands.py` is the infrastructure for handling slash commands. This file is responsible for handling all the app commands RoWhoIs has. This not only serves as a wrapper to every command, it also validates user cooldowns, entitlements, and permissions. An added bonus of it being a wrapper is ease of error handling, as it's all done automatically.
 
-`server/RoModules.py` essentially is an 'API-wrapper' for Roblox, providing useful automatation such as raw user input strings to proper User objects and other useful, common functions.
+`server/modules.py` essentially is an 'API-wrapper' for Roblox, providing useful automatation such as raw user input strings to proper User objects and other useful, common functions.
 
 `utils/typedefs.py` contains all the type definitions for RoWhoIs. This is useful for type hinting and ensuring that the codebase is consistent. It also makes it easier to understand what each function is returning by converting certain data types to classes.
 
-`utils/logger.py` is the logging infrastructure for RoWhoIs. It logs all the interactions, errors, and other important information.
+`utils/gtils.py` contains general utilities that are used throughout the codebase. Generally this is for internal use, and does not interact with the API.
 
-`utils/gUtils.py` contains general utilities that are used throughout the codebase. Generally this is for internal use, and does not interact with the API.
-
-`utils/ErrorDict.py` contains all the error messages that RoWhoIs can return. This is useful for ensuring that the error messages are consistent and easy to understand and makes handling exceptions far more intuitive.
+`utils/errors.py` contains all the error messages that RoWhoIs can return. This is useful for ensuring that the error messages are consistent and easy to understand and makes handling exceptions far more intuitive.
 
 ## Caching
 
@@ -200,7 +198,7 @@ While if some instances of RoWhoIs don't operate in more than 2,500+ guilds (the
 
 In the log outputs, each user-invoked call will have a shard ID. This is the shard that the user's guild is located on. An example output of this is `.1`, meaning that that request was performed on shard 1.
 
-A full example log output: 
+A full example log output:
 
 ```
 I 2024-04-18 04:39:37,220 RoWhoIs.Roquest.0: http://168.181.229.86:50100;  GET friends | v1/users/5192280939/followers/count

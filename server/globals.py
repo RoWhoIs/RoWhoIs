@@ -1,16 +1,16 @@
-from utils import logger, ErrorDict
+from utils import errors
+from typing import Any
 from pathlib import Path
-from server import Roquest
+from server import request
 import asyncio, time, aiohttp
 
 heartBeat,  roliData, lastRoliUpdate, eggFollowers = False, {}, 0, []
-log_collector = logger.AsyncLogCollector("logs/main.log")
 
 async def coro_heartbeat():
     """[LOCAL COROUTINE, DO NOT USE]"""
     global heartBeat
     while True:
-        try: heartBeat = await Roquest.heartbeat()
+        try: heartBeat = await request.heartbeat()
         except Exception: heartBeat = False
         await asyncio.sleep(60)
 
@@ -19,13 +19,13 @@ async def coro_update_rolidata() -> None:
     global roliData, lastRoliUpdate
     while True:
         try:
-            newData = await Roquest.RoliData()
+            newData = await request.RoliData()
             if newData is not None:
                 lastRoliUpdate = time.time()
                 roliData = newData
-            else: await log_collector.error("Failed to update Rolimons data.", initiator="RoWhoIs.update_rolidata")
-        except ErrorDict.UnexpectedServerResponseError: pass
-        except Exception as e: await log_collector.error(f"Error updating Rolimons data: {e}", initiator="RoWhoIs.coro_update_rolidata")
+            else: logs.error("Failed to update Rolimons data.", initiator="RoWhoIs.update_rolidata")
+        except errors.UnexpectedServerResponseError: pass
+        except Exception as e: logs.error(f"Error updating Rolimons data: {e}", initiator="RoWhoIs.coro_update_rolidata")
         await asyncio.sleep(3600)
 
 async def coro_fetch_followers() -> None:
@@ -38,7 +38,7 @@ async def coro_fetch_followers() -> None:
                     if response.status == 200:
                         data = await response.json()
                         eggFollowers = data.get("followerIds", 0)
-        except Exception as e: await log_collector.error(f"Error fetching followers: {e}", initiator="RoWhoIs.coro_fetch_followers")
+        except Exception as e: logs.error(f"Error fetching followers: {e}", initiator="RoWhoIs.coro_fetch_followers")
         await asyncio.sleep(35)
 
 def init(eggEnabled: bool) -> None:
@@ -46,8 +46,8 @@ def init(eggEnabled: bool) -> None:
     if eggEnabled: loop.create_task(coro_fetch_followers())
     return
 
-async def returnProxies() -> list[tuple[str, str]]:
-    return [await Roquest.ret_on_prox(), await Roquest.ret_glob_proxies()]
+async def returnProxies() -> Any:
+    return [await request.ret_on_prox(), await request.ret_glob_proxies()]
 
 loop = asyncio.get_event_loop()
 loop.create_task(coro_heartbeat())
