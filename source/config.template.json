@@ -1,0 +1,23 @@
+{
+    "authentication": {
+        "prod-bot": "",
+        "dev-bot": "",
+        "webhook": "",
+        "roblosecurity": "",
+        "topgg-auth": ""
+    },
+    "moderation": {
+        "opt_out": [],
+        "banned_users": [],
+        "banned_assets": [],
+        "admin_ids": [],
+        "donors": [],
+        "subscription_bypass": []
+    },
+    "proxying": {
+        "enabled": false,
+        "proxy_urls": [],
+        "username": "",
+        "password": ""
+    }
+}
