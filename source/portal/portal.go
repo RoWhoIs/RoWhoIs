@@ -8,18 +8,20 @@ import (
 	"path/filepath"
 )
 
+// fileExists checks if a file exists
 func fileExists(filePath string) bool {
 	_, err := os.Stat(filePath)
 	return !os.IsNotExist(err)
 }
 
+// handler is a web server handler for the internal management portal
 func handler(w http.ResponseWriter, r *http.Request) {
 	requestedPath := "portal" + r.URL.Path
 	cleanPath := requestedPath
 	if filepath.Ext(requestedPath) == "" {
 		cleanPath += ".html"
 		if !fileExists(cleanPath) && r.URL.Path == "/" {
-			cleanPath = "portal/404.html"
+			cleanPath = "portal"
 		}
 	}
 	if fileExists(cleanPath) {
@@ -38,8 +40,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 }
 
 // StartServer initializes the internal management portal
-func StartServer(RunType string) error {
-	// RunType either "-d"/"-p" for development/production mode
+func StartServer() error {
 	http.HandleFunc("/", handler)
 	slog.Info("Initialized Internal Management Portal on http://localhost:63415")
 	go func() {

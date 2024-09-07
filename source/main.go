@@ -5,8 +5,12 @@ import (
 	"log"
 	"log/slog"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"rowhois/portal"
+	"rowhois/server"
+	"rowhois/utils"
 )
 
 func main() {
@@ -36,8 +40,24 @@ func main() {
 		slog.Error("A config.json is required in the root directory")
 		return
 	}
-
-	if portal.StartServer(os.Args[1]) != nil {
+	config, err := utils.LoadCfg()
+	if err != nil {
+		slog.Error("Failed to load config")
+		return
+	}
+	if portal.StartServer() != nil {
 		slog.Error("Failed to start server")
+	}
+	if os.Args[1] == "-p" {
+		server.NewServer(config.Authentication.ProdBot)
+	} else {
+		server.NewServer(config.Authentication.DevBot)
+
+	}
+	s := make(chan os.Signal, 1)
+	signal.Notify(s, syscall.SIGINT, syscall.SIGTERM)
+	sig := <-s
+	if sig == syscall.SIGTERM {
+		os.Exit(0)
 	}
 }
