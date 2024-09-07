@@ -7,7 +7,7 @@
 
 ## Introduction
 
-The RoWhoIs management portal is an internal tool for the server administrator to easily update, restart, start, shutdown, and modify RoWhoIs to meet their user's needs. This is also called the RMP.
+The RoWhoIs management portal is an internal tool for the server administrator to easily update, restart, start, shutdown, and modify RoWhoIs to meet their user's needs. This is also called the IMT (Internal Management Tool).
 
 ## Objective
 

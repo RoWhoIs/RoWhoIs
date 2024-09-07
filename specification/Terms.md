@@ -9,3 +9,5 @@ This specification is for defining commonly used terminology and abbreviations i
 | UAT           | User Acceptance Testing, ensuring that the software will meet common user expectations |
 | QA            | Quality Assurance, or testing the software as received from developers to ensure it doesn't have any defects |
 | RMP           | RoWhoIs Management Portal, see [Management Portal.md](Management_Portal.md) |
+| RWI           | This is short for RoWhoIs                         |
+| IMT           | This stands for "Internal Management Tool"        |
