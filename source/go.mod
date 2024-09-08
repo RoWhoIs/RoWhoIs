@@ -2,7 +2,9 @@ module rowhois
 
 go 1.22.6
 
-require github.com/disgoorg/disgo v0.18.11
+require (
+	github.com/disgoorg/disgo v0.18.11
+)
 
 require (
 	github.com/disgoorg/json v1.2.0 // indirect

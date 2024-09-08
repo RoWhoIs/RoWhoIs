@@ -23,3 +23,12 @@ type Config struct {
 		Password  string   `json:"password"`
 	} `json:"proxying"`
 }
+
+type StatusResponse struct {
+	Status    bool `json:"status"`
+	Users     int  `json:"users"`
+	Servers   int  `json:"servers"`
+	Shards    int  `json:"shards"`
+	CacheSize int  `json:"cache_size"`
+	Uptime    int  `json:"uptime"`
+}

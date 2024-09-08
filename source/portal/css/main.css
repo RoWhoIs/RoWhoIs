@@ -5,3 +5,96 @@ body {
     margin: 3;
     padding: 1;
 }
+
+button {
+    background-color: #131313;
+    color: #fff;
+    border: none;
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    border-radius: 4px;
+}
+
+button:hover {
+    background-color: #333;
+}
+
+button:focus {
+    outline: none;
+}
+
+button:active {
+    background-color: #555;
+}
+
+.danger-button {
+    background-color: rgb(92, 30, 30);
+    color: #fff;
+    border: none;
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.danger-button:hover {
+    background-color: rgb(148, 44, 44);
+}
+
+.danger-button:focus {
+    outline: none;
+}
+
+.danger-button:active {
+    background-color: #800000;
+}
+
+.disabled-button {
+    background-color: #333;
+    color: #fff;
+    border: none;
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: not-allowed;
+    transition: background-color 0.3s ease;
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+.disabled-button:hover {
+    background-color: #333;
+}
+
+.disabled-button:focus {
+    outline: none;
+}
+
+.disabled-button:active {
+    background-color: #333;
+}
+
+.disabled-danger-button {
+    background-color: rgb(92, 30, 30);
+    color: #fff;
+    border: none;
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: not-allowed;
+    transition: background-color 0.3s ease;
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+.disabled-danger-button:hover {
+    background-color: rgb(92, 30, 30);
+}
+
+.disabled-danger-button:focus {
+    outline: none;
+}
+
+.disabled-danger-button:active {
+    background-color: rgb(92, 30, 30);
+}

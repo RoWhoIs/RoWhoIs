@@ -1,13 +1,23 @@
 package portal
 
 import (
+	"encoding/json"
 	"log/slog"
 	"mime"
 	"net/http"
 	"os"
 	"path/filepath"
 	"rowhois/server"
+	"rowhois/utils"
+
+	"github.com/disgoorg/disgo/bot"
 )
+
+var Client bot.Client
+
+func InjectClient(client bot.Client) {
+	Client = client
+}
 
 // fileExists checks if a file exists
 func fileExists(filePath string) bool {
@@ -33,10 +43,25 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, requestedPath)
 	} else if r.URL.Path == "/api/stats" {
 		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(`{"status":"ok"}`))
+		status := utils.StatusResponse{
+			Status:    server.ClientRunning(Client),
+			Users:     0,
+			Servers:   0,
+			Shards:    0,
+			CacheSize: 0,
+			Uptime:    0,
+		}
+
+		jsonData, err := json.Marshal(status)
+		if err != nil {
+			// Handle the error
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		w.Write(jsonData)
 	} else if r.URL.Path == "/api/shutdown" {
 		// TODO: Validate that server is running before shutting down
-		server.EndServer()
 		w.Header().Set("Content-Type", "application/json")
 		w.Write([]byte(`{"status":"ok"}`))
 	} else if r.URL.Path == "/api/start" {

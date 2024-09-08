@@ -9,20 +9,22 @@
         <br>
         <script src="./js/stats.js"></script>
         <br>
-        <button onclick="shutdown()">Shutdown</button>
+        <button onclick="shutdown()" class="danger-button">Shutdown</button>
         <script>
             function shutdown() {
-                const p = document.createElement('p');
-                document.body.appendChild(p);
-                fetch('/api/shutdown')
-                    .then(response => response.json())
+            fetch('/api/shutdown')
+                .then(response => response.json())
                 .then(data => {
-                    p.textContent = JSON.stringify(data);
+                if (data.status === "ok") {
+                    document.querySelector('.danger-button').disabled = true;
+                    document.querySelector('.danger-button').classList.add('disabled-danger-button');
+                }
                 })
                 .catch(error => {
-                    console.error(error);
+                console.error(error);
                 });
             }
+        </script>
         </script>
     </body>
 </html>

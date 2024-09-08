@@ -14,7 +14,27 @@ import (
 	"rowhois/utils"
 )
 
+func selectToken(args []string, config utils.Config) *string {
+	switch args[1] {
+	case "-d":
+		return &config.Authentication.DevBot
+	case "-p":
+		return &config.Authentication.ProdBot
+
+	}
+	return nil
+}
+
 func main() {
+	err := os.MkdirAll("logs", os.ModePerm)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	_, err = os.Create("logs/main.log")
+	if err != nil {
+		log.Fatal(err)
+	}
 	file, err := os.OpenFile("logs/main.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err != nil {
 		log.Fatal(err)
@@ -51,29 +71,20 @@ func main() {
 		slog.Error("Failed to start server")
 	}
 	slog.Info("Initializing RoWhoIs...")
-
-	if os.Args[1] == "-p" {
-		_, err := server.NewServer(config.Authentication.ProdBot)
-		if err != nil {
-			slog.Error("Failed to start server")
-			return
-		}
-	} else {
-		_, err := server.NewServer(config.Authentication.DevBot)
-		if err != nil {
-			slog.Error("Failed to start server")
-			return
-		}
+	token := selectToken(os.Args, config)
+	client, err := server.NewServer(*token)
+	if err != nil {
+		slog.Error("Failed to start client")
+		return
 	}
-
+	portal.InjectClient(client)
 	s := make(chan os.Signal, 1)
 	signal.Notify(s, syscall.SIGINT, syscall.SIGTERM)
-
 	go func() {
 		sig := <-s
 		if sig == syscall.SIGINT || sig == syscall.SIGTERM {
 			slog.Info("Shutting down RoWhoIs...")
-			server.EndServer()
+			server.EndServer(client)
 			os.Rename("logs/main.log", "logs/"+time.Now().Format("01022006-150405")+".log")
 			os.Exit(0)
 		}
