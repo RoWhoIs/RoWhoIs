@@ -8,5 +8,21 @@
         <h1>RoWhoIs Management Portal</h1>
         <br>
         <script src="./js/stats.js"></script>
+        <br>
+        <button onclick="shutdown()">Shutdown</button>
+        <script>
+            function shutdown() {
+                const p = document.createElement('p');
+                document.body.appendChild(p);
+                fetch('/api/shutdown')
+                    .then(response => response.json())
+                .then(data => {
+                    p.textContent = JSON.stringify(data);
+                })
+                .catch(error => {
+                    console.error(error);
+                });
+            }
+        </script>
     </body>
 </html>
