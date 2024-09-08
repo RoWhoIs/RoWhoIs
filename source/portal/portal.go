@@ -30,6 +30,9 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	} else if fileExists(requestedPath) {
 		w.Header().Set("Content-Type", mime.TypeByExtension(filepath.Ext(requestedPath)))
 		http.ServeFile(w, r, requestedPath)
+	} else if r.URL.Path == "/api/stats" {
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{"status":"ok"}`))
 	} else {
 		if fileExists("portal/404.html") {
 			http.ServeFile(w, r, "portal/404.html")
@@ -42,7 +45,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 // StartServer initializes the internal management portal
 func StartServer() error {
 	http.HandleFunc("/", handler)
-	slog.Info("Initialized Internal Management Portal on http://localhost:63415")
+	slog.Info("Initialized Internal Management Portal! [http://localhost:63415]")
 	go func() {
 		err := http.ListenAndServe(":63415", nil)
 		if err != nil {

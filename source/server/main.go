@@ -17,21 +17,22 @@ func onMessageCreate(event *events.InteractionCreate) {
 }
 
 func onClientReady(event *events.Ready) {
-	slog.Info("RoWhoIs initialized! Running as " + event.User.Username)
+	// Might not persist presence on reconnect
+	event.Client().SetPresence(context.TODO(), gateway.WithWatchingActivity("over Robloxia"))
+	slog.Info(fmt.Sprintf("Initialized RoWhoIs! [%s/%d]", event.User.Username, event.User.ID))
 }
 
-func NewServer(token string) {
-	client, err := disgo.New(token,
+var Client bot.Client
 
+func NewServer(token string) (bot.Client, error) {
+	var err error
+	Client, err = disgo.New(token,
 		bot.WithGatewayConfigOpts(
-
 			gateway.WithIntents(
-				gateway.IntentGuilds,
-				gateway.IntentGuildMessages,
-				gateway.IntentDirectMessages,
+				gateway.IntentsNonPrivileged,
 			),
+			gateway.WithAutoReconnect(true),
 		),
-
 		bot.WithEventListenerFunc(
 			func(e *events.InteractionCreate) {
 				onMessageCreate(e)
@@ -44,11 +45,18 @@ func NewServer(token string) {
 		),
 	)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
-	if err = client.OpenGateway(context.TODO()); err != nil {
-		panic(err)
+	if err = Client.OpenGateway(context.TODO()); err != nil {
+		return nil, err
 	}
+	return Client, nil
+}
 
+func EndServer() {
+	if Client == nil {
+		return
+	}
+	Client.Close(context.TODO())
 }
