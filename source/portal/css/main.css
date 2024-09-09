@@ -7,7 +7,7 @@ body {
 }
 
 button {
-    background-color: #131313;
+    background-color: #383838;
     color: #fff;
     border: none;
     padding: 10px 20px;
@@ -18,7 +18,7 @@ button {
 }
 
 button:hover {
-    background-color: #333;
+    background-color: #505050;
 }
 
 button:focus {
@@ -26,8 +26,9 @@ button:focus {
 }
 
 button:active {
-    background-color: #555;
+    background-color: #6b6b6b;
 }
+
 
 .danger-button {
     background-color: rgb(92, 30, 30);
@@ -97,4 +98,51 @@ button:active {
 
 .disabled-danger-button:active {
     background-color: rgb(92, 30, 30);
+}
+
+.go-button {
+    background-color: rgb(35, 92, 30);
+    color: #fff;
+    border: none;
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    border-radius: 4px;
+}
+
+.go-button:hover {
+    background-color: rgb(44, 148, 84);
+}
+
+.go-button:focus {
+    outline: none;
+}
+
+.go-button:active {
+    background-color: rgb(61, 148, 44)
+}
+
+.disabled-go-button {
+    background-color: rgb(44, 148, 84);
+    color: #fff;
+    border: none;
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: not-allowed;
+    transition: background-color 0.3s ease;
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+.disabled-go-button:hover {
+    background-color: rgb(44, 148, 84);
+}
+
+.disabled-go-button:focus {
+    outline: none;
+}
+
+.disabled-go-button:active {
+    background-color: rgb(44, 148, 84);
 }

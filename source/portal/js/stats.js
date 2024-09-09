@@ -1,14 +1,23 @@
 const p = document.createElement('p');
 document.body.appendChild(p);
 
+
 function fetchData() {
     fetch('/api/stats')
         .then(response => response.json())
         .then(data => {
             if (data.status === false) {
                 runblurb = "Offline";
+                document.querySelector('.danger-button').disabled = true;
+                document.querySelector('.go-button').disabled = false;
+                document.querySelector('.danger-button').classList.add('disabled-danger-button');
+                document.querySelector('.go-button').classList.remove('disabled-go-button');
             } else {
                 runblurb = "Online";
+                document.querySelector('.danger-button').disabled = false;
+                document.querySelector('.go-button').disabled = true;
+                document.querySelector('.danger-button').classList.remove('disabled-danger-button');
+                document.querySelector('.go-button').classList.add('disabled-go-button');
             }
             p.innerHTML = `
             <strong>Status:</strong> ${runblurb}<br>
@@ -24,6 +33,7 @@ function fetchData() {
         });
 }
 
-fetchData();
-
-setInterval(fetchData, 5000);
+document.addEventListener('DOMContentLoaded', function() {
+    fetchData();
+    setInterval(fetchData, 5000);
+});

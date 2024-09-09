@@ -35,13 +35,8 @@ func handler(w http.ResponseWriter, r *http.Request) {
 			cleanPath = "portal"
 		}
 	}
-	if fileExists(cleanPath) {
-		w.Header().Set("Content-Type", mime.TypeByExtension(filepath.Ext(cleanPath)))
-		http.ServeFile(w, r, cleanPath)
-	} else if fileExists(requestedPath) {
-		w.Header().Set("Content-Type", mime.TypeByExtension(filepath.Ext(requestedPath)))
-		http.ServeFile(w, r, requestedPath)
-	} else if r.URL.Path == "/api/stats" {
+	switch r.URL.Path {
+	case "/api/stats":
 		w.Header().Set("Content-Type", "application/json")
 		status := utils.StatusResponse{
 			Status:    server.ClientRunning(Client),
@@ -58,19 +53,30 @@ func handler(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-
 		w.Write(jsonData)
-	} else if r.URL.Path == "/api/shutdown" {
-		// TODO: Validate that server is running before shutting down
+	case "/api/shutdown":
 		w.Header().Set("Content-Type", "application/json")
+		if !server.ClientRunning(Client) {
+			http.Error(w, "Server already down", http.StatusBadRequest)
+			return
+		}
+		server.EndServer(Client)
 		w.Write([]byte(`{"status":"ok"}`))
-	} else if r.URL.Path == "/api/start" {
-		// TODO: Create a function to return the current client instance
-		// Use that to copy auth token and start a new client instance
+	case "/api/start":
 		w.Header().Set("Content-Type", "application/json")
+		if !server.ClientRunning(Client) {
+			http.Error(w, "Server already up", http.StatusBadRequest)
+			return
+		}
 		w.Write([]byte(`{"status":"ok"}`))
-	} else {
-		if fileExists("portal/404.html") {
+	default:
+		if fileExists(cleanPath) {
+			w.Header().Set("Content-Type", mime.TypeByExtension(filepath.Ext(cleanPath)))
+			http.ServeFile(w, r, cleanPath)
+		} else if fileExists(requestedPath) {
+			w.Header().Set("Content-Type", mime.TypeByExtension(filepath.Ext(requestedPath)))
+			http.ServeFile(w, r, requestedPath)
+		} else if fileExists("portal/404.html") {
 			http.ServeFile(w, r, "portal/404.html")
 		} else {
 			http.NotFound(w, r)

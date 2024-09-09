@@ -1,5 +1,10 @@
 package utils
 
+import (
+	"github.com/disgoorg/disgo/discord"
+	"github.com/disgoorg/disgo/events"
+)
+
 type Config struct {
 	Authentication struct {
 		ProdBot       string `json:"prod-bot"`
@@ -31,4 +36,14 @@ type StatusResponse struct {
 	Shards    int  `json:"shards"`
 	CacheSize int  `json:"cache_size"`
 	Uptime    int  `json:"uptime"`
+}
+
+type SlashCommand struct {
+	discord.SlashCommandCreate
+
+	Handler     func(event *events.ApplicationCommandInteractionCreate)
+	Name        string
+	Description string
+	Intensity   int
+	Plus        bool
 }
