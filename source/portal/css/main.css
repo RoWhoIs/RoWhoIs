@@ -146,3 +146,26 @@ button:active {
 .disabled-go-button:active {
     background-color: rgb(44, 148, 84);
 }
+
+/* For whatever fucking reason this doesn't work */
+
+div.nav a {
+    text-decoration:none;
+    color:#fff;
+    text-transform:uppercase;
+    transition:color .3s ease
+}
+
+div.nav a:after {
+    content:"";
+    left:0;
+    height:2px;
+    background:#1cc6e0;
+    transform:scaleX(0);
+    transform-origin:right;
+    transition:transform .5s ease
+}
+
+div.nav h1 {
+    padding-bottom: 0%;
+}

@@ -8,7 +8,7 @@ import (
 	"github.com/disgoorg/disgo/events"
 )
 
-func ping(server *Server) func(event *events.ApplicationCommandInteractionCreate) {
+func Ping() func(event *events.ApplicationCommandInteractionCreate) {
 	return func(event *events.ApplicationCommandInteractionCreate) {
 		data := event.SlashCommandInteractionData()
 		err := event.CreateMessage(discord.NewMessageCreateBuilder().

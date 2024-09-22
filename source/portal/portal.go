@@ -64,9 +64,19 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(`{"status":"ok"}`))
 	case "/api/start":
 		w.Header().Set("Content-Type", "application/json")
+		server.RunServer(Client)
 		if !server.ClientRunning(Client) {
 			http.Error(w, "Server already up", http.StatusBadRequest)
 			return
+		}
+		w.Write([]byte(`{"status":"ok"}`))
+	case "/api/restart":
+		w.Header().Set("Content-Type", "application/json")
+		if !server.ClientRunning(Client) {
+			server.RunServer(Client)
+		} else {
+			server.EndServer(Client)
+			server.RunServer(Client)
 		}
 		w.Write([]byte(`{"status":"ok"}`))
 	default:

@@ -74,9 +74,10 @@ func main() {
 	token := selectToken(os.Args, config)
 	client, err := server.NewServer(*token)
 	if err != nil {
-		slog.Error("Failed to start client")
+		slog.Error("Failed to create client")
 		return
 	}
+	server.RunServer(client)
 	portal.InjectClient(client)
 	s := make(chan os.Signal, 1)
 	signal.Notify(s, syscall.SIGINT, syscall.SIGTERM)

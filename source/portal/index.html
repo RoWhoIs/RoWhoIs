@@ -2,10 +2,20 @@
 <html>
     <head>
         <title>RWI IMT</title>
-        <link rel="stylesheet" type="text/css" href="./css/main.css">
+        <link rel="stylesheet" type="text/css" href="/css/main.css">
     </head>
     <body>
-        <h1>RoWhoIs Management Portal</h1>
+        <div id="navbar"></div>
+        <script>
+            fetch('/static/navbar.html')
+            .then(response => response.text())
+            .then(data => {
+                document.getElementById('navbar').innerHTML = data;
+            })
+            .catch(error => {
+                console.error('Error fetching navbar:', error);
+            });
+        </script>
         <br>
         <script src="./js/stats.js"></script>
         <br>
@@ -15,8 +25,23 @@
             <button onclick="restart()">Restart</button>
         </div>
         <script>
+            function start() {
+            fetch('/api/start')
+            .then(() => {
+                FetchData();
+            })
+            }
             function shutdown() {
             fetch('/api/shutdown')
+            .then(() => {
+                FetchData();
+            })
+            }
+            function restart() {
+            fetch('/api/restart')
+            .then(() => {
+                FetchData();
+            })
             }
         </script>
         </script>

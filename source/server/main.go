@@ -51,10 +51,10 @@ func slashCommandHandler(slashCommands []utils.SlashCommand) func(event *events.
 	}
 }
 
-func slashCommands(server *Server) []utils.SlashCommand {
+func slashCommands() []utils.SlashCommand {
 	return []utils.SlashCommand{
 		{
-			Handler:   ping(server),
+			Handler:   Ping(),
 			Plus:      false,
 			Intensity: 0,
 			SlashCommandCreate: discord.SlashCommandCreate{
@@ -110,11 +110,14 @@ func NewServer(token string) (bot.Client, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	if err = client.OpenGateway(context.TODO()); err != nil {
-		return nil, err
-	}
 	return client, nil
+}
+
+func RunServer(client bot.Client) error {
+	if err := client.OpenGateway(context.TODO()); err != nil {
+		return err
+	}
+	return nil
 }
 
 func EndServer(client bot.Client) {
