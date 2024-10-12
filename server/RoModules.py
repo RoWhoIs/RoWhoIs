@@ -77,7 +77,7 @@ async def get_previous_usernames(user_id: int, shard_id: int):
         next_page_cursor = data[1].get("nextPageCursor")
         if not next_page_cursor: break
     return usernames
-    
+
 async def get_socials(user_id: int, shard_id: int) -> tuple[int, int, int]:
     """Returns Friends, Followers, Following"""
     friend_count, following_count, follow_count = await asyncio.gather(Roquest.Roquest("GET", "friends", f"v1/users/{user_id}/friends/count", shard_id=shard_id), Roquest.Roquest("GET", "friends", f"v1/users/{user_id}/followings/count", shard_id=shard_id), Roquest.Roquest("GET", "friends", f"v1/users/{user_id}/followers/count", shard_id=shard_id))
@@ -93,7 +93,7 @@ async def get_groups(user_id: int, shard_id: int):
     group_data = await Roquest.Roquest("GET", "groups", f"v1/users/{user_id}/groups/roles", shard_id=shard_id)
     await general_error_handler(group_data[0])
     return group_data[1]
-    
+
 async def get_player_bust(user_id: int, size: str, shard_id: int):
     thumbnail_url = await Roquest.Roquest("GET", "thumbnails", f"v1/users/avatar-headshot?userIds={user_id}&size={size}&format=Png&isCircular=false", shard_id=shard_id, failretry=True)
     if thumbnail_url[0] != 200: return "https://rowhois.com/not-available.png"
@@ -321,16 +321,16 @@ async def nil_pointer() -> int:
 async def get_full_player_profile(user: int, shard_id: int) -> Tuple[typedefs.User, int, List[str], List[dict[int, str]], int]:
     """Returns a User object, group count, previous usernames, Roblox badges, and verified email status."""
     tasks = [
-        get_player_profile(user, shard_id), # we WANT to propogate if this errors
-        gUtils.safe_wrapper(get_player_headshot, user, shard_id),
-        gUtils.safe_wrapper(get_player_thumbnail, user, "420x420", shard_id),
-        gUtils.safe_wrapper(last_online, user, shard_id),
-        gUtils.safe_wrapper(get_socials, user, shard_id),
-        gUtils.safe_wrapper(get_groups, user, shard_id),
-        gUtils.safe_wrapper(get_previous_usernames, user, shard_id),
-        gUtils.safe_wrapper(roblox_badges, user, shard_id),
-        gUtils.safe_wrapper(check_verification, user, shard_id)
-    ]
+        get_player_profile(user, shard_id),
+        get_player_headshot(user, shard_id),
+        get_player_thumbnail(user, "420x420", shard_id),
+        last_online(user, shard_id),
+        get_socials(user, shard_id),
+        get_groups(user, shard_id),
+        get_previous_usernames(user, shard_id),
+        roblox_badges(user, shard_id),
+        check_verification(user, shard_id)
+    ] # Originally used safe_wrapper, shouldn't use, error propogation needed
     profile, headshot, thumbnail, online, socials, groups, usernames, badges, email_verification = await asyncio.gather(*tasks)
     user = typedefs.User(id=user, username=profile.username, nickname=profile.nickname, verified=profile.verified, description=profile.description, joined=profile.joined, online=online, banned=profile.banned, friends=socials[0], followers=socials[1], following=socials[2], thumbnail=thumbnail, headshot=headshot)
     return user, len(groups['data']), usernames, badges, email_verification
