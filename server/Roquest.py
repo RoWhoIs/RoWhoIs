@@ -28,7 +28,7 @@ async def proxy_handler() -> None:
         while globProxies.enabled:
             async def test_proxy(alivesession, proxy_url):
                 try:
-                    async with alivesession.get("https://auth.roblox.com/", headers={"User-Agent": uasString}, proxy=proxy_url, proxy_auth=globProxies.auth, timeout=2) as response:
+                    async with alivesession.get("https://auth.roblox.com/v2/logout", headers={"User-Agent": uasString}, proxy=proxy_url, proxy_auth=globProxies.auth, timeout=2) as response:
                         if response.status == 200: return True
                 except Exception: pass
                 return False
