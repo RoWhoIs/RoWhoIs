@@ -73,6 +73,7 @@ These can all be found in `config.json` under the `Authentication` key.
     "production": "Production bot token here",
     "testing": "Testing bot token here",
     "roblosecurity": "Roblosecurity cookie here",
+    "api_key": "Roblox-provided Cloud API key here"
     "topgg": "Top.GG token here",
     "dbl": "DiscordBotList token here"
   }
@@ -155,7 +156,7 @@ It's a general best practice to make sure the proxy is located within a close re
     "proxy_urls": ["http://192.168.0.1:8080", "http://192.168.1.0:8080"],
     "username": "rowhois",
     "password": "password123"
-  }    
+  }
 ```
 
 <sub>Example structure for proxy configuration</sub>
@@ -199,7 +200,7 @@ While if some instances of RoWhoIs don't operate in more than 2,500+ guilds (the
 
 In the log outputs, each user-invoked call will have a shard ID. This is the shard that the user's guild is located on. An example output of this is `.1`, meaning that that request was performed on shard 1.
 
-A full example log output: 
+A full example log output:
 
 ```
 I 2024-04-18 04:39:37,220 RoWhoIs.Roquest.0: http://168.181.229.86:50100;  GET friends | v1/users/5192280939/followers/count

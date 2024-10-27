@@ -28,9 +28,10 @@ class User:
 
 class UserAuth:
     """Used for defining a base authenticated user object"""
-    def __init__(self, token: str, csrf: str):
+    def __init__(self, token: str, csrf: str, api_key: str):
         self.token = token
         self.csrf = csrf
+        self.api_key = api_key
 
 
 class Proxy:

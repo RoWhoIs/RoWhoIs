@@ -14,7 +14,7 @@ def initialize(config, version: str, modded: bool):
         global productionMode, globProxies, BaseUserAuth, currentProxy, poolProxies, uasString
         globProxies = typedefs.Proxies(config["Proxying"]["proxying_enabled"], config["Proxying"]["proxy_urls"], config["Proxying"]["username"], config["Proxying"]["password"], config["Proxying"]["log_proxying"])
         productionMode = config["RoWhoIs"]["production_mode"]
-        BaseUserAuth = typedefs.UserAuth(config["Authentication"]["roblosecurity"], "")
+        BaseUserAuth = typedefs.UserAuth(config["Authentication"]["roblosecurity"], "", config["Authentication"]["api_key"])
         uasString = f"RoWhoIs-server/{version}; {'modified' if modded else 'genuine'} ({'prod-mode' if productionMode else 'testing-mode'})"
         currentProxy, poolProxies = typedefs.Proxy(None), typedefs.Proxies(globProxies.enabled, [])
         if globProxies.enabled: loop.create_task(proxy_handler())
@@ -102,7 +102,7 @@ async def Roquest(method: str, node: str, endpoint: str, shard_id: int = None, f
     """Performs a request to the Roblox API. Returns a tuple with the status code and the response data.
     bypass_proxy will override proxying and perform an authenticated roquest"""
     for retry in range(3):
-        async with aiohttp.ClientSession(cookies={".roblosecurity": BaseUserAuth.token} if bypass_proxy else {}, headers={"x-csrf-token": BaseUserAuth.csrf, 'User-Agent': uasString} if bypass_proxy else {'User-Agent': uasString}) as main_session:
+        async with aiohttp.ClientSession(cookies={".roblosecurity": BaseUserAuth.token} if bypass_proxy else {}, headers={"x-csrf-token": BaseUserAuth.csrf, 'User-Agent': uasString, 'x-api-key': BaseUserAuth.api_key} if bypass_proxy else {'User-Agent': uasString}) as main_session:
             try:
                 if not bypass_proxy: await proxy_picker()
                 logBlurb = f"{currentProxy.ip + ';' if currentProxy.ip is not None and not bypass_proxy else 'non-proxied;'}  {method.upper()} {node} {'| ' + endpoint if endpoint != '' else endpoint}"
